@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lembar Disposisi & Kartu Surat Masuk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #475569; color: #000; }
+        .sheet-container {
+            width: 210mm; min-height: 297mm; padding: 10mm 15mm; margin: 10mm auto; background: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 / 0.1); box-sizing: border-box;
+        }
+        table { border-collapse: collapse; width: 100%; }
+        table, th, td { border: 1px solid #000; }
+        th, td { padding: 4px 6px; font-size: 11px; vertical-align: top; }
+        
+        .custom-styled-sheet {
+            font-size: var(--sheet-font-size, 11px);
+            line-height: var(--sheet-line-height, 1.25);
+        }
+        .custom-styled-sheet td, .custom-styled-sheet th {
+            font-size: var(--sheet-font-size, 11px);
+        }
+
+        @media print {
+            body { background: none; }
+            .no-print { display: none !important; }
+            .sheet-container { margin: 0; box-shadow: none; padding: 10mm; width: 100%; }
+        }
+    </style>
+</head>
+<body class="py-6">
+
+    <!-- Toolbar Atas (No Print) -->
+    <div class="no-print max-w-[210mm] mx-auto mb-4 flex flex-wrap justify-between items-center bg-white p-3 rounded-lg shadow gap-2">
+        <button type="button" onclick="goBackToList()" class="bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded text-xs font-semibold transition">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleSettingPanel()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded text-xs font-semibold transition">
+                <i class="fa-solid fa-sliders mr-1"></i> Atur Halaman
+            </button>
+            <button onclick="openEditModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded text-xs font-semibold transition">
+                <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
+            </button>
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs font-semibold transition">
+                <i class="fa-solid fa-print mr-1"></i> Cetak
+            </button>
+        </div>
+    </div>
+
+    <!-- Panel Pengaturan Halaman -->
+    <div id="settingPanel" class="no-print max-w-[210mm] mx-auto mb-4 bg-white p-4 rounded-lg shadow hidden border border-amber-300">
+        <div class="flex justify-between items-center mb-3 border-b pb-2">
+            <h3 class="font-bold text-slate-800 text-xs uppercase"><i class="fa-solid fa-gear mr-1 text-amber-600"></i> Pengaturan Tampilan & Cetak Disposisi</h3>
+            <button onclick="toggleSettingPanel()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+                <label class="block font-medium text-slate-600 mb-1">Ukuran Font:</label>
+                <select id="settingFontSize" class="w-full border rounded p-1.5 bg-slate-50" onchange="applySettings()">
+                    <option value="10px">Kecil (10px)</option>
+                    <option value="11px" selected>Normal (11px)</option>
+                    <option value="12px">Sedang (12px)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block font-medium text-slate-600 mb-1">Spasi Baris:</label>
+                <select id="settingLineHeight" class="w-full border rounded p-1.5 bg-slate-50" onchange="applySettings()">
+                    <option value="1.15">Rapat (1.15)</option>
+                    <option value="1.25" selected>Normal (1.25)</option>
+                    <option value="1.4">Renggang (1.4)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- LEMBAR DISPOSISI UTAMA -->
+    <div class="sheet-container custom-styled-sheet space-y-4">
+        
+        <!-- BAGIAN 1: LEMBAR DISPOSISI -->
+        <div>
+            <!-- KOP SURAT DENGAN LOGO KABUPATEN HST -->
+            <div class="flex items-center border-2 border-b-0 border-black p-2">
+                <div class="w-16 flex justify-center shrink-0">
+                    <img src="logo-HST.jpg" alt="Logo HST" class="w-12 h-14 object-contain"
+                         data-fallbacks="https://lh3.googleusercontent.com/d/1KJ5C6xVmgLjeO012qqSqUJZVkl_S80mZ=s200|https://drive.google.com/thumbnail?id=1KJ5C6xVmgLjeO012qqSqUJZVkl_S80mZ&sz=w200|https://upload.wikimedia.org/wikipedia/commons/b/b2/Logo_Kabupaten_Hulu_Sungai_Tengah.png"
+                         onerror="(function(img){var f=(img.dataset.fallbacks||'').split('|').filter(Boolean); if(!f.length) return; img.src=f.shift(); img.dataset.fallbacks=f.join('|');})(this);">
+                </div>
+                <div class="flex-1 text-center px-2">
+                    <p class="text-xs font-bold uppercase tracking-wide">Pemerintah Kabupaten Hulu Sungai Tengah</p>
+                    <h1 id="val_instansi" class="text-sm font-extrabold uppercase tracking-wider">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</h1>
+                    <p class="text-[9px] text-slate-800 leading-tight mt-0.5">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</p>
+                    <p class="text-[9px] text-slate-800 leading-tight">Pos-el dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id</p>
+                </div>
+            </div>
+
+            <div class="border border-black border-b-0 bg-slate-100 text-center font-bold text-xs py-1 uppercase tracking-widest">LEMBAR DISPOSISI</div>
+            
+            <table>
+                <tr>
+                    <td style="width: 55%;">
+                        <strong>Surat Dari</strong> &nbsp;: <span id="val_pengirim">-</span>
+                    </td>
+                    <td style="width: 45%;">
+                        <strong>Diterima Tgl</strong> &nbsp;: <span id="val_tanggal_terima">-</span><br>
+                        <strong>No. Agenda</strong> &nbsp;: <span id="val_agenda">&nbsp;</span><br>
+                        <div class="mt-0.5">
+                            <strong>Sifat</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 
+                            <span class="inline-flex items-center gap-2 text-[10px] mt-0.5">
+                                <span class="border border-black px-1 py-0.2">&nbsp;</span> Sangat Segera 
+                                <span class="border border-black px-1 py-0.2">&nbsp;</span> Segera 
+                                <span class="border border-black px-1 py-0.2">&nbsp;</span> Rahasia
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>No. Surat</strong> &nbsp;: <span id="val_nomor_surat">-</span><br>
+                        <strong>Tgl. Surat</strong> &nbsp;&nbsp;: <span id="val_tanggal_surat">-</span>
+                    </td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <strong>Hal</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span id="val_perihal">-</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="vertical-align: top;">
+                        <strong>Diteruskan Kepada Sdr :</strong><br>
+                        <div id="val_disposisi_kepada_list" class="space-y-1.5 mt-1.5 text-[11px]">
+                            <div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black"></div> <span class="text-slate-400">—</span></div>
+                        </div>
+                    </td>
+                    <td style="vertical-align: top;">
+                        <strong>Dengan Hormat Harap :</strong><br>
+                        <div class="space-y-1.5 mt-1.5 text-[11px]">
+                            <div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black"></div> Tanggapan dan Saran</div>
+                            <div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black"></div> Proses Lebih Lanjut</div>
+                            <div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black"></div> Koordinasi / Konfirmasikan</div>
+                            <div class="border-b border-dotted border-black mt-4 pt-1"></div>
+                            <div class="border-b border-dotted border-black mt-3"></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="height: 110px; vertical-align: top;">
+                        <strong>Catatan</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span id="val_isi_disposisi">-</span>
+                        
+                        <!-- Posisi Tanda Tangan Kepala Dinas -->
+                        <div class="mt-6 flex justify-end">
+                            <div class="text-center w-64">
+                                <p class="font-semibold text-xs">Kepala Dinas</p>
+                                <br><br>
+                                <p class="font-bold underline text-xs">EDDY RAHMAWAN, S.STP, M.IP</p>
+                                <p class="text-[10px]">NIP 198709122006021002</p>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="my-6 border-b-2 border-dashed border-slate-400 no-print"></div>
+
+        <!-- BAGIAN 2: KARTU SURAT MASUK -->
+        <div>
+            <table>
+                <tr>
+                    <td rowspan="6" style="width: 35px; text-align: center; vertical-align: middle; font-size: 8.5px; font-weight: bold; background: #f8fafc;" class="uppercase">
+                        <div style="writing-mode: vertical-rl; transform: rotate(180deg); margin: 0 auto; letter-spacing: 0.5px;">
+                            Pemerintah Kabupaten Hulu Sungai Tengah<br>Dinas Pemberdayaan Masyarakat dan Desa<br><strong>Kartu Surat Masuk</strong>
+                        </div>
+                    </td>
+                    <td style="width: 35%;"><strong>Indek</strong> : <span id="val_card_indeks">-</span></td>
+                    <td style="width: 32%;"><strong>Kode</strong> : <span id="val_card_kode">-</span></td>
+                    <td style="width: 33%;"><strong>Nomor Urut</strong> : <span id="val_card_agenda">&nbsp;</span></td>
+                </tr>
+                <tr>
+                    <td colspan="3"><strong>Isi Ringkas</strong> : <span id="val_card_perihal">-</span></td>
+                </tr>
+                <tr>
+                    <td colspan="3"><strong>Dari</strong> : <span id="val_card_pengirim">-</span></td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>Tanggal Surat</strong><br>
+                        <span id="val_card_tgl_surat">-</span>
+                    </td>
+                    <td>
+                        <strong>Nomor Surat</strong><br>
+                        <span id="val_card_no_surat">-</span>
+                    </td>
+                    <td>
+                        <strong>Lampiran</strong><br>-
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong>Pengolah</strong><br>Arsiparis
+                    </td>
+                    <td>
+                        <strong>Tgl. Diteruskan</strong><br><span id="val_card_tgl_terima">-</span>
+                    </td>
+                    <td>
+                        <strong>Tanda Terima</strong><br>&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="3">
+                        <strong>Catatan</strong> : <span id="val_card_catatan">-</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- BAGIAN 3: KOTAK FOOTER -->
+        <div>
+            <table>
+                <tr>
+                    <td style="width: 50%;"><strong>No surat</strong> : <span id="val_footer_nosurat">-</span></td>
+                    <td style="width: 50%;"><strong>Perihal</strong> : <span id="val_footer_perihal">-</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Kode Perbaikan</strong> : <span id="val_footer_kode">-</span></td>
+                    <td><strong>Klasifikasi</strong> : <span id="val_footer_klasifikasi">-</span></td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- MODAL EDIT -->
+    <div id="modalEdit" class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-sm">Edit Data Disposisi</h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">No. Agenda:</label>
+                    <input type="text" id="editNoAgenda" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Pengirim:</label>
+                    <input type="text" id="editPengirim" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Nomor Surat:</label>
+                    <input type="text" id="editNomorSurat" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Indeks:</label>
+                    <input type="text" id="editIndeks" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Kode Klasifikasi (Kolom L):</label>
+                    <input type="text" id="editKodeKlasifikasi" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Uraian Klasifikasi (Kolom M):</label>
+                    <input type="text" id="editKlasifikasiArsip" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Diteruskan Kepada (multi, pisah ; ):</label>
+                    <textarea id="editDisposisiKepada" rows="2" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Nama penerima, pisahkan dengan titik koma (;)"></textarea>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Perihal:</label>
+                    <textarea id="editPerihal" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="2"></textarea>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-600 mb-1">Isi Disposisi / Catatan:</label>
+                    <textarea id="editIsiDisposisi" class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="goBackToList()" class="bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded font-medium text-xs">Batal</button>
+                <button onclick="saveEditData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium text-xs">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbysE9I0sVEMSdTx0EVZYV-gsig7YsRzefqerqD02RZ2OBddyf26J_rUUeTBejgO0g_M9w/exec";
+        let currentSuratId = null;
+        let activeSuratObj = {};
+
+        /**
+         * Kembali ke halaman daftar dengan tetap menjaga panel dashboard jika ada.
+         * - Jika dibuka di tab baru (window.opener) → tutup tab ini
+         * - Jika ada history → history.back() (kembali ke dashboard)
+         * - Fallback → dashboard.html lalu surat-masuk.html
+         */
+        function goBackToList() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                    // Jika browser memblokir close, fallback di bawah
+                    setTimeout(function () {
+                        if (!window.closed) fallbackBack();
+                    }, 150);
+                    return;
+                }
+            } catch (e) {}
+            if (window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            fallbackBack();
+        }
+
+        function fallbackBack() {
+            // Sesuaikan nama file dashboard jika berbeda
+            const candidates = ['dashboard.html', 'Dashboard.html', 'index.html', 'surat-masuk.html'];
+            window.location.href = candidates[0];
+        }
+
+        // Fungsi pembantu untuk memastikan teks kode bersih dari format objek waktu / GMT yang tidak sengaja terbawa
+        function safeCode(val) {
+            if (!val) return '-';
+            const str = String(val).trim();
+            if (str.includes('GMT') || str.includes('Mon ') || str.includes('Tue ') || str.includes('Wed ') || str.includes('Thu ') || str.includes('Fri ') || str.includes('Sat ') || str.includes('Sun ')) {
+                return '-';
+            }
+            return str;
+        }
+
+        window.onload = async function() {
+            const savedInstansi = localStorage.getItem('arsip_instansi');
+            if (savedInstansi && !['superadmin', 'admin', 'user', 'umum'].includes(savedInstansi.toLowerCase())) {
+                document.getElementById('val_instansi').textContent = savedInstansi.toUpperCase();
+            } else {
+                document.getElementById('val_instansi').textContent = 'DINAS PEMBERDAYAAN MASYARAKAT DAN DESA';
+            }
+
+            loadSettings();
+
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            if (!id) {
+                goBackToList();
+                return;
+            }
+            currentSuratId = id;
+
+            let db = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
+            let surat = db.find(item => String(item.id) === String(id));
+
+            // Fallback: cocokkan partial id / nomor jika id random lama tidak ketemu
+            if (!surat && id) {
+                surat = db.find(item => String(item.id).includes(String(id)) || String(id).includes(String(item.id)));
+            }
+
+            function mapCloudRow(raw) {
+                return {
+                    id: String(raw["ID"] || id || ''),
+                    pengirim: raw["Pengirim / Instansi"] || raw["Pengirim"] || '',
+                    tanggal_terima: raw["Tanggal Diterima"] || '',
+                    nomor_surat: raw["Nomor Surat"] || '',
+                    tanggal_surat: raw["Tanggal Surat"] || '',
+                    perihal: raw["Perihal"] || '',
+                    isi_singkat: raw["Isi Ringkasan"] || raw["Isi Singkat"] || '',
+                    indeks: raw["Indeks"] || raw["indeks"] || '-',
+                    berkas: raw["Berkas"] || raw["berkas"] || '',
+                    kode_klasifikasi: raw["Kode Klasifikasi"] || raw["kode_klasifikasi"] || raw["Kode"] || '',
+                    uraian_klasifikasi: raw["Uraian Klasifikasi"] || raw["uraian_klasifikasi"] || raw["Klasifikasi Arsip"] || '',
+                    disposisi_kepada: raw["Disposisi Kepada"] || '',
+                    isi_disposisi: raw["Isi Disposisi"] || '',
+                    no_agenda: raw["no agenda"] || raw["No Agenda"] || raw["Nomor Agenda"] || raw["No. Agenda"] || ''
+                };
+            }
+
+            if (!surat) {
+                try {
+                    const res = await fetch(GAS_URL);
+                    const cloudRes = await res.json();
+                    if (cloudRes.status === 'success' && Array.isArray(cloudRes.data)) {
+                        let raw = cloudRes.data.find(i => String(i["ID"]) === String(id));
+                        // Jika ID di sheet kosong, coba cocokkan lewat localStorage nomor_surat dari query tidak bisa — pakai semua field yang ada
+                        if (!raw && db.length) {
+                            // sudah gagal di local; biarkan
+                        }
+                        if (raw) surat = mapCloudRow(raw);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            if (surat) {
+                activeSuratObj = surat;
+                populateData(surat);
+            } else {
+                alert('Data surat tidak ditemukan. Coba klik "Sinkron Cloud" di halaman daftar, lalu buka disposisi lagi.');
+                goBackToList();
+            }
+        };
+
+        function populateData(data) {
+            const pengirim = data.pengirim || '-';
+            const tglTerima = data.tanggal_terima || '-';
+            const noSurat = data.nomor_surat || '-';
+            const tglSurat = data.tanggal_surat || '-';
+            const perihal = data.perihal || data.isi_singkat || '-';
+            const isiDisposisi = data.isi_disposisi || '-';
+            
+            // Pengambilan langsung secara spesifik dari properti data
+            const indeks = data.indeks || '-';
+            const bidangPpd = data.berkas || 'BIDANG PPD';
+            const kodeKlasifikasi = safeCode(data.kode_klasifikasi || data.kode);
+            const uraianKlasifikasi = data.uraian_klasifikasi || data.klasifikasi_arsip || '-';
+
+            // Lembar Disposisi Utama
+            document.getElementById('val_pengirim').textContent = pengirim;
+            document.getElementById('val_tanggal_terima').textContent = tglTerima;
+            document.getElementById('val_nomor_surat').textContent = noSurat;
+            document.getElementById('val_tanggal_surat').textContent = tglSurat;
+            document.getElementById('val_perihal').textContent = perihal;
+            // Penerima disposisi: prioritaskan nama (bisa multi), fallback ke berkas/bidang
+            const rawKepada = (data.disposisi_kepada || data.nama_disposisi || '').trim();
+            let listKepada = rawKepada
+                ? rawKepada.split(/[;|\n]/).map(s => s.trim()).filter(Boolean)
+                : [];
+            if (!listKepada.length && bidangPpd && bidangPpd !== '-') {
+                listKepada = [bidangPpd];
+            }
+            const listEl = document.getElementById('val_disposisi_kepada_list');
+            if (listEl) {
+                if (!listKepada.length) {
+                    listEl.innerHTML = '<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black"></div> <span class="text-slate-400">—</span></div>';
+                } else {
+                    listEl.innerHTML = listKepada.map(nama =>
+                        '<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 border border-black flex items-center justify-center font-bold text-xs bg-slate-100">✓</div> <span>' +
+                        String(nama).replace(/</g,'&lt;') + '</span></div>'
+                    ).join('');
+                }
+            }
+            document.getElementById('val_isi_disposisi').textContent = isiDisposisi;
+            const noAgenda = data.no_agenda || data.nomor_agenda || data['no agenda'] || '';
+            document.getElementById('val_agenda').textContent = noAgenda || '';
+
+            // Kartu Surat Masuk Bawah
+            document.getElementById('val_card_indeks').textContent = indeks;
+            document.getElementById('val_card_agenda').textContent = noAgenda || '';
+            document.getElementById('val_card_kode').textContent = kodeKlasifikasi;
+            document.getElementById('val_card_perihal').textContent = perihal;
+            document.getElementById('val_card_pengirim').textContent = pengirim;
+            document.getElementById('val_card_tgl_surat').textContent = tglSurat;
+            document.getElementById('val_card_no_surat').textContent = noSurat;
+            document.getElementById('val_card_tgl_terima').textContent = tglTerima;
+            document.getElementById('val_card_catatan').textContent = isiDisposisi;
+
+            // Footer Bawah
+            document.getElementById('val_footer_nosurat').textContent = noSurat;
+            document.getElementById('val_footer_perihal').textContent = perihal;
+            document.getElementById('val_footer_kode').textContent = kodeKlasifikasi;
+            document.getElementById('val_footer_klasifikasi').textContent = uraianKlasifikasi;
+        }
+
+        function toggleSettingPanel() {
+            document.getElementById('settingPanel').classList.toggle('hidden');
+        }
+
+        function applySettings() {
+            const fontSize = document.getElementById('settingFontSize').value;
+            const lineHeight = document.getElementById('settingLineHeight').value;
+
+            document.documentElement.style.setProperty('--sheet-font-size', fontSize);
+            document.documentElement.style.setProperty('--sheet-line-height', lineHeight);
+
+            localStorage.setItem('disposisi_font_size', fontSize);
+            localStorage.setItem('disposisi_line_height', lineHeight);
+        }
+
+        function loadSettings() {
+            const savedFont = localStorage.getItem('disposisi_font_size');
+            const savedLine = localStorage.getItem('disposisi_line_height');
+
+            if (savedFont) {
+                document.getElementById('settingFontSize').value = savedFont;
+                document.documentElement.style.setProperty('--sheet-font-size', savedFont);
+            }
+            if (savedLine) {
+                document.getElementById('settingLineHeight').value = savedLine;
+                document.documentElement.style.setProperty('--sheet-line-height', savedLine);
+            }
+        }
+
+        function openEditModal() {
+            document.getElementById('editNoAgenda').value = activeSuratObj.no_agenda || activeSuratObj.nomor_agenda || '';
+            document.getElementById('editPengirim').value = activeSuratObj.pengirim || '';
+            document.getElementById('editNomorSurat').value = activeSuratObj.nomor_surat || '';
+            document.getElementById('editIndeks').value = activeSuratObj.indeks || '';
+            document.getElementById('editKodeKlasifikasi').value = activeSuratObj.kode_klasifikasi || activeSuratObj.kode || '';
+            document.getElementById('editKlasifikasiArsip').value = activeSuratObj.uraian_klasifikasi || activeSuratObj.klasifikasi_arsip || '';
+            document.getElementById('editDisposisiKepada').value = activeSuratObj.disposisi_kepada || activeSuratObj.berkas || '';
+            document.getElementById('editPerihal').value = activeSuratObj.perihal || '';
+            document.getElementById('editIsiDisposisi').value = activeSuratObj.isi_disposisi || '';
+            document.getElementById('modalEdit').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('modalEdit').classList.add('hidden');
+        }
+
+        function saveEditData() {
+            activeSuratObj.no_agenda = document.getElementById('editNoAgenda').value;
+            activeSuratObj.pengirim = document.getElementById('editPengirim').value;
+            activeSuratObj.nomor_surat = document.getElementById('editNomorSurat').value;
+            activeSuratObj.indeks = document.getElementById('editIndeks').value;
+            activeSuratObj.kode_klasifikasi = document.getElementById('editKodeKlasifikasi').value;
+            activeSuratObj.uraian_klasifikasi = document.getElementById('editKlasifikasiArsip').value;
+            activeSuratObj.disposisi_kepada = document.getElementById('editDisposisiKepada').value;
+            activeSuratObj.perihal = document.getElementById('editPerihal').value;
+            activeSuratObj.isi_disposisi = document.getElementById('editIsiDisposisi').value;
+
+            populateData(activeSuratObj);
+
+            let db = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
+            const idx = db.findIndex(item => String(item.id) === String(currentSuratId));
+            if (idx !== -1) {
+                db[idx] = activeSuratObj;
+                localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(db));
+            }
+
+            closeEditModal();
+        }
+    </script>
+</body>
+</html>

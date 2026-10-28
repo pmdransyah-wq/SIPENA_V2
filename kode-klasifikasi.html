@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kode Klasifikasi - Sistem E-Arsip</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+      tailwind.config = {
+          theme: {
+              extend: {
+                  fontFamily: { sans: ['Inter', 'sans-serif'] },
+                  colors: {
+                      brand: {
+                          50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+                      }
+                  }
+              }
+          }
+      }
+  </script>
+  <style>
+    .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background-color: #ffffff; transition: background-color 0.3s, color 0.3s; }
+    .tab-content-section { display: none; }
+    .tab-content-section.active { display: block; }
+    .cursor-pointer { cursor: pointer; }
+
+    /* Dark Mode Theme */
+    body.dark-mode { background-color: #0b1437 !important; color: #f4f7fe !important; }
+    body.dark-mode .card-custom, 
+    body.dark-mode .table-container { background-color: #111c44 !important; color: #f4f7fe !important; border-color: #2b3674 !important; }
+    body.dark-mode .table { color: #f4f7fe !important; }
+    body.dark-mode .table th { background-color: #1b2559 !important; color: #a3edff !important; }
+    body.dark-mode .form-control, body.dark-mode .form-select { background-color: #1b2559 !important; color: #fff !important; border-color: #2b3674 !important; }
+    body.dark-mode .form-control::placeholder { color: #8f9bba !important; }
+
+    /* Saat dimuat di dalam iframe dashboard: sembunyikan sidebar ganda */
+    body.embedded-in-dashboard #sidebar { display: none !important; }
+    body.embedded-in-dashboard .flex.h-screen { display: block !important; height: auto !important; overflow: visible !important; }
+    body.embedded-in-dashboard .flex-1.flex.flex-col { min-height: 100vh; height: auto !important; overflow: visible !important; }
+    body.embedded-in-dashboard header .md\:hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-72 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 shrink-0">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <a href="dashboard.html" class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow">
+                  <i class="fa-solid fa-box-archive"></i>
+              </div>
+              <div>
+                  <h1 class="font-bold text-white text-base leading-tight">E-ARSIP</h1>
+                  <p class="text-xs text-brand-400 font-medium" id="display-instansi-name">Memuat...</p>
+              </div>
+          </a>
+          <button id="closeSidebarMobile" class="md:hidden text-slate-400 hover:text-white">
+              <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto sidebar-scroll p-3 space-y-1 text-sm">
+          <a href="dashboard.html" class="flex items-center px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-chart-pie w-6"></i>
+              <span>Dashboard</span>
+          </a>
+
+          <!-- Buku Agenda Submenu -->
+          <div class="pt-1">
+              <button onclick="toggleSubmenu('submenu-agenda', 'arrow-agenda')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                  <div class="flex items-center">
+                      <i class="fa-solid fa-book w-6 text-slate-400"></i>
+                      <span class="font-medium">Buku Agenda</span>
+                  </div>
+                  <i id="arrow-agenda" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+              </button>
+              <div id="submenu-agenda" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                  <a href="surat-masuk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Masuk</a>
+                  <a href="surat-keluar.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Keluar</a>
+                  <a href="nota-dinas.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Nota Dinas</a>
+                  <a href="no-sk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">No. SK</a>
+                  <a href="spk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Perjanjian Kerja</a>
+                  <a href="sertifikat.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Sertifikat</a>
+                  <a href="surat-edaran.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Edaran</a>
+                  <a href="surat-tugas.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Tugas</a>
+                  <a href="npd.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">NPD</a>
+                  <a href="sts.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">STS</a>
+                  <a href="bast.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">BAST</a>
+                  <a href="agenda-kegiatan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Agenda Kegiatan</a>
+                  <a href="agenda-aula.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Agenda Fasilitasi Aula</a>
+                  <a href="buku-tamu.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Tamu</a>
+                  <a href="buku-arsip.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Arsip</a>
+                  <a href="buku-ekspedisi.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Ekspedisi</a>
+              </div>
+          </div>
+
+          <!-- Jenis Arsip Submenu -->
+          <div class="pt-1">
+              <button onclick="toggleSubmenu('submenu-jenis', 'arrow-jenis')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                  <div class="flex items-center">
+                      <i class="fa-solid fa-folder-tree w-6 text-slate-400"></i>
+                      <span class="font-medium">Jenis Arsip</span>
+                  </div>
+                  <i id="arrow-jenis" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+              </button>
+              <div id="submenu-jenis" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                  <div class="font-semibold text-slate-500 pt-1 pb-0.5 uppercase tracking-wider text-[10px]">Arsip Dinamis</div>
+                  <a href="arsip-aktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Aktif</a>
+                  <a href="arsip-inaktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Inaktif</a>
+                  <a href="arsip-statis.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Statis</a>
+                  <a href="arsip-vital.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Vital</a>
+                  <a href="arsip-foto.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Foto</a>
+                  <a href="alihmedia-arsip.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Alihmedia Arsip</a>
+              </div>
+          </div>
+
+          <a href="record-center.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-server w-6 text-slate-400"></i>
+              <span class="font-medium">Record Center</span>
+          </a>
+          <a href="peminjaman.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-arrows-left-right-to-line w-6 text-slate-400"></i>
+              <span class="font-medium">Peminjaman Arsip</span>
+          </a>
+          <a href="penyusutan.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-file-circle-minus w-6 text-slate-400"></i>
+              <span class="font-medium">Penyusutan Arsip</span>
+          </a>
+
+          <!-- Pedoman Submenu -->
+          <div class="pt-1">
+              <button onclick="toggleSubmenu('submenu-pedoman', 'arrow-pedoman')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 bg-slate-800 text-white transition">
+                  <div class="flex items-center">
+                      <i class="fa-solid fa-book-bookmark w-6 text-slate-400"></i>
+                      <span class="font-medium">Pedoman</span>
+                  </div>
+                  <i id="arrow-pedoman" class="fa-solid fa-chevron-right text-xs transition-transform duration-200 rotate-90"></i>
+              </button>
+              <div id="submenu-pedoman" class="pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                  <a href="master-jra.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Master JRA</a>
+                  <a href="kode-klasifikasi.html" class="block py-1.5 px-2 rounded text-white bg-slate-800/60 font-semibold">Kode Klasifikasi</a>
+                  <a href="peraturan-kearsipan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Peraturan Kearsipan</a>
+              </div>
+          </div>
+
+          <a href="sampah.html" id="menu-sampah-link" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-trash-can w-6 text-slate-400"></i>
+              <span class="font-medium">Menu Sampah</span>
+          </a>
+          <a href="profil.html" class="flex items-center px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+              <i class="fa-solid fa-user-gear w-6"></i>
+              <span>Menu Profil</span>
+          </a>
+      </nav>
+
+      <div class="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-950/40">
+          <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold">
+                  <i class="fa-solid fa-user-shield"></i>
+              </div>
+              <div class="text-xs">
+                  <p class="font-semibold text-white" id="current-user-display">Memuat...</p>
+                  <p class="text-[10px] text-brand-400 uppercase font-bold" id="user-role-display">USER</p>
+              </div>
+          </div>
+          <button onclick="logoutSystem()" title="Keluar / Logout" class="text-slate-400 hover:text-red-400 text-sm">
+              <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+      </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+    <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 z-20 shrink-0">
+      <div class="flex items-center space-x-3">
+        <button id="openSidebar" class="text-slate-600 hover:text-slate-900 md:hidden">
+            <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <h2 class="text-lg font-bold text-slate-800 mb-0"><i class="fas fa-folder-open me-2 text-primary"></i>Master Kode Klasifikasi Arsip</h2>
+      </div>
+      <div class="bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 shadow-sm" id="total-badge-klasifikasi">
+        Total Kode Klasifikasi: 0
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 space-y-4">
+      
+      <!-- TOOLBAR ATAS -->
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary btn-sm fw-semibold" onclick="openModalKlasifikasi()">
+            <i class="fas fa-plus-circle me-1"></i> Tambah Kode Klasifikasi
+          </button>
+          <button class="btn btn-info btn-sm text-white fw-semibold" onclick="loadKlasifikasiFromCloud(true)">
+            <i class="fas fa-sync-alt me-1"></i> Singkron Cloud
+          </button>
+          <button class="btn btn-outline-danger btn-sm fw-semibold" onclick="hapusKlasifikasiTerpilih()">
+            <i class="fas fa-trash-alt me-1"></i> Hapus Terpilih
+          </button>
+          <button class="btn btn-danger btn-sm fw-semibold" onclick="hapusSemuaKlasifikasi()">
+            <i class="fas fa-trash me-1"></i> Hapus Semua Klasifikasi
+          </button>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <label class="btn btn-outline-success btn-sm fw-semibold mb-0 cursor-pointer">
+            <i class="fas fa-file-import me-1"></i> Impor Excel/CSV
+            <input type="file" id="inputImportCsv" accept=".csv" class="d-none" onchange="importKlasifikasiCsv(this)">
+          </label>
+          <button class="btn btn-success btn-sm fw-semibold" onclick="exportKlasifikasiCsv()">
+            <i class="fas fa-file-excel me-1"></i> Ekspor Excel/CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTER PENCARIAN -->
+      <div class="card card-custom p-3">
+        <div class="row g-2">
+          <div class="col-md-10">
+            <input type="text" id="searchKlasifikasiInput" class="form-control form-control-sm" placeholder="Cari berdasarkan kode atau uraian klasifikasi..." oninput="filterKlasifikasiData()">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetFilterKlasifikasi()"><i class="fas fa-redo me-1"></i> Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABEL DATA -->
+      <div class="card card-custom p-3">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th width="40" class="text-center"><input type="checkbox" id="select-all-klasifikasi" onclick="toggleSelectAllKlasifikasi(this)"></th>
+                <th width="60">No</th>
+                <th width="200">Kode Klasifikasi</th>
+                <th>Uraian Klasifikasi</th>
+                <th width="100" class="text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-klasifikasi">
+              <tr><td colspan="5" class="text-center text-muted py-3">Belum ada data kode klasifikasi.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+          <div class="text-muted small" id="info-jumlah-tampil">Menampilkan 0 data</div>
+          <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagination-klasifikasi"></ul>
+          </nav>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL TAMBAH / EDIT KODE KLASIFIKASI -->
+  <div class="modal fade" id="modalKlasifikasi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalKlasifikasiTitle">Form Kode Klasifikasi</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formKlasifikasi" onsubmit="event.preventDefault(); simpanKlasifikasi();">
+            <input type="hidden" id="klasifikasiOldId">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Kode Klasifikasi <span class="text-danger">*</span></label>
+              <input type="text" id="inputKode" class="form-control" placeholder="Cth: 000, 005, 800..." required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Uraian Klasifikasi <span class="text-danger">*</span></label>
+              <textarea id="inputUraian" class="form-control" rows="3" placeholder="Cth: UMUM, Kearsipan, Kepegawaian..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 fw-semibold">Simpan Kode Klasifikasi</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbz1jlC9PQUnSdNHP5JnCeyMa0R_brqhHcS0X4Ktcuph7gHMiy82Y2nWgL2vxYhHs0RANw/exec";
+
+    // Ambil data sesi login dari localStorage
+    const currentRole = localStorage.getItem('arsip_role') || 'umum';
+    const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+    const currentNama = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
+
+    let klasifikasiDataList = [];
+    let filteredKlasifikasiData = [];
+    let currentPage = 1;
+    const rowsPerPage = 10;
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Jika dibuka dari dashboard (iframe), sembunyikan sidebar agar menu panel tetap dari dashboard
+      try {
+        if (window.self !== window.top) {
+          document.body.classList.add('embedded-in-dashboard');
+        }
+      } catch (e) {
+        document.body.classList.add('embedded-in-dashboard');
+      }
+
+      // Keamanan Sesi: Jika belum login, lempar ke halaman login
+      if (localStorage.getItem('arsip_logged_in') !== 'true') {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Tampilkan Nama & Instansi secara dinamis
+      document.getElementById('current-user-display').innerText = currentNama;
+      document.getElementById('user-role-display').innerText = currentRole.toUpperCase();
+      document.getElementById('display-instansi-name').innerText = currentInstansi;
+
+      // Batasi Menu Sampah jika rolenya umum
+      const menuSampah = document.getElementById('menu-sampah-link');
+      if (menuSampah && currentRole.toLowerCase() === 'umum') {
+        menuSampah.classList.add('d-none');
+      }
+
+      if (localStorage.getItem('theme_mode') === 'dark') {
+        document.body.classList.add('dark-mode');
+      }
+
+      const cachedKlasifikasi = localStorage.getItem('cachedKodeKlasifikasi');
+      if (cachedKlasifikasi) {
+        klasifikasiDataList = JSON.parse(cachedKlasifikasi);
+        filteredKlasifikasiData = [...klasifikasiDataList];
+        renderKlasifikasiTable();
+        loadKlasifikasiFromCloud(false);
+      } else {
+        loadKlasifikasiFromCloud(true);
+      }
+    });
+
+    function toggleSubmenu(menuId, arrowId) {
+        const menu = document.getElementById(menuId);
+        const arrow = document.getElementById(arrowId);
+        menu.classList.toggle('hidden');
+        arrow.classList.toggle('rotate-90');
+    }
+
+    const sidebar = document.getElementById('sidebar');
+    const openSidebarBtn = document.getElementById('openSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarMobile');
+
+    if(openSidebarBtn) {
+        openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('-translate-x-full'));
+    }
+    if(closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('-translate-x-full'));
+    }
+
+    function logoutSystem() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+
+    function loadKlasifikasiFromCloud(isManualSync) {
+      if (isManualSync) {
+        Swal.fire({ title: 'Sinkronisasi Cloud...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      }
+      fetch(GAS_BACKEND_URL)
+        .then(res => res.json())
+        .then(data => {
+          if (isManualSync) Swal.close();
+          if (data.status === "success") {
+            if (data.KodeKlasifikasi) {
+              klasifikasiDataList = data.KodeKlasifikasi.slice(1).map(r => ({
+                kode: r[0], uraian: r[1]
+              }));
+            } else if (data.dataKlasifikasi) {
+              klasifikasiDataList = data.dataKlasifikasi.slice(1).map(r => ({
+                kode: r[0], uraian: r[1]
+              }));
+            }
+            localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+            filteredKlasifikasiData = [...klasifikasiDataList];
+            currentPage = 1;
+            renderKlasifikasiTable();
+            if (isManualSync) {
+              Swal.fire('Berhasil', 'Sinkronisasi data kode klasifikasi sukses.', 'success');
+            }
+          }
+        }).catch(err => {
+          if (isManualSync) {
+            Swal.close();
+            Swal.fire('Gagal', 'Tidak dapat terhubung ke server cloud.', 'error');
+          }
+        });
+    }
+
+    function renderKlasifikasiTable() {
+      const tbody = document.getElementById('tbody-klasifikasi');
+      tbody.innerHTML = '';
+      
+      document.getElementById('total-badge-klasifikasi').innerText = `Total Kode Klasifikasi: ${klasifikasiDataList.length}`;
+
+      if (filteredKlasifikasiData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Belum ada data kode klasifikasi.</td></tr>`;
+        document.getElementById('info-jumlah-tampil').innerText = `Menampilkan 0 dari 0 data`;
+        document.getElementById('pagination-klasifikasi').innerHTML = '';
+        return;
+      }
+
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const paginatedData = filteredKlasifikasiData.slice(startIndex, endIndex);
+
+      paginatedData.forEach((item, index) => {
+        const absoluteIndex = startIndex + index + 1;
+        tbody.innerHTML += `
+          <tr>
+            <td class="text-center"><input type="checkbox" class="klasifikasi-checkbox" value="${item.kode}"></td>
+            <td>${absoluteIndex}</td>
+            <td class="fw-bold text-primary">${item.kode}</td>
+            <td>${item.uraian}</td>
+            <td class="text-center text-nowrap">
+              <button class="btn btn-sm btn-warning text-white me-1" onclick="editKlasifikasi('${item.kode}')" title="Edit"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" onclick="hapusKlasifikasi('${item.kode}')" title="Hapus"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+      });
+
+      document.getElementById('info-jumlah-tampil').innerText = `Menampilkan ${startIndex + 1} - ${Math.min(endIndex, filteredKlasifikasiData.length)} dari ${filteredKlasifikasiData.length} data`;
+      
+      renderPaginationControls();
+    }
+
+    function renderPaginationControls() {
+      const paginationEl = document.getElementById('pagination-klasifikasi');
+      paginationEl.innerHTML = '';
+
+      const totalPages = Math.ceil(filteredKlasifikasiData.length / rowsPerPage);
+      if (totalPages <= 1) return;
+
+      paginationEl.innerHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link cursor-pointer" onclick="changePage(${currentPage - 1})">Sebelumnya</a>
+        </li>
+      `;
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+          paginationEl.innerHTML += `
+            <li class="page-item ${currentPage === i ? 'active' : ''}">
+              <a class="page-link cursor-pointer" onclick="changePage(${i})">${i}</a>
+            </li>
+          `;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+          paginationEl.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+      }
+
+      paginationEl.innerHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+          <a class="page-link cursor-pointer" onclick="changePage(${currentPage + 1})">Berikutnya</a>
+        </li>
+      `;
+    }
+
+    function changePage(page) {
+      const totalPages = Math.ceil(filteredKlasifikasiData.length / rowsPerPage);
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      renderKlasifikasiTable();
+    }
+
+    function openModalKlasifikasi() {
+      document.getElementById('formKlasifikasi').reset();
+      document.getElementById('klasifikasiOldId').value = '';
+      document.getElementById('modalKlasifikasiTitle').innerText = 'Tambah Kode Klasifikasi';
+      new bootstrap.Modal(document.getElementById('modalKlasifikasi')).show();
+    }
+
+    function editKlasifikasi(kode) {
+      const item = klasifikasiDataList.find(k => String(k.kode) === String(kode));
+      if (!item) return;
+      document.getElementById('klasifikasiOldId').value = item.kode;
+      document.getElementById('inputKode').value = item.kode;
+      document.getElementById('inputUraian').value = item.uraian;
+      document.getElementById('modalKlasifikasiTitle').innerText = 'Edit Kode Klasifikasi';
+      new bootstrap.Modal(document.getElementById('modalKlasifikasi')).show();
+    }
+
+    function simpanKlasifikasi() {
+      const oldId = document.getElementById('klasifikasiOldId').value;
+      const kode = document.getElementById('inputKode').value.trim();
+      const uraian = document.getElementById('inputUraian').value.trim();
+
+      const item = {
+        action: oldId ? 'update' : 'add',
+        type: 'klasifikasi',
+        oldKode: oldId,
+        kode: kode,
+        uraian: uraian
+      };
+
+      Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify(item) })
+        .then(res => res.json())
+        .then(res => {
+          if (oldId) {
+            klasifikasiDataList = klasifikasiDataList.map(k => String(k.kode) === String(oldId) ? { kode, uraian } : k);
+          } else {
+            klasifikasiDataList.push({ kode, uraian });
+          }
+          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+          filteredKlasifikasiData = [...klasifikasiDataList];
+          renderKlasifikasiTable();
+          bootstrap.Modal.getInstance(document.getElementById('modalKlasifikasi')).hide();
+          Swal.fire('Berhasil', 'Kode klasifikasi berhasil disimpan.', 'success');
+        }).catch(() => {
+          if (oldId) {
+            klasifikasiDataList = klasifikasiDataList.map(k => String(k.kode) === String(oldId) ? { kode, uraian } : k);
+          } else {
+            klasifikasiDataList.push({ kode, uraian });
+          }
+          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+          filteredKlasifikasiData = [...klasifikasiDataList];
+          renderKlasifikasiTable();
+          bootstrap.Modal.getInstance(document.getElementById('modalKlasifikasi')).hide();
+          Swal.fire('Berhasil', 'Kode klasifikasi tersimpan secara lokal.', 'success');
+        });
+    }
+
+    function hapusKlasifikasi(kode) {
+      Swal.fire({ title: 'Hapus Kode Klasifikasi?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' }).then(res => {
+        if(res.isConfirmed) {
+          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'klasifikasi', kode: kode }) }).catch(()=>{});
+          klasifikasiDataList = klasifikasiDataList.filter(k => String(k.kode) !== String(kode));
+          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+          filteredKlasifikasiData = [...klasifikasiDataList];
+          renderKlasifikasiTable();
+          Swal.fire('Terhapus', 'Kode klasifikasi berhasil dihapus.', 'success');
+        }
+      });
+    }
+
+    function hapusKlasifikasiTerpilih() {
+      const selectedCodes = Array.from(document.querySelectorAll('.klasifikasi-checkbox:checked')).map(cb => cb.value);
+      if (selectedCodes.length === 0) { Swal.fire('Perhatian', 'Pilih minimal satu kode klasifikasi!', 'warning'); return; }
+      Swal.fire({ title: 'Hapus Klasifikasi Terpilih?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' }).then(res => {
+        if(res.isConfirmed) {
+          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'klasifikasi', kodes: selectedCodes }) }).catch(()=>{});
+          klasifikasiDataList = klasifikasiDataList.filter(k => !selectedCodes.includes(String(k.kode)));
+          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+          filteredKlasifikasiData = [...klasifikasiDataList];
+          renderKlasifikasiTable();
+          Swal.fire('Terhapus', 'Klasifikasi terpilih berhasil dihapus.', 'success');
+        }
+      });
+    }
+
+    function hapusSemuaKlasifikasi() {
+      if (klasifikasiDataList.length === 0) return;
+      Swal.fire({ title: 'Hapus Semua Kode Klasifikasi?', text: 'Tindakan ini tidak bisa dibatalkan!', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Semua!' }).then(res => {
+        if(res.isConfirmed) {
+          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete_all', type: 'klasifikasi' }) }).catch(()=>{});
+          klasifikasiDataList = [];
+          filteredKlasifikasiData = [];
+          localStorage.removeItem('cachedKodeKlasifikasi');
+          renderKlasifikasiTable();
+          Swal.fire('Dikosongkan', 'Semua kode klasifikasi berhasil dihapus.', 'success');
+        }
+      });
+    }
+
+    function toggleSelectAllKlasifikasi(source) {
+      document.querySelectorAll('.klasifikasi-checkbox').forEach(cb => cb.checked = source.checked);
+    }
+
+    function filterKlasifikasiData() {
+      const keyword = document.getElementById('searchKlasifikasiInput').value.toLowerCase();
+      filteredKlasifikasiData = klasifikasiDataList.filter(k => 
+        String(k.kode).toLowerCase().includes(keyword) || String(k.uraian).toLowerCase().includes(keyword)
+      );
+      currentPage = 1;
+      renderKlasifikasiTable();
+    }
+
+    function resetFilterKlasifikasi() {
+      document.getElementById('searchKlasifikasiInput').value = '';
+      filteredKlasifikasiData = [...klasifikasiDataList];
+      currentPage = 1;
+      renderKlasifikasiTable();
+    }
+
+    function exportKlasifikasiCsv() {
+      if (klasifikasiDataList.length === 0) { Swal.fire('Informasi', 'Tidak ada data untuk diekspor.', 'info'); return; }
+      let csvContent = "data:text/csv;charset=utf-8,Kode Klasifikasi,Uraian Klasifikasi\n";
+      klasifikasiDataList.forEach(r => {
+        csvContent += `"${r.kode}","${r.uraian}"\n`;
+      });
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "kode_klasifikasi_arsip.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function importKlasifikasiCsv(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const text = e.target.result;
+          const lines = text.split('\n');
+          let count = 0;
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line) {
+              const cols = line.split(',').map(c => c.replace(/^"(.*)"$/, '$1'));
+              if (cols.length >= 2) {
+                const item = { kode: cols[0], uraian: cols[1] };
+                klasifikasiDataList.push(item);
+                count++;
+              }
+            }
+          }
+          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(klasifikasiDataList));
+          filteredKlasifikasiData = [...klasifikasiDataList];
+          currentPage = 1;
+          renderKlasifikasiTable();
+          Swal.fire('Berhasil', `${count} data kode klasifikasi berhasil diimpor.`, 'success');
+        };
+        reader.readAsText(file);
+      }
+    }
+  </script>
+</body>
+</html>

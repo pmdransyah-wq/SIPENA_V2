@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil Instansi - E-Arsip System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <style>
+    :root { --primary-color: #2b3674; --secondary-color: #4318ff; --bg-light: #f4f7fe; }
+    body { background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; }
+    
+    main { margin-left: 0; padding: 24px; }
+    
+    .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background-color: #ffffff; transition: background-color 0.3s, color 0.3s; }
+    .kop-preview-container { border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; background: #fff; }
+    .kop-header { border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .kop-flex-wrapper { display: flex; align-items: center; justify-content: center; gap: 15px; }
+    .kop-logo { width: 75px; height: auto; flex-shrink: 0; }
+    .kop-text-wrapper { flex-grow: 1; text-align: center; }
+    .tab-content-section { display: none; }
+    .tab-content-section.active { display: block; }
+
+    /* Dark Mode Theme */
+    body.dark-mode { background-color: #0b1437 !important; color: #f4f7fe !important; }
+    body.dark-mode .card-custom, 
+    body.dark-mode .table-container, 
+    body.dark-mode .kop-preview-container { background-color: #111c44 !important; color: #f4f7fe !important; border-color: #2b3674 !important; }
+    body.dark-mode .table { color: #f4f7fe !important; }
+    body.dark-mode .table th { background-color: #1b2559 !important; color: #a3edff !important; }
+    body.dark-mode .form-control, body.dark-mode .form-select { background-color: #1b2559 !important; color: #fff !important; border-color: #2b3674 !important; }
+    body.dark-mode .form-control::placeholder { color: #8f9bba !important; }
+    body.dark-mode .text-dark { color: #f4f7fe !important; }
+    body.dark-mode .bg-light { background-color: #1b2559 !important; color: #f4f7fe !important; }
+  </style>
+</head>
+<body>
+
+  <!-- MAIN CONTENT -->
+  <main>
+    <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+      <div>
+        <h1 class="h3 fw-bold text-dark mb-0"><i class="fas fa-user-circle me-2 text-primary"></i>Menu Profil Instansi</h1>
+        <small class="text-muted">Kelola informasi instansi, KOP surat, statistik, dan data ASN/Non-ASN</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <!-- Menggunakan parent.loadPage agar berpindah tab secara mulus dalam iframe -->
+        <button onclick="if(parent && parent.loadPage){ parent.loadPage('setelan-keamanan.html', 'Setelan & Keamanan System', null); } else { window.location.href='setelan-keamanan.html'; }" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-cog me-1"></i> Setelan & Keamanan
+        </button>
+        <span class="badge bg-secondary py-2 px-3 fs-6">
+          <i class="fas fa-user me-1"></i> <span id="current-user-display">Pengguna</span>
+        </span>
+        <button class="btn btn-outline-danger btn-sm" onclick="logoutSystem()">
+          <i class="fas fa-sign-out-alt me-1"></i> Keluar
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB NAVIGASI DI ATAS -->
+    <ul class="nav nav-tabs mb-4" id="profilTabs">
+      <li class="nav-item">
+        <button class="nav-link active fw-semibold" onclick="switchTab('tab-kop', this)">
+          <i class="fas fa-building me-1"></i> Informasi & KOP Surat
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" onclick="switchTab('tab-statistik', this)">
+          <i class="fas fa-chart-line me-1"></i> Statistik Diri
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-semibold" onclick="switchTab('tab-asn', this)">
+          <i class="fas fa-users me-1"></i> Data ASN / Non-ASN
+        </button>
+      </li>
+    </ul>
+
+    <!-- 1. TAB INFORMASI & KOP SURAT -->
+    <div id="tab-kop" class="tab-content-section active">
+      <div class="row">
+        <div class="col-lg-7 mb-4">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-building me-2"></i>Form Informasi & Kustomisasi Font KOP</h5>
+            <form id="formKop" onsubmit="event.preventDefault(); simpanKopSurat();">
+              
+              <div class="mb-3 p-2 bg-light rounded border">
+                <label class="form-label fw-semibold small mb-1">Nama Instansi</label>
+                <input type="text" id="kopInstansi" class="form-control form-control-sm mb-2" placeholder="Cth: PEMERINTAH KABUPATEN..." oninput="updateKopStyleLive()" required>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <select id="fontInstansi" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="Arial, sans-serif">Font: Arial</option>
+                      <option value="'Times New Roman', Times, serif" selected>Font: Times New Roman</option>
+                      <option value="'Courier New', Courier, monospace">Font: Courier New</option>
+                      <option value="Georgia, serif">Font: Georgia</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <select id="sizeInstansi" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="12px">Ukuran: 12px</option>
+                      <option value="14px">Ukuran: 14px</option>
+                      <option value="16px" selected>Ukuran: 16px</option>
+                      <option value="18px">Ukuran: 18px</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3 p-2 bg-light rounded border">
+                <label class="form-label fw-semibold small mb-1">Unit Kerja</label>
+                <input type="text" id="kopUnit" class="form-control form-control-sm mb-2" placeholder="Cth: DINAS..." oninput="updateKopStyleLive()" required>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <select id="fontUnit" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="Arial, sans-serif">Font: Arial</option>
+                      <option value="'Times New Roman', Times, serif" selected>Font: Times New Roman</option>
+                      <option value="'Courier New', Courier, monospace">Font: Courier New</option>
+                      <option value="Georgia, serif">Font: Georgia</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <select id="sizeUnit" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="12px">Ukuran: 12px</option>
+                      <option value="14px" selected>Ukuran: 14px</option>
+                      <option value="16px">Ukuran: 16px</option>
+                      <option value="18px">Ukuran: 18px</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3 p-2 bg-light rounded border">
+                <label class="form-label fw-semibold small mb-1">Alamat, Kodepos, Email & Website</label>
+                <textarea id="kopAlamat" class="form-control form-control-sm mb-2" rows="2" placeholder="Alamat Instansi..." oninput="updateKopStyleLive()" required></textarea>
+                <div class="row g-2 mb-2">
+                  <div class="col-md-6"><input type="number" id="kopKodepos" class="form-control form-control-sm" placeholder="Kodepos" oninput="updateKopStyleLive()" required></div>
+                  <div class="col-md-6"><input type="email" id="kopEmail" class="form-control form-control-sm" placeholder="Email" oninput="updateKopStyleLive()" required></div>
+                </div>
+                <input type="text" id="kopLaman" class="form-control form-control-sm mb-2" placeholder="Website (Laman)" oninput="updateKopStyleLive()">
+                
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <select id="fontDetail" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="Arial, sans-serif" selected>Font: Arial</option>
+                      <option value="'Times New Roman', Times, serif">Font: Times New Roman</option>
+                      <option value="'Courier New', Courier, monospace">Font: Courier New</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <select id="sizeDetail" class="form-select form-select-sm" onchange="updateKopStyleLive()">
+                      <option value="10px">Ukuran: 10px</option>
+                      <option value="11px" selected>Ukuran: 11px</option>
+                      <option value="12px">Ukuran: 12px</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Logo Instansi (.jpg, .png)</label>
+                <input type="file" id="kopLogoFile" class="form-control form-control-sm" accept=".jpg,.jpeg,.png" onchange="previewLogo(this)">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm fw-semibold">Simpan ke Cloud Spreadsheet</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-lg-5 mb-4">
+          <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-eye me-2"></i>Preview KOP Surat</h5>
+            <div class="kop-preview-container mb-3" id="previewKopBox">
+              <div class="kop-header">
+                <div class="kop-flex-wrapper" id="kopFlexContainer">
+                  <img id="prevLogoImg" src="" class="kop-logo d-none" alt="Logo">
+                  <div class="kop-text-wrapper">
+                    <div id="prevInstansi" class="fw-bold text-uppercase">PEMERINTAH KABUPATEN</div>
+                    <div id="prevUnit" class="fw-bold text-uppercase">DINAS KEARSIPAN</div>
+                    <div id="prevAlamat" class="text-muted">Alamat Instansi, Kodepos: 00000</div>
+                    <div id="prevKontak" class="text-muted">Laman: - | Pos-el: -</div>
+                  </div>
+                </div>
+              </div>
+              <div class="text-center text-muted py-2"><small>[ Area Isi Naskah / Dokumen Surat Resmi ]</small></div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold small">Form Template Kop Surat (Gaya Tata Letak)</label>
+              <select id="templateKopStyle" class="form-select form-select-sm" onchange="changeKopTemplate(this.value)">
+                <option value="standard">Standar Resmi Pemerintah (Logo Kiri)</option>
+                <option value="centered">Simetris Tengah (Formal)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. TAB STATISTIK DIRI -->
+    <div id="tab-statistik" class="tab-content-section">
+      <div class="card card-custom p-4">
+        <h5 class="fw-bold text-primary mb-3"><i class="fas fa-chart-line me-2"></i>Ringkasan Aktivitas / Statistik Diri</h5>
+        <ul class="list-group list-group-flush mb-3" style="max-width: 600px;">
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Jumlah Arsip Diinput Oleh Anda</span>
+            <span class="badge bg-primary rounded-pill fs-6" id="stat-user-arsip">0</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Sesi Login / Terakhir Masuk</span>
+            <span class="fw-semibold text-secondary" id="stat-last-login">-</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>Status Akses System</span>
+            <span class="badge bg-success" id="stat-user-role">FULL AKSES</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 3. TAB DATA ASN / NON ASN -->
+    <div id="tab-asn" class="tab-content-section">
+      <div class="card card-custom p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold text-primary mb-0"><i class="fas fa-users me-2"></i>Manajemen Data ASN / Non-ASN</h5>
+          <button class="btn btn-primary btn-sm fw-semibold" onclick="openModalAsn()">
+            <i class="fas fa-plus-circle me-1"></i> Tambah Pegawai
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>No</th><th>Nama Lengkap</th><th>NIP / Nomor Pegawai</th><th>Pangkat / Golongan</th><th>Jabatan</th><th class="text-center">Aksi</th></tr>
+            </thead>
+            <tbody id="tbody-asn">
+              <tr><td colspan="6" class="text-center text-muted">Belum ada data pegawai.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL TAMBAH ASN -->
+  <div class="modal fade" id="modalAsn" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalAsnTitle">Form Data Pegawai</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formAsn" onsubmit="event.preventDefault(); simpanAsn();">
+            <div class="mb-3"><label class="form-label fw-semibold">Nama Lengkap & Gelar</label><input type="text" id="asnNama" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label fw-semibold">NIP / ID Pegawai</label><input type="text" id="asnNip" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Pangkat / Golongan</label><input type="text" id="asnGol" class="form-control" placeholder="Cth: Pembina / IV/a"></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Jabatan</label><input type="text" id="asnJabatan" class="form-control" required></div>
+            <button type="submit" class="btn btn-primary w-100 fw-semibold">Simpan ke Cloud</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbz9y_4RTiGRCpub-jN_dqVyc5-IyRI_pxlxR_P57TRKid_Di-_TUOJiSNPmv7KuWz1Z/exec";
+
+    let currentUserName = localStorage.getItem('currentUserName') || localStorage.getItem('arsip_nama') || 'Pengguna';
+    let currentUsernameKey = localStorage.getItem('currentUsernameKey') || localStorage.getItem('arsip_username') || 'admin';
+    let asnDataList = [];
+
+    document.addEventListener("DOMContentLoaded", function() {
+      document.getElementById('current-user-display').innerText = currentUserName;
+      
+      if (localStorage.getItem('theme_mode') === 'dark') {
+        document.body.classList.add('dark-mode');
+      }
+
+      loadProfilFromCloud();
+      loadStatistikDiri();
+    });
+
+    function logoutSystem() {
+      if (parent && parent.handleLogout) {
+        parent.handleLogout();
+      } else {
+        localStorage.clear();
+        window.location.href = 'login.html';
+      }
+    }
+
+    function switchTab(tabId, btnElement) {
+      document.querySelectorAll('.tab-content-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('#profilTabs .nav-link').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btnElement.classList.add('active');
+    }
+
+    function updateKopStyleLive() {
+      const elInstansi = document.getElementById('prevInstansi');
+      const elUnit = document.getElementById('prevUnit');
+      const elAlamat = document.getElementById('prevAlamat');
+      const elKontak = document.getElementById('prevKontak');
+
+      elInstansi.innerText = document.getElementById('kopInstansi').value || 'PEMERINTAH KABUPATEN';
+      elInstansi.style.fontFamily = document.getElementById('fontInstansi').value;
+      elInstansi.style.fontSize = document.getElementById('sizeInstansi').value;
+
+      elUnit.innerText = document.getElementById('kopUnit').value || 'DINAS KEARSIPAN';
+      elUnit.style.fontFamily = document.getElementById('fontUnit').value;
+      elUnit.style.fontSize = document.getElementById('sizeUnit').value;
+
+      const alamat = document.getElementById('kopAlamat').value || 'Alamat Instansi';
+      const kodepos = document.getElementById('kopKodepos').value || '00000';
+      elAlamat.innerText = `${alamat}, Kodepos: ${kodepos}`;
+      elAlamat.style.fontFamily = document.getElementById('fontDetail').value;
+      elAlamat.style.fontSize = document.getElementById('sizeDetail').value;
+
+      const laman = document.getElementById('kopLaman').value || '-';
+      const email = document.getElementById('kopEmail').value || '-';
+      elKontak.innerText = `Laman: ${laman} | Pos-el: ${email}`;
+      elKontak.style.fontFamily = document.getElementById('fontDetail').value;
+      elKontak.style.fontSize = document.getElementById('sizeDetail').value;
+    }
+
+    let base64Logo = "";
+    function previewLogo(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          base64Logo = e.target.result;
+          document.getElementById('prevLogoImg').src = base64Logo;
+          document.getElementById('prevLogoImg').classList.remove('d-none');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function loadProfilFromCloud() {
+      Swal.fire({ title: 'Memuat Data Profil...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_BACKEND_URL)
+        .then(res => res.json())
+        .then(data => {
+          Swal.close();
+          if (data.status === "success") {
+            if (data.ProfilInstansi && data.ProfilInstansi.length > 1) {
+              const p = data.ProfilInstansi[1];
+              document.getElementById('kopInstansi').value = p[0] || '';
+              document.getElementById('kopUnit').value = p[1] || '';
+              document.getElementById('kopAlamat').value = p[2] || '';
+              document.getElementById('kopKodepos').value = p[3] || '';
+              document.getElementById('kopEmail').value = p[4] || '';
+              document.getElementById('kopLaman').value = p[5] || '';
+              if(p[6]) document.getElementById('fontInstansi').value = p[6];
+              if(p[7]) document.getElementById('sizeInstansi').value = p[7];
+              if(p[8]) document.getElementById('fontUnit').value = p[8];
+              if(p[9]) document.getElementById('sizeUnit').value = p[9];
+              if(p[10]) document.getElementById('fontDetail').value = p[10];
+              if(p[11]) document.getElementById('sizeDetail').value = p[11];
+              if(p[12]) {
+                base64Logo = p[12];
+                document.getElementById('prevLogoImg').src = base64Logo;
+                document.getElementById('prevLogoImg').classList.remove('d-none');
+              }
+              updateKopStyleLive();
+            }
+            if (data.DataPegawai) {
+              asnDataList = data.DataPegawai.slice(1).map(r => ({ nama: r[0], nip: r[1], gol: r[2], jabatan: r[3] }));
+              loadDataAsn();
+            }
+          }
+        }).catch(err => {
+          Swal.close();
+          console.error("Gagal memuat:", err);
+        });
+    }
+
+    function simpanKopSurat() {
+      const payload = {
+        action: 'add', type: 'profil',
+        instansi: document.getElementById('kopInstansi').value,
+        unit: document.getElementById('kopUnit').value,
+        alamat: document.getElementById('kopAlamat').value,
+        kodepos: document.getElementById('kopKodepos').value,
+        email: document.getElementById('kopEmail').value,
+        laman: document.getElementById('kopLaman').value,
+        fontInstansi: document.getElementById('fontInstansi').value,
+        sizeInstansi: document.getElementById('sizeInstansi').value,
+        fontUnit: document.getElementById('fontUnit').value,
+        sizeUnit: document.getElementById('sizeUnit').value,
+        fontDetail: document.getElementById('fontDetail').value,
+        sizeDetail: document.getElementById('sizeDetail').value,
+        logo: base64Logo
+      };
+
+      Swal.fire({ title: 'Menyimpan ke Spreadsheet profiles...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+          if(res.status === "success") {
+            Swal.fire('Berhasil!', 'Pengaturan KOP Surat tersimpan di Cloud spreadsheet profiles.', 'success');
+          } else {
+            Swal.fire('Error', 'Gagal dari Server: ' + (res.message || 'Unknown error'), 'error');
+          }
+        }).catch(err => {
+          console.error(err);
+          Swal.fire('Error / CORS', 'Gagal terhubung ke Cloud. Pastikan URL benar dan deployment GAS disetel ke "Anyone".', 'error');
+        });
+    }
+
+    function loadStatistikDiri() {
+      document.getElementById('stat-last-login').innerText = localStorage.getItem('last_login_' + currentUsernameKey) || new Date().toLocaleString();
+      const cachedArsip = JSON.parse(localStorage.getItem('cachedArsip') || '[]');
+      document.getElementById('stat-user-arsip').innerText = cachedArsip.filter(a => a.userInput === currentUserName).length;
+    }
+
+    function openModalAsn() {
+      document.getElementById('formAsn').reset();
+      new bootstrap.Modal(document.getElementById('modalAsn')).show();
+    }
+
+    function simpanAsn() {
+      const item = {
+        action: 'add', type: 'asn',
+        nama: document.getElementById('asnNama').value,
+        nip: document.getElementById('asnNip').value,
+        gol: document.getElementById('asnGol').value,
+        jabatan: document.getElementById('asnJabatan').value,
+      };
+
+      Swal.fire({ title: 'Menyimpan Pegawai...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify(item) })
+        .then(res => res.json())
+        .then(res => {
+          if(res.status === "success") {
+            asnDataList.push(item);
+            loadDataAsn();
+            bootstrap.Modal.getInstance(document.getElementById('modalAsn')).hide();
+            Swal.fire('Berhasil', 'Data pegawai tersimpan di Cloud.', 'success');
+          } else {
+            Swal.fire('Error', 'Gagal dari Server: ' + (res.message || ''), 'error');
+          }
+        }).catch(() => {
+          Swal.fire('Error', 'Gagal menyimpan data pegawai.', 'error');
+        });
+    }
+
+    function loadDataAsn() {
+      const tbody = document.getElementById('tbody-asn');
+      tbody.innerHTML = '';
+      if (asnDataList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Belum ada data pegawai.</td></tr>`;
+        return;
+      }
+      asnDataList.forEach((item, index) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="fw-bold">${item.nama}</td>
+            <td>${item.nip}</td>
+            <td>${item.gol}</td>
+            <td>${item.jabatan}</td>
+            <td class="text-center text-nowrap">
+              <button class="btn btn-sm btn-danger" onclick="hapusAsn('${item.nip}')" title="Hapus"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    function hapusAsn(nip) {
+      Swal.fire({ title: 'Hapus Pegawai?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' }).then(res => {
+        if(res.isConfirmed) {
+          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'asn', nip: nip }) })
+            .then(res => res.json())
+            .then(res => {
+              if(res.status === "success") {
+                asnDataList = asnDataList.filter(a => a.nip !== nip);
+                loadDataAsn();
+                Swal.fire('Terhapus', 'Data pegawai dihapus dari Cloud.', 'success');
+              }
+            });
+        }
+      });
+    }
+
+    function changeKopTemplate(style) {
+      const container = document.getElementById('kopFlexContainer');
+      if (style === 'centered') {
+        container.style.flexDirection = 'column';
+        container.style.textAlign = 'center';
+      } else {
+        container.style.flexDirection = 'row';
+        container.style.textAlign = 'center';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah / Edit Data Surat - Sistem Surat Masuk AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- PDF.js library for rendering PDF pages to canvas/images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .drag-active { border-color: #3b82f6 !important; background-color: #eff6ff !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        #previewViewport {
+            overflow: auto;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #previewViewport.is-panning { cursor: grabbing; }
+        #previewImage {
+            transform-origin: center center;
+            transition: transform 0.12s ease-out;
+            max-width: none;
+            will-change: transform;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" id="brandHomeBtn">
+                <a href="surat-masuk.html" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition" title="Kembali ke Daftar">
+                    <i class="fa-solid fa-arrow-left text-base"></i>
+                </a>
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-envelope-open-text text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-lg leading-tight">Sistem Surat Masuk AI</h1>
+                    <p class="text-xs text-slate-500">Tambah & Ekstraksi Surat Baru</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="toggleApiModal" class="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 transition">
+                    <i class="fa-solid fa-key text-amber-500"></i>
+                    <span id="apiKeyStatus">API Key: Default Runtime</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- API Key Configuration Bar -->
+    <div id="apiConfigSection" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 text-amber-800 font-semibold text-sm">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Konfigurasi Gemini API Key</span>
+                </div>
+                <button id="closeApiConfig" class="text-xs text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+            <p class="text-xs text-slate-600 mb-3">
+                Tanpa API Key, surat dibaca langsung di browser (teks PDF dengan pdf.js, scan/foto dengan Tesseract OCR) lalu form terisi otomatis. Isi API Key Gemini dari Google AI Studio (berawalan AIza...) untuk hasil yang lebih akurat.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                    <input type="password" id="geminiApiKey" class="w-full bg-white border border-amber-300 rounded-lg pl-9 pr-10 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="AIzaSyxxxxxx... (Kosongkan untuk mode tanpa API Key)">
+                    <i class="fa-solid fa-key absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <button type="button" id="togglePassView" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-eye text-xs"></i>
+                    </button>
+                </div>
+                <button id="simpanKey" class="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs px-4 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Key
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex-1 w-full">
+
+        <!-- FORM VIEW SECTION -->
+        <section id="formViewSection" class="space-y-4">
+            <div class="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <a href="surat-masuk.html" id="btnBackToList" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition" title="Kembali ke Daftar">
+                        <i class="fa-solid fa-arrow-left text-base"></i>
+                    </a>
+                    <h2 id="formTitle" class="font-bold text-slate-800 text-base">Tambah & Ekstraksi Surat Baru</h2>
+                </div>
+                <span class="text-xs text-slate-400">Mendukung PDF, JPG, PNG, WEBP</span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- BAGIAN KIRI: FORM PENGISIAN & UPLOAD (4 / 12 = ~33.3%) -->
+                <div class="lg:col-span-4 space-y-4">
+                    <!-- Seluruh card kiri berada di dalam satu <form> agar tombol Simpan membaca semua field -->
+                    <form id="suratForm" class="space-y-4">
+
+                        <!-- ============ CARD 1: 📄 DATA SURAT ============ -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                                <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold">1</span>
+                                    📄 Data Surat
+                                </h3>
+                                <button type="button" id="resetFormBtn" class="text-xs text-slate-400 hover:text-slate-600">Reset Form</button>
+                            </div>
+
+                            <div id="loadingIndicator" class="hidden mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-xs">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-circle-notch fa-spin text-lg text-blue-600"></i>
+                                    <div>
+                                        <p class="font-semibold">Menganalisis Dokumen...</p>
+                                        <p class="text-blue-600 text-[11px]">Gemini Vision sedang mengekstrak data surat.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Loading tahap 2: analisis klasifikasi otomatis (tampil setelah OCR selesai) -->
+                            <div id="aiClassifyIndicator" class="hidden mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-800 text-xs">
+                                <div class="flex items-center gap-3">
+                                    <i class="fa-solid fa-circle-notch fa-spin text-lg text-indigo-600"></i>
+                                    <div>
+                                        <p class="font-semibold">AI sedang menganalisis klasifikasi surat...</p>
+                                        <p class="text-indigo-600 text-[11px]">Menentukan indeks, klasifikasi arsip, berkas, media, dan kode klasifikasi.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="editEntryId" name="editEntryId" value="">
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Nomor Surat -->
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Surat *</label>
+                                    <input type="text" id="nomor_surat" name="nomor_surat" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="cth: 005/ADM/X/2026">
+                                    <div data-ai-note="nomor_surat" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Tanggal Surat -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat</label>
+                                    <input type="date" id="tanggal_surat" name="tanggal_surat" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                    <div data-ai-note="tanggal_surat" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Tanggal Diterima: otomatis hari ini, readonly, tetap tersimpan -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Diterima</label>
+                                    <input type="date" id="tanggal_terima" name="tanggal_terima" readonly class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none" title="Terisi otomatis dengan tanggal hari ini">
+                                </div>
+
+                                <!-- Pengirim / Instansi -->
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pengirim / Instansi *</label>
+                                    <input type="text" id="pengirim" name="pengirim" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="cth: Dinas Pendidikan Kota">
+                                    <div data-ai-note="pengirim" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Perihal -->
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Perihal *</label>
+                                    <input type="text" id="perihal" name="perihal" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="cth: Undangan Rapat Koordinasi">
+                                    <div data-ai-note="perihal" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Indeks -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Indeks</label>
+                                    <select id="indeks" name="indeks" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="Undangan">Undangan</option>
+                                        <option value="Pemberitahuan">Pemberitahuan</option>
+                                        <option value="Permohonan">Permohonan</option>
+                                        <option value="Peraturan">Peraturan</option>
+                                        <option value="Edaran">Edaran</option>
+                                        <option value="Laporan">Laporan</option>
+                                        <option value="Keputusan">Keputusan</option>
+                                        <option value="Nota Dinas">Nota Dinas</option>
+                                        <option value="Instruksi">Instruksi</option>
+                                        <option value="Lainnya">Lainnya</option>
+                                    </select>
+                                    <div data-ai-note="indeks" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Klasifikasi Arsip -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Klasifikasi Arsip</label>
+                                    <select id="klasifikasi_arsip" name="klasifikasi_arsip" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="Biasa">Biasa</option>
+                                        <option value="Penting">Penting</option>
+                                        <option value="Rahasia">Rahasia</option>
+                                        <option value="Sangat Rahasia">Sangat Rahasia</option>
+                                    </select>
+                                    <div data-ai-note="klasifikasi_arsip" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Berkas -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Berkas</label>
+                                    <select id="berkas" name="berkas" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="Sekretariat">Sekretariat</option>
+                                        <option value="Bidang PPD">Bidang PPD</option>
+                                        <option value="Bidang PMLKD">Bidang PMLKD</option>
+                                        <option value="Bidang PUEMD">Bidang PUEMD</option>
+                                    </select>
+                                    <div data-ai-note="berkas" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Media -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Media</label>
+                                    <select id="media" name="media" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                        <option value="">-- Pilih --</option>
+                                        <option value="Kertas">Kertas</option>
+                                        <option value="File">File</option>
+                                        <option value="CD/DVD">CD/DVD</option>
+                                        <option value="Flash Disk">Flash Disk</option>
+                                    </select>
+                                    <div data-ai-note="media" class="hidden mt-1"></div>
+                                </div>
+
+                                <!-- Isi Ringkasan -->
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Ringkasan</label>
+                                    <textarea id="isi_singkat" name="isi_singkat" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Ringkasan inti surat..."></textarea>
+                                    <div data-ai-note="isi_singkat" class="hidden mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ============ CARD 2: 🗂️ KODE KLASIFIKASI ARSIP ============ -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                                <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center">🗂️</span>
+                                    Kode Klasifikasi Arsip
+                                </h3>
+                                <button type="button" id="btnClearKlasifikasi" class="text-xs text-slate-400 hover:text-slate-600">Kosongkan</button>
+                            </div>
+
+                            <div class="space-y-3">
+                                <!-- Pencarian Klasifikasi (autocomplete) -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Pencarian Klasifikasi</label>
+                                    <div class="relative">
+                                        <input type="text" id="klasifikasiSearch" autocomplete="off" class="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Ketik kode / kata kunci: keuangan, kepegawaian, aset...">
+                                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                                        <div id="klasifikasiPanel" class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg"></div>
+                                    </div>
+                                    <div class="flex items-center justify-between mt-1 gap-2">
+                                        <p id="klasifikasiStatus" class="text-[10px] text-slate-400">Memuat data kode klasifikasi...</p>
+                                        <button type="button" id="btnReloadKlasifikasi" class="text-[10px] text-blue-600 hover:text-blue-800 shrink-0">Muat ulang</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="sm:col-span-1">
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kode Klasifikasi</label>
+                                        <input type="text" id="kode_klasifikasi" name="kode_klasifikasi" readonly class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-slate-100 text-slate-700 font-semibold focus:outline-none" placeholder="-">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Uraian Klasifikasi</label>
+                                        <textarea id="uraian_klasifikasi" name="uraian_klasifikasi" rows="2" readonly class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs bg-slate-100 text-slate-700 focus:outline-none" placeholder="-"></textarea>
+                                    </div>
+                                </div>
+
+                                <div data-ai-note="kode_klasifikasi" class="hidden"></div>
+                                <!-- Alternatif rekomendasi (chip yang bisa diklik) -->
+                                <div id="klasifikasiAlternatif" class="hidden flex flex-wrap items-center gap-1.5"></div>
+                            </div>
+                        </div>
+
+                        <!-- ============ CARD 3: 📌 DISPOSISI SURAT ============ -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                                <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                                    <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center">📌</span>
+                                    Disposisi Surat
+                                </h3>
+                                <button type="button" id="btnClearDisposisi" class="text-xs text-slate-400 hover:text-slate-600">Kosongkan</button>
+                            </div>
+
+                            <div class="space-y-3">
+                                <!-- Didisposisikan Kepada (multi-select, sumber: Data ASN / Non-ASN di Profil) -->
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Didisposisikan Kepada <span class="font-normal text-slate-400">(bisa lebih dari 1 orang)</span></label>
+                                    <div class="relative">
+                                        <input type="text" id="disposisiSearch" autocomplete="off" class="w-full border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Cari & pilih nama pegawai (bisa berkali-kali)...">
+                                        <i class="fa-solid fa-user-tie absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                                        <div id="disposisiPanel" class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg"></div>
+                                    </div>
+                                    <div id="disposisiChips" class="flex flex-wrap gap-1.5 mt-2 empty:hidden"></div>
+                                    <div class="flex items-center justify-between mt-1 gap-2">
+                                        <p id="pegawaiStatus" class="text-[10px] text-slate-400">Memuat data pegawai...</p>
+                                        <button type="button" id="btnReloadPegawai" class="text-[10px] text-blue-600 hover:text-blue-800 shrink-0">Muat ulang</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Isi Disposisi</label>
+                                    <textarea id="isi_disposisi" name="isi_disposisi" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Instruksi / arahan disposisi..."></textarea>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Kegiatan</label>
+                                    <input type="date" id="tanggal_kegiatan" name="tanggal_kegiatan" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tombol aksi form -->
+                        <div class="pt-1 flex gap-2">
+                            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-md shadow-emerald-500/10">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                Simpan Data
+                            </button>
+                            <a href="surat-masuk.html" id="btnCancelForm" class="bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 px-4 rounded-lg font-medium text-sm transition flex items-center justify-center">
+                                Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- BAGIAN KANAN: REVIEW DOKUMEN & TRANSKRIP OCR (8 / 12 = ~66.7%) -->
+                <div class="lg:col-span-8 flex flex-col gap-4">
+                    
+                    <!-- ATAS: REVIEW FILE & UPLOAD -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col min-h-[420px]">
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                            <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold">2</span>
+                                Review File Dokumen Surat
+                            </h3>
+                            <button id="btnProses" class="bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-4 rounded-lg font-medium text-xs transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/10" disabled>
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                Proses Ekstraksi AI
+                            </button>
+                        </div>
+
+                        <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-blue-500 hover:bg-blue-50/30 cursor-pointer transition flex flex-col items-center justify-center py-6 group">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                <i class="fa-solid fa-file-pdf text-lg"></i>
+                            </div>
+                            <p class="text-xs font-medium text-slate-700">Klik atau seret file PDF / Surat ke sini</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Format: PDF, JPG, PNG, WEBP (Max: 10MB)</p>
+                            <input type="file" id="fileInput" class="hidden" accept=".pdf,image/jpeg,image/png,image/webp">
+                        </div>
+
+                        <div id="pdfProcessingIndicator" class="hidden mt-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs flex items-center gap-2">
+                            <i class="fa-solid fa-spinner fa-spin text-sm"></i>
+                            <span>Konversi PDF ke Gambar Halaman 1...</span>
+                        </div>
+
+                        <!-- Preview Area Image Viewer -->
+                        <div id="previewContainer" class="mt-3 flex-1 flex flex-col hidden">
+                            <div class="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                                <h4 class="font-medium text-xs text-slate-600" id="previewTitle">Preview Dokumen:</h4>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="flex items-center gap-0.5 bg-slate-100 border border-slate-200 rounded-lg p-0.5">
+                                        <button type="button" id="btnZoomOut" class="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-blue-600 transition text-xs" title="Perkecil (Ctrl + scroll)">
+                                            <i class="fa-solid fa-minus"></i>
+                                        </button>
+                                        <span id="zoomLevelLabel" class="text-[11px] font-semibold text-slate-700 min-w-[3rem] text-center tabular-nums">100%</span>
+                                        <button type="button" id="btnZoomIn" class="w-7 h-7 rounded-md hover:bg-white text-slate-600 hover:text-blue-600 transition text-xs" title="Perbesar (Ctrl + scroll)">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                        <button type="button" id="btnZoomReset" class="px-2 h-7 rounded-md hover:bg-white text-slate-600 hover:text-blue-600 transition text-[10px] font-medium border-l border-slate-200 ml-0.5" title="Reset zoom">
+                                            Reset
+                                        </button>
+                                    </div>
+                                    <button id="removeImageBtn" class="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-red-50 transition">
+                                        <i class="fa-solid fa-trash-can"></i> Hapus File
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="previewViewport" class="relative rounded-lg overflow-auto border border-slate-200 bg-slate-100 flex-1 min-h-[300px] max-h-[560px] p-2">
+                                <div id="previewImageWrap" class="flex items-center justify-center min-h-full w-full">
+                                    <img id="previewImage" class="object-contain max-h-[480px] max-w-full" alt="Preview Dokumen" draggable="false">
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">Gunakan tombol +/−, Ctrl+scroll, atau drag untuk menggeser saat diperbesar.</p>
+                            <p id="pdfInfoText" class="text-[11px] text-slate-400 mt-0.5 italic hidden">*Halaman pertama PDF diekstrak untuk visual AI</p>
+                        </div>
+                    </div>
+
+                    <!-- BAWAH: HASIL TRANSKRIP OCR & CATATAN AI -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+                            <h3 class="font-semibold text-slate-800 flex items-center gap-2 text-sm">
+                                <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs flex items-center justify-center font-bold">3</span>
+                                Hasil Transkrip OCR & Catatan AI
+                            </h3>
+                            <button id="copyOcrBtn" class="text-xs text-blue-600 hover:text-blue-800 hidden flex items-center gap-1 font-medium">
+                                <i class="fa-regular fa-copy"></i> Salin Transkrip
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <!-- Transkrip Text -->
+                            <div class="md:col-span-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                <p class="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-align-left text-slate-400"></i> Transkripsi Teks OCR:
+                                </p>
+                                <p id="ocrText" class="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-mono bg-white p-2.5 rounded border border-slate-200 max-h-40 overflow-y-auto min-h-[90px]">Belum ada transkrip.</p>
+                            </div>
+
+                            <!-- Catatan Analisis AI -->
+                            <div class="p-3 bg-blue-50/60 rounded-lg border border-blue-100 flex flex-col justify-start">
+                                <p class="text-xs font-semibold text-blue-800 mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-brain text-blue-600"></i> Catatan AI:
+                                </p>
+                                <p id="geminiReason" class="text-xs text-slate-700 leading-relaxed max-h-40 overflow-y-auto">Belum ada catatan ekstraksi.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Notification System -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-5 transform transition-all">
+            <div class="flex items-center gap-3 mb-3" id="modalHeader">
+                <div id="modalIcon" class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-info"></i>
+                </div>
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-base">Notifikasi</h3>
+            </div>
+            <p id="modalMessage" class="text-xs text-slate-600 leading-relaxed mb-5">Pesan notifikasi di sini.</p>
+            <div class="flex justify-end gap-2" id="modalActions">
+                <button id="modalBtnOk" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Logic -->
+    <script>
+        // URL Web App Google Apps Script untuk Sinkronisasi Spreadsheet & Google Drive
+        const SPREADSHEET_GAS_URL = "https://script.google.com/macros/s/AKfycbyqr3GfEstYR9Nbapt_ox32QCiL50nFuLm4Mea122nZ23Qsexi_2mst_38c53pDhymn3A/exec";
+
+        // Proteksi: cegah kode klasifikasi yang sudah berubah jadi string tanggal
+        function sanitizeKodeKlasifikasi(val) {
+            if (val == null || val === '') return '';
+            const s = String(val).trim();
+            if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(s) || /^\d{4}-\d{2}-\d{2}T/.test(s)) {
+                return '';
+            }
+            return s;
+        }
+
+        // Setup PDF.js worker
+        if (window.pdfjsLib) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // State variables
+        let dataSurat = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
+        let currentFileBase64 = null;      // Preview (gambar / halaman 1 PDF) untuk tampilan & AI
+        let currentFileMime = null;
+        let currentFileName = null;
+        let currentPdfFile = null;
+        let currentOriginalBase64 = null;  // File asli (PDF/gambar) untuk upload ke Drive
+        let currentOriginalMime = null;
+        // URL lampiran yang sudah ada di cloud (penting saat edit agar tidak terhapus)
+        let existingFileUrl = null;
+
+        // Migrasi: lengkapi data lama dengan field baru
+        dataSurat = dataSurat.map(normalizeRecord);
+        saveStorage();
+
+        // Local Storage Sync
+        function saveStorage() {
+            localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
+        }
+
+        // Custom Modal UI handler
+        function showAlert(title, message, iconType = 'info', onConfirm = null) {
+            const modal = document.getElementById('customModal');
+            const titleEl = document.getElementById('modalTitle');
+            const msgEl = document.getElementById('modalMessage');
+            const iconEl = document.getElementById('modalIcon');
+            const actionsEl = document.getElementById('modalActions');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            if (iconType === 'success') {
+                iconEl.className = "w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold";
+                iconEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else if (iconType === 'error') {
+                iconEl.className = "w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold";
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (iconType === 'warning') {
+                iconEl.className = "w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold";
+                iconEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else {
+                iconEl.className = "w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold";
+                iconEl.innerHTML = '<i class="fa-solid fa-info"></i>';
+            }
+
+            if (onConfirm) {
+                actionsEl.innerHTML = `
+                    <button id="modalBtnCancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-xs transition">Batal</button>
+                    <button id="modalBtnConfirm" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">Ya, Lanjutkan</button>
+                `;
+                document.getElementById('modalBtnCancel').onclick = () => modal.classList.add('hidden');
+                document.getElementById('modalBtnConfirm').onclick = () => {
+                    modal.classList.add('hidden');
+                    onConfirm();
+                };
+            } else {
+                actionsEl.innerHTML = `
+                    <button id="modalBtnOk" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">OK</button>
+                `;
+                document.getElementById('modalBtnOk').onclick = () => modal.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function showFormView(editData = null) {
+            const form = document.getElementById('suratForm');
+            form.reset();
+            resetFileState();
+
+            if (editData) {
+                document.getElementById('formTitle').textContent = 'Edit Data Surat';
+                document.getElementById('editEntryId').value = editData.id;
+                document.getElementById('nomor_surat').value = editData.nomor_surat || '';
+                document.getElementById('tanggal_surat').value = editData.tanggal_surat || '';
+                document.getElementById('tanggal_terima').value = editData.tanggal_diterima || editData.tanggal_terima || '';
+                document.getElementById('pengirim').value = editData.pengirim || '';
+                document.getElementById('perihal').value = editData.perihal || '';
+                document.getElementById('isi_singkat').value = editData.isi_singkat || '';
+                document.getElementById('ocrText').textContent = editData.ocr_text || 'Belum ada transkrip.';
+                document.getElementById('geminiReason').textContent = editData.gemini_notes || 'Mode edit manual.';
+                populateExtendedFields(editData);
+
+                // Pertahankan URL lampiran yang sudah ada di Sheet/Drive
+                existingFileUrl = editData.file_url || null;
+
+                if (editData.preview_image) {
+                    currentFileBase64 = editData.preview_image;
+                    document.getElementById('previewImage').src = editData.preview_image;
+                    document.getElementById('previewContainer').classList.remove('hidden');
+                    document.getElementById('dropZone').classList.add('hidden');
+                } else if (editData.file_url) {
+                    // Ada file di Drive tapi tidak ada preview lokal
+                    document.getElementById('dropZone').classList.remove('hidden');
+                    const dz = document.getElementById('dropZone');
+                    if (dz && !document.getElementById('existingFileHint')) {
+                        const hint = document.createElement('div');
+                        hint.id = 'existingFileHint';
+                        hint.className = 'mt-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2';
+                        hint.innerHTML = '<i class="fa-solid fa-paperclip mr-1"></i> Lampiran sudah tersimpan di Drive. ' +
+                            '<a href="' + editData.file_url + '" target="_blank" class="underline font-semibold">Lihat berkas</a>. ' +
+                            'Unggah file baru hanya jika ingin mengganti.';
+                        dz.appendChild(hint);
+                    }
+                }
+            } else {
+                existingFileUrl = null;
+                document.getElementById('formTitle').textContent = 'Tambah & Ekstraksi Surat Baru';
+                document.getElementById('editEntryId').value = '';
+                document.getElementById('tanggal_terima').value = todayLocalISO();
+                document.getElementById('ocrText').textContent = 'Belum ada transkrip.';
+                document.getElementById('geminiReason').textContent = 'Belum ada catatan ekstraksi.';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // File & Drag Drop Handling
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-active');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        async function handleFileSelect(file) {
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                showAlert('Ukuran Berkas Terlalu Besar', 'Maksimal ukuran file adalah 10MB.', 'warning');
+                return;
+            }
+
+            currentFileName = file.name || null;
+            currentPdfFile = (file.type === 'application/pdf') ? file : null;
+            currentOriginalMime = file.type || 'application/octet-stream';
+
+            // Simpan file ASLI (untuk upload Drive) terpisah dari preview
+            const originalReader = new FileReader();
+            originalReader.onload = function (e) {
+                currentOriginalBase64 = e.target.result;
+            };
+            originalReader.readAsDataURL(file);
+
+            if (file.type === 'application/pdf') {
+                await renderPdfToImage(file);
+            } else if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    currentFileBase64 = e.target.result;
+                    currentFileMime = file.type;
+                    currentOriginalBase64 = e.target.result;
+                    currentOriginalMime = file.type;
+                    displayPreview(currentFileBase64, false);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                showAlert('Format Berkas Tidak Didukung', 'Silakan pilih file PDF atau Gambar (JPG, PNG, WEBP).', 'warning');
+            }
+        }
+
+        async function renderPdfToImage(file) {
+            const pdfIndicator = document.getElementById('pdfProcessingIndicator');
+            pdfIndicator.classList.remove('hidden');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+                currentFileBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                currentFileMime = 'image/jpeg';
+                
+                pdfIndicator.classList.add('hidden');
+                displayPreview(currentFileBase64, true);
+            } catch (err) {
+                pdfIndicator.classList.add('hidden');
+                showAlert('Gagal Membaca PDF', 'Terjadi kesalahan saat mengekstrak halaman PDF.', 'error');
+            }
+        }
+
+        function displayPreview(dataUrl, isPdf = false) {
+            const previewContainer = document.getElementById('previewContainer');
+            const previewImage = document.getElementById('previewImage');
+            const pdfInfoText = document.getElementById('pdfInfoText');
+            const btnProses = document.getElementById('btnProses');
+
+            previewImage.src = dataUrl;
+            previewContainer.classList.remove('hidden');
+            if (typeof resetPreviewZoom === 'function') resetPreviewZoom();
+            dropZone.classList.add('hidden');
+            btnProses.disabled = false;
+
+            if (isPdf) {
+                pdfInfoText.classList.remove('hidden');
+            } else {
+                pdfInfoText.classList.add('hidden');
+            }
+
+            // Otomatis proses begitu file terunggah
+            setTimeout(() => { if (!btnProses.disabled) btnProses.click(); }, 150);
+        }
+
+        function resetFileState() {
+            currentFileBase64 = null;
+            currentFileMime = null;
+            currentFileName = null;
+            currentPdfFile = null;
+            currentOriginalBase64 = null;
+            currentOriginalMime = null;
+            // existingFileUrl TIDAK di-reset di sini; di-clear hanya saat form baru / user hapus file
+            document.getElementById('previewContainer').classList.add('hidden');
+            document.getElementById('dropZone').classList.remove('hidden');
+            document.getElementById('btnProses').disabled = true;
+            fileInput.value = '';
+            const hint = document.getElementById('existingFileHint');
+            if (hint) hint.remove();
+        }
+
+        function clearExistingAttachment() {
+            existingFileUrl = null;
+            resetFileState();
+        }
+
+        document.getElementById('removeImageBtn').addEventListener('click', clearExistingAttachment);
+
+        // Gemini AI Vision Processing Engine
+        document.getElementById('btnProses').addEventListener('click', async () => {
+            if (!currentFileBase64) return;
+
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const btnProses = document.getElementById('btnProses');
+
+            loadingIndicator.classList.remove('hidden');
+            btnProses.disabled = true;
+
+            // Mode tanpa API Key: bila kunci kosong, baca dokumen langsung di browser (pdf.js / Tesseract OCR)
+            if (!localStorage.getItem('gemini_custom_key')) {
+                try {
+                    await runOfflineExtraction();
+                } catch (offErr) {
+                    showAlert('Gagal Membaca Dokumen', offErr.message || 'Dokumen tidak dapat dibaca. Coba file yang lebih jelas atau isi form secara manual.', 'error');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                    btnProses.disabled = false;
+                }
+                return;
+            }
+
+            const base64DataOnly = currentFileBase64.split(',')[1];
+            const mimeType = currentFileMime || 'image/jpeg';
+
+            const systemPrompt = `Anda adalah asisten AI profesional pengolah kearsipan surat masuk. 
+Tugas Anda:
+1. Pindai dan ekstrak data dari dokumen surat masuk berikut.
+2. Sediakan transkrip lengkap isi teks surat (OCR).
+3. Berikan nilai terstruktur dalam format JSON dengan kunci:
+   - nomor_surat: Nomor resmi surat.
+   - tanggal_surat: Format YYYY-MM-DD jika ditemukan, jika tidak string teks tanggal.
+   - pengirim: Nama instansi / organisasi / perorangan pengirim.
+   - perihal: Inti perihal surat.
+   - isi_singkat: Ringkasan singkat isi surat (1-2 kalimat).
+   - ocr_text: Transkripsi lengkap seluruh teks pada surat.
+   - gemini_notes: Catatan ringkas tingkat kejelasan atau informasi penting.`;
+
+            const userPrompt = "Ekstrak bidang data dan transkrip teks secara lengkap dari surat ini.";
+
+            const apiKeyCustom = localStorage.getItem('gemini_custom_key') || "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKeyCustom}`;
+
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: userPrompt },
+                        {
+                            inlineData: {
+                                mimeType: mimeType,
+                                data: base64DataOnly
+                            }
+                        }
+                    ]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "nomor_surat": { "type": "STRING" },
+                            "tanggal_surat": { "type": "STRING" },
+                            "pengirim": { "type": "STRING" },
+                            "perihal": { "type": "STRING" },
+                            "isi_singkat": { "type": "STRING" },
+                            "ocr_text": { "type": "STRING" },
+                            "gemini_notes": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["nomor_surat", "tanggal_surat", "pengirim", "perihal", "isi_singkat", "ocr_text", "gemini_notes"]
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: Status ${response.status}`);
+                }
+
+                const result = await response.json();
+                const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const parsed = JSON.parse(jsonText);
+
+                    if (parsed.nomor_surat) document.getElementById('nomor_surat').value = parsed.nomor_surat;
+                    if (parsed.tanggal_surat) {
+                        const dateMatch = parsed.tanggal_surat.match(/\d{4}-\d{2}-\d{2}/);
+                        if (dateMatch) {
+                            document.getElementById('tanggal_surat').value = dateMatch[0];
+                        }
+                    }
+                    if (parsed.pengirim) document.getElementById('pengirim').value = parsed.pengirim;
+                    if (parsed.perihal) document.getElementById('perihal').value = parsed.perihal;
+                    if (parsed.isi_singkat) document.getElementById('isi_singkat').value = parsed.isi_singkat;
+
+                    document.getElementById('ocrText').textContent = parsed.ocr_text || 'Transkrip tidak tersedia.';
+                    document.getElementById('geminiReason').textContent = parsed.gemini_notes || 'Ekstraksi berhasil diselesaikan.';
+                    document.getElementById('copyOcrBtn').classList.remove('hidden');
+
+                    loadingIndicator.classList.add('hidden');
+                    await runPostOcrAutomation(parsed);
+
+                    showAlert('Ekstraksi Berhasil', 'Data surat telah berhasil diekstrak otomatis oleh Gemini AI.', 'success');
+                } else {
+                    throw new Error('Respon AI tidak berisi format JSON yang sesuai.');
+                }
+            } catch (error) {
+                let recovered = false;
+                try {
+                    await runOfflineExtraction('Gemini gagal (' + (error.message || 'kesalahan koneksi') + ').');
+                    recovered = true;
+                } catch (offErr) { }
+                if (!recovered) {
+                    showAlert('Gagal Ekstraksi AI', error.message || 'Terjadi kesalahan koneksi saat memproses AI.', 'error');
+                }
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                btnProses.disabled = false;
+            }
+        });
+
+        // Form Submit & Cloud Sync (Google Spreadsheet & Google Drive)
+        document.getElementById('suratForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Jika user sudah pilih file tapi FileReader belum selesai, tunggu sebentar
+            if (currentFileName && !currentOriginalBase64) {
+                for (let i = 0; i < 30 && !currentOriginalBase64; i++) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+            if (currentFileName && !currentOriginalBase64) {
+                showAlert('File belum siap', 'File lampiran masih diproses. Tunggu sebentar lalu klik Simpan lagi.', 'warning');
+                return;
+            }
+
+            const editId = document.getElementById('editEntryId').value;
+            const newItem = {
+                id: editId || 'surat-' + Date.now(),
+                nomor_surat: document.getElementById('nomor_surat').value,
+                tanggal_surat: document.getElementById('tanggal_surat').value,
+                tanggal_terima: document.getElementById('tanggal_terima').value,
+                pengirim: document.getElementById('pengirim').value,
+                perihal: document.getElementById('perihal').value,
+                isi_singkat: document.getElementById('isi_singkat').value,
+                ocr_text: document.getElementById('ocrText').textContent,
+                gemini_notes: document.getElementById('geminiReason').textContent,
+                preview_image: currentFileBase64 || null
+            };
+            Object.assign(newItem, buildExtendedRecord(editId));
+            // Pastikan kode_klasifikasi selalu string bersih
+            newItem.kode_klasifikasi = sanitizeKodeKlasifikasi(newItem.kode_klasifikasi);
+
+            // File untuk upload ke Google Drive (asli, bukan preview)
+            if (currentOriginalBase64 && currentFileName) {
+                newItem.file_base64 = currentOriginalBase64;
+                newItem.file_mime = currentOriginalMime || currentFileMime || 'application/octet-stream';
+                newItem.file_name = currentFileName;
+                // Upload baru → file_url akan diisi GAS; jangan kirim URL lama
+            } else if (existingFileUrl) {
+                // Edit tanpa unggah ulang → WAJIB kirim file_url agar Sheet tidak mengosongkan kolom
+                newItem.file_url = existingFileUrl;
+            } else if (editId) {
+                // Fallback: ambil dari data lokal jika ada
+                const prev = dataSurat.find(d => String(d.id) === String(editId));
+                if (prev && prev.file_url) newItem.file_url = prev.file_url;
+            }
+            // Jangan kirim preview_image yang sangat besar ke Sheet (hanya simpan lokal)
+            // preview_image tetap ada di localStorage lewat newItem di bawah
+
+            // Salinan untuk localStorage (tanpa base64 file besar agar tidak penuh)
+            const localItem = Object.assign({}, newItem);
+            delete localItem.file_base64;
+            // pastikan file_url tetap di local agar paperclip tidak hilang setelah edit
+            if (!localItem.file_url && existingFileUrl) localItem.file_url = existingFileUrl;
+            // preview_image boleh disimpan lokal agar paperclip tetap muncul sebelum sync
+
+            if (editId) {
+                const idx = dataSurat.findIndex(d => d.id === editId);
+                if (idx !== -1) {
+                    // Gabungkan dengan data lama agar field yang tidak di-form tidak hilang
+                    const merged = Object.assign({}, dataSurat[idx], localItem);
+                    if (!merged.file_url && dataSurat[idx].file_url) merged.file_url = dataSurat[idx].file_url;
+                    dataSurat[idx] = merged;
+                }
+            } else {
+                dataSurat.unshift(localItem);
+            }
+
+            saveStorage();
+
+            // Payload ke cloud: JANGAN kirim preview_image (sangat besar, bikin POST gagal diam-diam)
+            const cloudData = Object.assign({}, newItem);
+            delete cloudData.preview_image;
+            delete cloudData.analisis_ai;
+            // file_base64 tetap dikirim jika ada (untuk upload Drive)
+
+            const hasFileUpload = !!(cloudData.file_base64 && cloudData.file_name);
+
+            // text/plain = simple request (tanpa preflight OPTIONS). mode cors agar respons bisa dibaca.
+            let cloudOk = false;
+            let cloudFileUrl = '';
+            let cloudError = '';
+            try {
+                const res = await fetch(SPREADSHEET_GAS_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    redirect: 'follow',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: "save", data: cloudData })
+                });
+                const raw = await res.text();
+                let parsed = null;
+                try { parsed = JSON.parse(raw); } catch (_) {}
+                if (parsed && parsed.status === 'success') {
+                    cloudOk = true;
+                    cloudFileUrl = (parsed.file_url || (parsed.data && parsed.data.file_url) || '') + '';
+                    if (parsed.upload_error) {
+                        cloudError = 'Upload Drive: ' + parsed.upload_error;
+                    }
+                } else if (parsed && parsed.status === 'error') {
+                    cloudError = parsed.message || 'Server mengembalikan error';
+                } else if (!res.ok) {
+                    cloudError = 'HTTP ' + res.status;
+                }
+            } catch (err) {
+                console.warn('Gagal sinkronisasi cloud (cors), coba fallback no-cors:', err);
+                // Fallback no-cors jika browser/CORS memblokir
+                try {
+                    await fetch(SPREADSHEET_GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: "save", data: cloudData })
+                    });
+                    cloudOk = true; // tidak bisa dibaca, anggap terkirim
+                } catch (err2) {
+                    cloudError = err2.message || String(err2);
+                }
+            }
+
+            // Jika server mengembalikan file_url, simpan ke local agar paperclip langsung biru
+            if (cloudFileUrl) {
+                const idx = dataSurat.findIndex(d => String(d.id) === String(localItem.id));
+                if (idx !== -1) {
+                    dataSurat[idx].file_url = cloudFileUrl;
+                    existingFileUrl = cloudFileUrl;
+                    saveStorage();
+                }
+            }
+
+            let msg;
+            if (cloudError && !cloudOk) {
+                msg = 'Data tersimpan di browser, tetapi gagal ke cloud/Drive: ' + cloudError +
+                    '. Cek Apps Script → Executions, pastikan deployment "Anyone" dan code.gs terbaru.';
+            } else if (hasFileUpload && cloudFileUrl) {
+                msg = 'Data dan file berhasil disimpan. Link Drive sudah tersedia.';
+            } else if (hasFileUpload) {
+                msg = 'Data tersimpan. File dikirim ke Drive. Jika paperclip masih kuning, tunggu 5–10 detik lalu klik Sinkron Cloud.';
+            } else {
+                msg = 'Data tersimpan' + (cloudOk ? ' (cloud OK).' : '.') + ' Klik Sinkron Cloud jika perlu.';
+            }
+            showAlert(cloudError && !cloudOk ? 'Tersimpan lokal' : 'Disimpan', msg, cloudError && !cloudOk ? 'warning' : 'success', () => {
+                window.location.href = 'surat-masuk.html';
+            });
+        });
+
+        // Copy OCR Text
+        document.getElementById('copyOcrBtn').addEventListener('click', () => {
+            const txt = document.getElementById('ocrText').textContent;
+            if (txt) {
+                const tempTextArea = document.createElement("textarea");
+                tempTextArea.value = txt;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempTextArea);
+                showAlert('Tersalin', 'Transkrip OCR berhasil disalin ke clipboard.', 'success');
+            }
+        });
+
+        // API Key Settings Modal
+        document.getElementById('toggleApiModal').addEventListener('click', () => {
+            const configSection = document.getElementById('apiConfigSection');
+            configSection.classList.toggle('hidden');
+        });
+
+        document.getElementById('closeApiConfig').addEventListener('click', () => {
+            document.getElementById('apiConfigSection').classList.add('hidden');
+        });
+
+        document.getElementById('togglePassView').addEventListener('click', () => {
+            const passInput = document.getElementById('geminiApiKey');
+            const icon = document.querySelector('#togglePassView i');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                passInput.type = 'password';
+                icon.className = 'fa-solid fa-eye text-xs';
+            }
+        });
+
+        document.getElementById('simpanKey').addEventListener('click', () => {
+            const val = document.getElementById('geminiApiKey').value.trim();
+            if (val) {
+                localStorage.setItem('gemini_custom_key', val);
+                document.getElementById('apiKeyStatus').textContent = 'API Key: Custom Set';
+                showAlert('Key Disimpan', 'Gemini API Key pribadi disimpan di browser.', 'success');
+            } else {
+                localStorage.removeItem('gemini_custom_key');
+                document.getElementById('apiKeyStatus').textContent = 'API Key: Default Runtime';
+                showAlert('Key Reset', 'Kembali menggunakan API Key runtime bawaan.', 'info');
+            }
+            document.getElementById('apiConfigSection').classList.add('hidden');
+        });
+
+        document.getElementById('resetFormBtn').addEventListener('click', () => {
+            document.getElementById('suratForm').reset();
+            resetFileState();
+        });
+
+        // ====================================================================
+        // MODUL TAMBAHAN: field data surat, Kode Klasifikasi, Disposisi,
+        // auto-fill OCR & analisis klasifikasi otomatis.
+        // ====================================================================
+
+        const KLASIFIKASI_GAS_URL = "https://script.google.com/macros/s/AKfycbzVs99Zzi-g9LoT03zHaNltKbJrFzB5FIMgENC3HS5HNYIbMnOzxH1CUnWfh2SFUNMm3g/exec";
+        const PEGAWAI_GAS_URL = "https://script.google.com/macros/s/AKfycbz9y_4RTiGRCpub-jN_dqVyc5-IyRI_pxlxR_P57TRKid_Di-_TUOJiSNPmv7KuWz1Z/exec";
+        const KLASIFIKASI_CACHE_KEY = 'cachedKodeKlasifikasi';
+        const PEGAWAI_CACHE_KEY = 'gemini_surat_pegawai_cache';
+
+        let klasifikasiDB = [];
+        let pegawaiDB = [];
+        let klasifikasiLoadPromise = null;
+        let selectedPegawaiList = [];
+        let aiMeta = {};
+
+        function todayLocalISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function normalizeText(str) {
+            return String(str || '').toLowerCase().replace(/[^a-z0-9./]+/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function joinList(arr) {
+            if (arr.length <= 1) return arr.join('');
+            return arr.slice(0, -1).join(', ') + ' dan ' + arr[arr.length - 1];
+        }
+
+        function extractIsoDate(text) {
+            if (!text) return '';
+            const raw = String(text).toLowerCase();
+            const iso = raw.match(/\d{4}-\d{2}-\d{2}/);
+            if (iso) return iso[0];
+            const BULAN = { januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6, juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, desember: 12,
+                            jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, agu: 8, ags: 8, agt: 8, sep: 9, okt: 10, nov: 11, des: 12 };
+            let d, m, y;
+            let match = raw.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/);
+            if (match && BULAN[match[2]]) { d = +match[1]; m = BULAN[match[2]]; y = +match[3]; }
+            else {
+                match = raw.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);
+                if (match) { d = +match[1]; m = +match[2]; y = +match[3]; }
+            }
+            if (!d || !m || !y || m < 1 || m > 12 || d < 1 || d > 31) return '';
+            return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        }
+
+        function normalizeRecord(r) {
+            const n = Object.assign({}, r);
+            const def = (k, v) => { if (n[k] === undefined || n[k] === null) n[k] = v; };
+            def('tanggal_diterima', n.tanggal_terima || '');
+            def('pengirim_instansi', n.pengirim || '');
+            def('isi_ringkasan', n.isi_singkat || '');
+            def('hasil_ocr', n.ocr_text || '');
+            def('catatan_ai', n.gemini_notes || '');
+            ['indeks', 'klasifikasi_arsip', 'berkas', 'media', 'kode_klasifikasi', 'uraian_klasifikasi',
+             'disposisi_kepada', 'id_disposisi', 'jabatan_disposisi', 'isi_disposisi', 'tanggal_kegiatan'].forEach(k => def(k, ''));
+            ['indeks_ai_confidence', 'klasifikasi_ai_confidence', 'berkas_ai_confidence', 'media_ai_confidence', 'kode_klasifikasi_ai_confidence'].forEach(k => def(k, null));
+            def('analisis_ai', {});
+            const m = String(n.id || '').match(/surat-(\d{12,})/);
+            def('created_at', m ? new Date(+m[1]).toISOString() : new Date().toISOString());
+            def('updated_at', n.created_at);
+            def('tanggal_terima', n.tanggal_diterima);
+            def('pengirim', n.pengirim_instansi);
+            def('isi_singkat', n.isi_ringkasan);
+            def('ocr_text', n.hasil_ocr);
+            def('gemini_notes', n.catatan_ai);
+            return n;
+        }
+
+        function buildExtendedRecord(editId) {
+            const $ = id => document.getElementById(id);
+            const existing = editId ? dataSurat.find(d => d.id === editId) : null;
+            const now = new Date().toISOString();
+            const conf = f => (aiMeta[f] && aiMeta[f].conf != null) ? aiMeta[f].conf : null;
+            const analisis = {};
+            Object.keys(aiMeta).forEach(k => { analisis[k] = { conf: aiMeta[k].conf, reason: aiMeta[k].reason }; });
+            return {
+                tanggal_diterima: $('tanggal_terima').value,
+                pengirim_instansi: $('pengirim').value,
+                isi_ringkasan: $('isi_singkat').value,
+                indeks: $('indeks').value,
+                indeks_ai_confidence: conf('indeks'),
+                klasifikasi_arsip: $('klasifikasi_arsip').value,
+                klasifikasi_ai_confidence: conf('klasifikasi_arsip'),
+                berkas: $('berkas').value,
+                berkas_ai_confidence: conf('berkas'),
+                media: $('media').value,
+                media_ai_confidence: conf('media'),
+                kode_klasifikasi: $('kode_klasifikasi').value,
+                uraian_klasifikasi: $('uraian_klasifikasi').value,
+                kode_klasifikasi_ai_confidence: conf('kode_klasifikasi'),
+                disposisi_kepada: selectedPegawaiList.map(p => p.nama).filter(Boolean).join('; '),
+                id_disposisi: selectedPegawaiList.map(p => p.id).filter(Boolean).join('; '),
+                jabatan_disposisi: selectedPegawaiList.map(p => p.jabatan).filter(Boolean).join('; '),
+                isi_disposisi: $('isi_disposisi').value,
+                tanggal_kegiatan: $('tanggal_kegiatan').value,
+                hasil_ocr: $('ocrText').textContent,
+                catatan_ai: $('geminiReason').textContent,
+                analisis_ai: analisis,
+                created_at: (existing && existing.created_at) || now,
+                updated_at: now
+            };
+        }
+
+        function populateExtendedFields(rec) {
+            const $ = id => document.getElementById(id);
+            ['indeks', 'klasifikasi_arsip', 'berkas', 'media'].forEach(f => { $(f).value = rec[f] || ''; });
+            $('kode_klasifikasi').value = sanitizeKodeKlasifikasi(rec.kode_klasifikasi);
+            $('uraian_klasifikasi').value = rec.uraian_klasifikasi || '';
+            $('isi_disposisi').value = rec.isi_disposisi || '';
+            $('tanggal_kegiatan').value = rec.tanggal_kegiatan || '';
+            if (rec.disposisi_kepada || rec.id_disposisi) {
+                const names = String(rec.disposisi_kepada || '').split(/[;|]/).map(s => s.trim()).filter(Boolean);
+                const ids = String(rec.id_disposisi || '').split(/[;|]/).map(s => s.trim());
+                const jabs = String(rec.jabatan_disposisi || '').split(/[;|]/).map(s => s.trim());
+                selectedPegawaiList = names.map((nama, i) => ({
+                    id: ids[i] || '',
+                    nama: nama,
+                    jabatan: jabs[i] || ''
+                }));
+                renderDisposisiChips();
+            }
+            const analisis = rec.analisis_ai || {};
+            [['indeks', 'indeks_ai_confidence'], ['klasifikasi_arsip', 'klasifikasi_ai_confidence'], ['berkas', 'berkas_ai_confidence'],
+             ['media', 'media_ai_confidence'], ['kode_klasifikasi', 'kode_klasifikasi_ai_confidence']].forEach(([f, c]) => {
+                if (rec[c] != null && rec[f]) {
+                    aiMeta[f] = { conf: rec[c], reason: (analisis[f] && analisis[f].reason) || '' };
+                    setAiNote(f, aiMeta[f]);
+                }
+            });
+        }
+
+        function setAiNote(field, info) {
+            const box = document.querySelector(`[data-ai-note="${field}"]`);
+            if (!box) return;
+            box.innerHTML = '';
+            if (!info) { box.classList.add('hidden'); return; }
+            const conf = info.conf;
+            const tone = (conf == null || conf >= 80) ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                       : conf >= 60 ? 'bg-blue-50 text-blue-700 border-blue-200'
+                       : 'bg-amber-50 text-amber-700 border-amber-200';
+            const pill = document.createElement('span');
+            pill.className = `inline-flex items-center gap-1 border rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone}`;
+            pill.textContent = '✅ Diisi Otomatis AI' + (conf != null ? ` · ${conf}%` : '') + (conf != null && conf < 60 ? ' · periksa kembali' : '');
+            box.appendChild(pill);
+            if (info.reason) {
+                const p = document.createElement('p');
+                p.className = 'text-[10px] text-slate-500 mt-0.5 leading-snug';
+                p.textContent = 'Alasan: ' + info.reason;
+                box.appendChild(p);
+            }
+            box.classList.remove('hidden');
+        }
+
+        function applyAiField(fieldId, res) {
+            if (!res) return;
+            document.getElementById(fieldId).value = res.value;
+            aiMeta[fieldId] = { conf: res.conf, reason: res.reason };
+            setAiNote(fieldId, aiMeta[fieldId]);
+        }
+
+        function findKeywordHits(textNorm, keywords) {
+            return keywords.filter(kw => {
+                const k = normalizeText(kw);
+                return new RegExp('(?:^|[^a-z0-9])' + escapeRegex(k) + '(?:[^a-z0-9]|$)').test(textNorm);
+            });
+        }
+
+        function confFromScore(score) {
+            return Math.min(98, 62 + score * 9);
+        }
+
+        const INDEKS_RULES = [
+            { value: 'Edaran',        keywords: ['surat edaran', 'edaran'] },
+            { value: 'Peraturan',     keywords: ['peraturan', 'perda', 'perbup', 'permendagri', 'undang-undang'] },
+            { value: 'Keputusan',     keywords: ['keputusan', 'menetapkan'] },
+            { value: 'Nota Dinas',    keywords: ['nota dinas'] },
+            { value: 'Instruksi',     keywords: ['instruksi', 'menginstruksikan'] },
+            { value: 'Undangan',      keywords: ['mengundang', 'undangan', 'mohon hadir', 'daftar undangan', 'acara', 'forum'] },
+            { value: 'Permohonan',    keywords: ['permohonan', 'mohon bantuan', 'mengajukan', 'memohon'] },
+            { value: 'Laporan',       keywords: ['laporan', 'melaporkan'] },
+            { value: 'Pemberitahuan', keywords: ['diberitahukan', 'pemberitahuan', 'informasi', 'disampaikan'] }
+        ];
+
+        function determineIndeks(perihalNorm, fullNorm) {
+            let best = null;
+            INDEKS_RULES.forEach(rule => {
+                const hitsAll = findKeywordHits(fullNorm, rule.keywords);
+                const hitsPer = findKeywordHits(perihalNorm, rule.keywords);
+                const score = hitsAll.length + hitsPer.length;
+                if (score > 0 && (!best || score > best.score)) best = { value: rule.value, score, hits: hitsAll };
+            });
+            if (!best) return { value: 'Lainnya', conf: 40, reason: 'Tidak ditemukan kata kunci yang cocok; dikategorikan Lainnya.' };
+            return { value: best.value, conf: confFromScore(best.score), reason: `Ditemukan kata ${joinList(best.hits)}.` };
+        }
+
+        const KLASIFIKASI_PENTING_KW = ['keuangan', 'anggaran', 'apbd', 'apbdes', 'kepegawaian', 'kenaikan pangkat', 'kebijakan',
+            'program penting', 'program prioritas', 'kegiatan pimpinan', 'agenda pimpinan', 'arahan pimpinan', 'kunjungan kerja', 'pimpinan'];
+
+        function determineKlasifikasiArsip(perihalNorm, fullNorm, indeksValue) {
+            const sifat = fullNorm.match(/(?:^|[^a-z0-9])sifat (sangat rahasia|rahasia|penting|biasa)(?:[^a-z0-9]|$)/);
+            if (sifat) {
+                const map = { 'sangat rahasia': 'Sangat Rahasia', 'rahasia': 'Rahasia', 'penting': 'Penting', 'biasa': 'Biasa' };
+                return { value: map[sifat[1]], conf: 98, reason: `Sifat surat tertulis "${map[sifat[1]]}" pada dokumen.` };
+            }
+            const sr = findKeywordHits(fullNorm, ['sangat rahasia', 'top secret']);
+            if (sr.length) return { value: 'Sangat Rahasia', conf: 97, reason: `Ditemukan kata ${joinList(sr)}.` };
+            const r = findKeywordHits(fullNorm, ['rahasia', 'confidential']);
+            if (r.length) return { value: 'Rahasia', conf: 88, reason: `Ditemukan kata ${joinList(r)}.` };
+            const hitsAll = findKeywordHits(fullNorm, KLASIFIKASI_PENTING_KW);
+            const hitsPer = findKeywordHits(perihalNorm, KLASIFIKASI_PENTING_KW);
+            if (hitsPer.length >= 1 || hitsAll.length >= 2) {
+                return { value: 'Penting', conf: Math.min(95, 68 + hitsAll.length * 8), reason: `Terkait ${joinList(hitsAll)}.` };
+            }
+            if (['Undangan', 'Pemberitahuan', 'Laporan'].includes(indeksValue)) {
+                return { value: 'Biasa', conf: 85, reason: `Surat umum (${indeksValue}) tanpa indikasi kerahasiaan atau kepentingan khusus.` };
+            }
+            return { value: 'Biasa', conf: 60, reason: 'Tidak ditemukan indikasi rahasia atau penting; dikategorikan Biasa.' };
+        }
+
+        const BERKAS_RULES = [
+            { value: 'Bidang PMLKD', keywords: ['PKK', 'Posyandu', 'kader', 'lembaga desa', 'lembaga kemasyarakatan', 'pemberdayaan masyarakat', 'karang taruna', 'LPM', 'kelembagaan'] },
+            { value: 'Bidang PUEMD', keywords: ['UMKM', 'ekonomi desa', 'pasar desa', 'ketahanan pangan', 'pengembangan usaha', 'usaha desa', 'BUMDes'] },
+            { value: 'Bidang PPD',   keywords: ['pemerintahan desa', 'profil desa', 'evaluasi desa', 'administrasi desa', 'kepala desa', 'perangkat desa', 'pilkades', 'batas desa'] },
+            { value: 'Sekretariat',  keywords: ['kesekretariatan', 'sekretariat', 'administrasi umum', 'kepegawaian', 'pegawai', 'cuti', 'kenaikan pangkat'] }
+        ];
+
+        function determineBerkas(perihalNorm, fullNorm) {
+            let best = null;
+            BERKAS_RULES.forEach(rule => {
+                const hitsAll = findKeywordHits(fullNorm, rule.keywords);
+                const hitsPer = findKeywordHits(perihalNorm, rule.keywords);
+                const score = hitsAll.length + hitsPer.length;
+                if (score > 0 && (!best || score > best.score)) best = { value: rule.value, score, hits: hitsAll };
+            });
+            if (!best) return { value: 'Sekretariat', conf: 45, reason: 'Tidak ada kata kunci bidang; dikategorikan surat masuk umum (Sekretariat).' };
+            return { value: best.value, conf: confFromScore(best.score), reason: `Ditemukan kata ${joinList(best.hits)}.` };
+        }
+
+        function detectMedia() {
+            if (!currentFileName) return null;
+            const ext = (currentFileName.split('.').pop() || '').toLowerCase();
+            if (/(scan|pindai|camscanner)/i.test(currentFileName)) {
+                return { value: 'Kertas', conf: 70, reason: 'Nama berkas menunjukkan hasil pindai dokumen cetak.' };
+            }
+            if (['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                return { value: 'File', conf: 98, reason: `Berkas digital (.${ext}) diunggah.` };
+            }
+            return null;
+        }
+
+        const KLASIFIKASI_SYNONYMS = {
+            keuangan: ['anggaran', 'apbd', 'apbdes', 'bendahara'], anggaran: ['keuangan', 'apbd', 'apbdes'], apbd: ['keuangan', 'anggaran'], apbdes: ['keuangan', 'anggaran'],
+            pegawai: ['kepegawaian'], asn: ['kepegawaian', 'pegawai'], pns: ['kepegawaian', 'pegawai'], cuti: ['kepegawaian'], pangkat: ['kepegawaian'], mutasi: ['kepegawaian'],
+            aset: ['barang', 'perlengkapan', 'kekayaan'], inventaris: ['barang', 'perlengkapan'],
+            perencanaan: ['rencana', 'musyawarah'], musrenbang: ['perencanaan', 'musyawarah'], forum: ['musyawarah', 'perencanaan'],
+            konsultasi: ['musyawarah', 'perencanaan'], musyawarah: ['perencanaan'],
+            arsip: ['kearsipan'], kearsipan: ['arsip'], pelatihan: ['diklat', 'pendidikan'], diklat: ['pelatihan', 'pendidikan']
+        };
+        const KLASIFIKASI_STOPWORDS = new Set(['yang', 'dan', 'di', 'ke', 'dari', 'untuk', 'pada', 'dengan', 'dalam', 'atas', 'oleh', 'ini', 'itu', 'sebagai', 'serta',
+            'atau', 'kepada', 'tentang', 'hal', 'nomor', 'tahun', 'tanggal', 'surat', 'bapak', 'ibu', 'yth', 'sdr', 'para', 'akan', 'dapat', 'telah', 'kami', 'anda',
+            'agar', 'guna', 'bagi', 'antara', 'terhadap', 'kegiatan', 'dinas', 'kabupaten', 'pemerintah', 'hormat', 'mohon', 'hadir', 'lampiran', 'perihal', 'sifat', 'biasa', 'segera']);
+
+        function tokenizeText(str) {
+            return normalizeText(str).split(/[^a-z0-9]+/).filter(t => t.length >= 3 && !KLASIFIKASI_STOPWORDS.has(t) && !/^\d+$/.test(t));
+        }
+
+        function expandTokens(tokens) {
+            const set = new Set(tokens);
+            tokens.forEach(t => (KLASIFIKASI_SYNONYMS[t] || []).forEach(s => set.add(s)));
+            return set;
+        }
+
+        function recommendKodeKlasifikasi(perihal, isi, ocr) {
+            if (!klasifikasiDB.length) return null;
+            const pSet = expandTokens(tokenizeText(perihal));
+            const bSet = expandTokens(tokenizeText(String(isi || '') + ' ' + String(ocr || '')));
+            const pArr = Array.from(pSet);
+            const bArr = Array.from(bSet).slice(0, 600);
+            const entries = klasifikasiDB.map(item => ({ item, tokens: Array.from(new Set(tokenizeText(item.uraian))) })).filter(e => e.tokens.length);
+            if (!entries.length) return null;
+            const df = new Map();
+            entries.forEach(e => e.tokens.forEach(t => df.set(t, (df.get(t) || 0) + 1)));
+            const N = entries.length;
+            const idf = t => Math.log(1 + N / (1 + (df.get(t) || 0)));
+            const has = (arr, set, t) => set.has(t) || (t.length >= 5 && arr.some(x => x.length >= 5 && (x.startsWith(t) || t.startsWith(x))));
+
+            const scored = [];
+            entries.forEach(e => {
+                let total = 0, matched = 0, boosted = 0;
+                const hits = [];
+                e.tokens.forEach(t => {
+                    const w = idf(t);
+                    total += w;
+                    const inP = has(pArr, pSet, t), inB = has(bArr, bSet, t);
+                    if (inP || inB) { matched += w; boosted += w * (inP ? 1.5 : 1); hits.push(t); }
+                });
+                if (!hits.length) return;
+                const coverage = matched / total;
+                if (!(coverage >= 0.34 || hits.length >= 2)) return;
+                scored.push({
+                    item: e.item, hits, coverage,
+                    score: boosted * (0.4 + 0.6 * coverage),
+                    conf: Math.max(30, Math.min(95, Math.round(30 + coverage * 55 + Math.min(hits.length, 3) * 4)))
+                });
+            });
+            if (!scored.length) return null;
+            scored.sort((a, b) => b.score - a.score);
+            return { best: scored[0].item, conf: scored[0].conf, hits: scored[0].hits, alternatives: scored.slice(1, 4).map(s => s.item) };
+        }
+
+        function searchKlasifikasi(query) {
+            const raw = String(query || '').trim();
+            if (!raw) return klasifikasiDB.slice(0, 50);
+            const tokens = normalizeText(raw).split(' ').filter(Boolean);
+            // Juga token tanpa spasi untuk kode seperti "400.10"
+            const kodeQuery = normalizeText(raw).replace(/\s+/g, '');
+            const results = [];
+            klasifikasiDB.forEach(item => {
+                const kode = normalizeText(item.kode);
+                const kodeCompact = kode.replace(/\s+/g, '');
+                const uraian = ' ' + normalizeText(item.uraian);
+                let total = 0;
+                // Prioritas cocok kode (prefix / contains)
+                if (kodeCompact === kodeQuery) total += 100;
+                else if (kodeCompact.startsWith(kodeQuery)) total += 90;
+                else if (kodeCompact.includes(kodeQuery)) total += 70;
+                for (const tk of tokens) {
+                    let best = 0;
+                    [tk].concat(KLASIFIKASI_SYNONYMS[tk] || []).forEach((v, i) => {
+                        const factor = i === 0 ? 1 : 0.6;
+                        let s = 0;
+                        if (kode === v || kodeCompact === v) s = 100;
+                        else if (kode.startsWith(v) || kodeCompact.startsWith(v)) s = 80;
+                        else if (kode.includes(v) || kodeCompact.includes(v)) s = 50;
+                        else if (uraian.includes(' ' + v)) s = 40;
+                        else if (uraian.includes(v)) s = 25;
+                        best = Math.max(best, s * factor);
+                    });
+                    total += best;
+                }
+                if (total > 0) results.push({ item, total });
+            });
+            return results.sort((a, b) => b.total - a.total).map(r => r.item);
+        }
+
+        function searchPegawai(query) {
+            const tokens = normalizeText(query).split(' ').filter(Boolean);
+            const list = pegawaiDB.filter(p => {
+                const hay = normalizeText(`${p.nama} ${p.jabatan} ${p.id}`);
+                return tokens.every(t => hay.includes(t));
+            });
+            return list.sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+        }
+
+        function createSearchDropdown(cfg) {
+            const { input, panel, search, renderItem, onSelect, minChars = 0, limit = 10, emptyText = 'Tidak ada hasil' } = cfg;
+            let items = [], active = -1;
+
+            function close() { panel.classList.add('hidden'); active = -1; }
+            function choose(i) { const it = items[i]; if (!it) return; close(); onSelect(it); }
+            function paint() {
+                panel.innerHTML = '';
+                if (!items.length) {
+                    const d = document.createElement('div');
+                    d.className = 'px-3 py-2 text-[11px] text-slate-400';
+                    d.textContent = emptyText;
+                    panel.appendChild(d);
+                    return;
+                }
+                items.forEach((it, i) => {
+                    const row = document.createElement('div');
+                    row.className = 'px-3 py-2 text-xs cursor-pointer border-b border-slate-50 ' + (i === active ? 'bg-blue-50' : 'hover:bg-slate-50');
+                    row.innerHTML = renderItem(it);
+                    row.addEventListener('mousedown', ev => { ev.preventDefault(); choose(i); });
+                    panel.appendChild(row);
+                });
+                const el = panel.children[active];
+                if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+            }
+            function refresh() {
+                const q = input.value.trim();
+                if (q.length < minChars) { close(); return; }
+                items = search(q).slice(0, limit);
+                active = items.length ? 0 : -1;
+                paint();
+                panel.classList.remove('hidden');
+            }
+
+            input.addEventListener('input', refresh);
+            input.addEventListener('focus', refresh);
+            input.addEventListener('blur', close);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') e.preventDefault();
+                const open = !panel.classList.contains('hidden');
+                if (!open) { if (e.key === 'ArrowDown') refresh(); return; }
+                if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, items.length - 1); paint(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); paint(); }
+                else if (e.key === 'Enter') { choose(active); }
+                else if (e.key === 'Escape') { close(); }
+            });
+            return { refresh, close };
+        }
+
+        function setSourceStatus(id, text, isError) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = text;
+            el.className = 'text-[10px] ' + (isError ? 'text-amber-600' : 'text-slate-400');
+        }
+
+        function parseKlasifikasiPayload(data) {
+            const out = [];
+            const seen = new Set();
+            const push = (kode, uraian) => {
+                kode = String(kode == null ? '' : kode).trim();
+                if (!kode || seen.has(kode)) return;
+                // Abaikan nilai yang ternyata tanggal (korupsi NumberFormat di Sheet)
+                if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(kode) || /^\d{4}-\d{2}-\d{2}T/.test(kode)) return;
+                seen.add(kode);
+                out.push({ kode, uraian: String(uraian == null ? '' : uraian).trim() });
+            };
+
+            // Format A: { KodeKlasifikasi: [[header],[kode,uraian],...] }
+            const matrixKeys = ['KodeKlasifikasi', 'dataKlasifikasi', 'klasifikasi', 'Klasifikasi'];
+            for (const key of matrixKeys) {
+                const rows = data && data[key];
+                if (!Array.isArray(rows) || !rows.length) continue;
+                const start = (rows[0] && (String(rows[0][0]).toLowerCase().includes('kode') || String(rows[0][0]).toLowerCase() === 'kode')) ? 1 : 0;
+                for (let i = start; i < rows.length; i++) {
+                    const r = rows[i];
+                    if (Array.isArray(r)) push(r[0], r[1]);
+                    else if (r && typeof r === 'object') push(r.kode || r.Kode || r['Kode Klasifikasi'], r.uraian || r.Uraian || r['Uraian Klasifikasi']);
+                }
+            }
+
+            // Format B: { data: [ {...}, ... ] } — objek surat ATAU objek klasifikasi
+            if (Array.isArray(data && data.data) && data.data.length) {
+                const first = data.data[0];
+                if (Array.isArray(first)) {
+                    const start = (String(first[0] || '').toLowerCase().includes('kode')) ? 1 : 0;
+                    // data adalah matrix
+                    // (sudah bisa tertangani lewat matrixKeys jika di-assign; di sini data langsung array)
+                    for (let i = start; i < data.data.length; i++) {
+                        const r = data.data[i];
+                        if (Array.isArray(r)) push(r[0], r[1]);
+                    }
+                } else if (first && typeof first === 'object') {
+                    data.data.forEach(r => {
+                        push(
+                            r.kode || r.Kode || r['Kode Klasifikasi'] || r.kode_klasifikasi,
+                            r.uraian || r.Uraian || r['Uraian Klasifikasi'] || r.uraian_klasifikasi
+                        );
+                    });
+                }
+            }
+
+            // Format C: array langsung di root
+            if (Array.isArray(data) && data.length) {
+                data.forEach(r => {
+                    if (Array.isArray(r)) push(r[0], r[1]);
+                    else if (r && typeof r === 'object') push(r.kode || r['Kode Klasifikasi'], r.uraian || r['Uraian Klasifikasi']);
+                });
+            }
+
+            return out;
+        }
+
+        function loadKlasifikasiDB(forceRefresh) {
+            if (forceRefresh) {
+                try { localStorage.removeItem(KLASIFIKASI_CACHE_KEY); } catch (e) {}
+                klasifikasiDB = [];
+            }
+            try {
+                const cached = JSON.parse(localStorage.getItem(KLASIFIKASI_CACHE_KEY) || '[]');
+                if (Array.isArray(cached) && cached.length) {
+                    klasifikasiDB = cached.filter(x => x && x.kode != null).map(x => ({ kode: String(x.kode), uraian: String(x.uraian || '') }));
+                    setSourceStatus('klasifikasiStatus', `📚 ${klasifikasiDB.length} kode klasifikasi (memperbarui dari cloud...)`);
+                }
+            } catch (e) { }
+            if (!klasifikasiDB.length) setSourceStatus('klasifikasiStatus', 'Memuat data kode klasifikasi...');
+
+            klasifikasiLoadPromise = fetch(KLASIFIKASI_GAS_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.status && data.status !== 'success' && !data.data && !data.KodeKlasifikasi) {
+                        throw new Error('Respons server tidak sukses');
+                    }
+                    const list = parseKlasifikasiPayload(data || {});
+                    if (list.length) {
+                        klasifikasiDB = list;
+                        localStorage.setItem(KLASIFIKASI_CACHE_KEY, JSON.stringify(list));
+                    }
+                    setSourceStatus(
+                        'klasifikasiStatus',
+                        klasifikasiDB.length
+                            ? `📚 ${klasifikasiDB.length} kode klasifikasi tersedia`
+                            : 'Belum ada data kode klasifikasi di cloud. Periksa endpoint / sheet Kode Klasifikasi.',
+                        !klasifikasiDB.length
+                    );
+                })
+                .catch(() => {
+                    setSourceStatus('klasifikasiStatus', klasifikasiDB.length
+                        ? `⚠️ Cloud tidak terjangkau, memakai ${klasifikasiDB.length} data tersimpan`
+                        : '⚠️ Gagal memuat kode klasifikasi. Klik "Muat ulang".', true);
+                });
+            return klasifikasiLoadPromise;
+        }
+
+        async function ensureKlasifikasiReady() {
+            if (klasifikasiDB.length || !klasifikasiLoadPromise) return;
+            await Promise.race([klasifikasiLoadPromise, new Promise(resolve => setTimeout(resolve, 8000))]);
+        }
+
+        function loadPegawaiDB() {
+            try {
+                const cached = JSON.parse(localStorage.getItem(PEGAWAI_CACHE_KEY) || '[]');
+                if (Array.isArray(cached) && cached.length) {
+                    pegawaiDB = cached;
+                    setSourceStatus('pegawaiStatus', `👥 ${pegawaiDB.length} pegawai (memperbarui dari cloud...)`);
+                }
+            } catch (e) { }
+            if (!pegawaiDB.length) setSourceStatus('pegawaiStatus', 'Memuat data pegawai...');
+
+            return fetch(PEGAWAI_GAS_URL)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status !== 'success') throw new Error('Respons server tidak sukses');
+                    const rows = data.DataPegawai || data.dataPegawai || [];
+                    const list = rows.slice(1).map(r => ({
+                        nama: String(r[0] == null ? '' : r[0]).trim(),
+                        id: String(r[1] == null ? '' : r[1]).trim(),
+                        gol: String(r[2] == null ? '' : r[2]).trim(),
+                        jabatan: String(r[3] == null ? '' : r[3]).trim()
+                    })).filter(p => p.nama).map(p => Object.assign(p, { id: p.id || p.nama }));
+                    if (list.length) {
+                        pegawaiDB = list;
+                        localStorage.setItem(PEGAWAI_CACHE_KEY, JSON.stringify(list));
+                    }
+                    setSourceStatus('pegawaiStatus', pegawaiDB.length ? `👥 ${pegawaiDB.length} pegawai tersedia` : 'Belum ada data pegawai. Tambahkan di Menu Profil.', !pegawaiDB.length);
+                })
+                .catch(() => {
+                    setSourceStatus('pegawaiStatus', pegawaiDB.length
+                        ? `⚠️ Cloud tidak terjangkau, memakai ${pegawaiDB.length} data tersimpan`
+                        : '⚠️ Gagal memuat data pegawai. Klik "Muat ulang".', true);
+                });
+        }
+
+        function applyKlasifikasiSelection(item, meta) {
+            document.getElementById('kode_klasifikasi').value = item ? item.kode : '';
+            document.getElementById('uraian_klasifikasi').value = item ? item.uraian : '';
+            document.getElementById('klasifikasiSearch').value = '';
+            if (item && meta) {
+                aiMeta.kode_klasifikasi = { conf: meta.conf, reason: meta.reason };
+                setAiNote('kode_klasifikasi', aiMeta.kode_klasifikasi);
+            } else {
+                delete aiMeta.kode_klasifikasi;
+                setAiNote('kode_klasifikasi', null);
+            }
+        }
+
+        function renderKlasifikasiAlternatif(list, emptyMessage) {
+            const box = document.getElementById('klasifikasiAlternatif');
+            box.innerHTML = '';
+            if ((!list || !list.length) && !emptyMessage) { box.classList.add('hidden'); return; }
+            box.classList.remove('hidden');
+            const label = document.createElement('span');
+            label.className = 'text-[10px] text-slate-500';
+            label.textContent = (list && list.length) ? 'Alternatif:' : emptyMessage;
+            box.appendChild(label);
+            (list || []).forEach(item => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'text-[10px] px-2 py-0.5 rounded-full border border-slate-300 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-slate-700 transition';
+                chip.textContent = `${item.kode} - ${item.uraian}`;
+                chip.title = 'Pilih kode klasifikasi ini';
+                chip.addEventListener('click', () => applyKlasifikasiSelection(item, null));
+                box.appendChild(chip);
+            });
+        }
+
+        function pegawaiLabel(p) {
+            return p.jabatan ? `${p.nama} - ${p.jabatan}` : p.nama;
+        }
+
+        function renderDisposisiChips() {
+            const box = document.getElementById('disposisiChips');
+            if (!box) return;
+            box.innerHTML = '';
+            selectedPegawaiList.forEach((p, idx) => {
+                const chip = document.createElement('span');
+                chip.className = 'inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200';
+                chip.innerHTML = '<span class="font-semibold">' + escapeHtml(p.nama || '') + '</span>' +
+                    (p.jabatan ? ' <span class="text-blue-500">(' + escapeHtml(p.jabatan) + ')</span>' : '') +
+                    ' <button type="button" class="text-blue-400 hover:text-red-500 ml-0.5" data-idx="' + idx + '" title="Hapus">&times;</button>';
+                chip.querySelector('button').addEventListener('click', function () {
+                    selectedPegawaiList.splice(Number(this.getAttribute('data-idx')), 1);
+                    renderDisposisiChips();
+                });
+                box.appendChild(chip);
+            });
+        }
+
+        function applyPegawaiSelection(p) {
+            if (!p) {
+                selectedPegawaiList = [];
+                document.getElementById('disposisiSearch').value = '';
+                renderDisposisiChips();
+                return;
+            }
+            const key = String(p.id || p.nama || '').toLowerCase();
+            const exists = selectedPegawaiList.some(x => String(x.id || x.nama || '').toLowerCase() === key);
+            if (!exists) {
+                selectedPegawaiList.push({
+                    id: p.id || '',
+                    nama: p.nama || '',
+                    jabatan: p.jabatan || ''
+                });
+            }
+            document.getElementById('disposisiSearch').value = '';
+            renderDisposisiChips();
+        }
+
+        function applyOcrAutofillBadges(parsed) {
+            const $ = id => document.getElementById(id);
+            ['nomor_surat', 'pengirim', 'perihal', 'isi_singkat'].forEach(f => {
+                if (parsed[f] && $(f).value) setAiNote(f, { conf: null, reason: '' });
+            });
+            const iso = extractIsoDate(parsed.tanggal_surat);
+            if (iso) {
+                $('tanggal_surat').value = iso;
+                setAiNote('tanggal_surat', { conf: null, reason: '' });
+            }
+        }
+
+        function runClassificationAnalysis(perihal, isi, ocr) {
+            const perihalNorm = normalizeText(perihal);
+            const fullNorm = normalizeText([perihal, isi, ocr].join(' '));
+
+            const indeks = determineIndeks(perihalNorm, fullNorm);
+            applyAiField('indeks', indeks);
+            applyAiField('klasifikasi_arsip', determineKlasifikasiArsip(perihalNorm, fullNorm, indeks.value));
+            applyAiField('berkas', determineBerkas(perihalNorm, fullNorm));
+            applyAiField('media', detectMedia());
+
+            if (!klasifikasiDB.length) {
+                applyKlasifikasiSelection(null, null);
+                renderKlasifikasiAlternatif(null, 'Data kode klasifikasi belum termuat; gunakan "Muat ulang" lalu cari manual.');
+                return;
+            }
+            const rek = recommendKodeKlasifikasi(perihal, isi, ocr);
+            if (rek) {
+                applyKlasifikasiSelection(rek.best, { conf: rek.conf, reason: `Kata cocok dengan uraian: ${joinList(rek.hits)}.` });
+                renderKlasifikasiAlternatif(rek.alternatives);
+            } else {
+                applyKlasifikasiSelection(null, null);
+                renderKlasifikasiAlternatif(null, 'Tidak ada kecocokan otomatis; gunakan kolom pencarian.');
+            }
+        }
+
+        async function runPostOcrAutomation(parsed) {
+            const indicator = document.getElementById('aiClassifyIndicator');
+            try {
+                aiMeta = {};
+                document.querySelectorAll('[data-ai-note]').forEach(b => setAiNote(b.getAttribute('data-ai-note'), null));
+                applyOcrAutofillBadges(parsed);
+                indicator.classList.remove('hidden');
+                await ensureKlasifikasiReady();
+                runClassificationAnalysis(
+                    document.getElementById('perihal').value,
+                    document.getElementById('isi_singkat').value,
+                    parsed.ocr_text || ''
+                );
+            } catch (err) {
+                console.error('Analisis klasifikasi otomatis gagal:', err);
+            } finally {
+                indicator.classList.add('hidden');
+            }
+        }
+
+        function resetExtendedFormState() {
+            aiMeta = {};
+            selectedPegawaiList = [];
+            renderDisposisiChips();
+            document.querySelectorAll('[data-ai-note]').forEach(b => setAiNote(b.getAttribute('data-ai-note'), null));
+            renderKlasifikasiAlternatif(null);
+        }
+
+        function initExtendedForm() {
+            const $ = id => document.getElementById(id);
+
+            createSearchDropdown({
+                input: $('klasifikasiSearch'), panel: $('klasifikasiPanel'), minChars: 1, limit: 10,
+                emptyText: 'Tidak ada kode klasifikasi yang cocok',
+                search: searchKlasifikasi,
+                renderItem: it => `<span class="font-semibold text-blue-700">${escapeHtml(it.kode)}</span> <span class="text-slate-600">${escapeHtml(it.uraian)}</span>`,
+                onSelect: it => applyKlasifikasiSelection(it, null)
+            });
+
+            createSearchDropdown({
+                input: $('disposisiSearch'), panel: $('disposisiPanel'), minChars: 0, limit: 50,
+                emptyText: 'Pegawai tidak ditemukan',
+                search: searchPegawai,
+                renderItem: p => `<span class="font-semibold text-slate-800">${escapeHtml(p.nama)}</span>${p.jabatan ? ` <span class="text-slate-500">- ${escapeHtml(p.jabatan)}</span>` : ''}`,
+                onSelect: p => applyPegawaiSelection(p)
+            });
+
+            $('btnClearKlasifikasi').addEventListener('click', () => { applyKlasifikasiSelection(null, null); renderKlasifikasiAlternatif(null); });
+            $('btnClearDisposisi').addEventListener('click', () => applyPegawaiSelection(null));
+            $('btnReloadKlasifikasi').addEventListener('click', () => loadKlasifikasiDB(true));
+            $('btnReloadPegawai').addEventListener('click', () => loadPegawaiDB());
+
+            ['nomor_surat', 'tanggal_surat', 'pengirim', 'perihal', 'isi_singkat'].forEach(id => {
+                $(id).addEventListener('input', () => setAiNote(id, null));
+            });
+            ['indeks', 'klasifikasi_arsip', 'berkas', 'media'].forEach(id => {
+                $(id).addEventListener('change', () => { delete aiMeta[id]; setAiNote(id, null); });
+            });
+
+            $('suratForm').addEventListener('reset', () => {
+                resetExtendedFormState();
+                setTimeout(() => {
+                    if (!$('editEntryId').value && !$('tanggal_terima').value) $('tanggal_terima').value = todayLocalISO();
+                }, 0);
+            });
+
+            loadKlasifikasiDB();
+            loadPegawaiDB();
+        }
+
+        initExtendedForm();
+
+        // ====================================================================
+        // MODUL TANPA API KEY: baca dokumen di browser (pdf.js + Tesseract OCR)
+        // ====================================================================
+
+        const MONTH_RE = '(?:januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)';
+        const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+
+        async function extractPdfText(file, maxPages = 2) {
+            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+            const out = [];
+            for (let p = 1; p <= Math.min(maxPages, pdf.numPages); p++) {
+                const page = await pdf.getPage(p);
+                const content = await page.getTextContent();
+                const rows = new Map();
+                content.items.forEach(it => {
+                    if (!it.str || !it.str.trim()) return;
+                    const y = Math.round(it.transform[5] / 4);
+                    if (!rows.has(y)) rows.set(y, []);
+                    rows.get(y).push({ x: it.transform[4], w: it.width || 0, s: it.str });
+                });
+                Array.from(rows.keys()).sort((a, b) => b - a).forEach(y => {
+                    const items = rows.get(y).sort((a, b) => a.x - b.x);
+                    let line = '', prevEnd = null;
+                    items.forEach(it => {
+                        if (prevEnd !== null) line += (it.x - prevEnd > 25) ? '  ' : ' ';
+                        line += it.s.trim();
+                        prevEnd = it.x + it.w;
+                    });
+                    out.push(line.replace(/ {3,}/g, '  '));
+                });
+            }
+            return out.join('\n');
+        }
+
+        async function renderPdfForOcr(file) {
+            const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            return canvas.toDataURL('image/png');
+        }
+
+        function loadTesseract() {
+            if (window.Tesseract) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = TESSERACT_URL;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('Mesin OCR (Tesseract) gagal dimuat. Periksa koneksi internet.'));
+                document.head.appendChild(s);
+            });
+        }
+
+        async function ocrImage(dataUrl, onProgress) {
+            await loadTesseract();
+            const result = await Tesseract.recognize(dataUrl, 'ind', {
+                logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(Math.round(m.progress * 100)); }
+            });
+            return result.data.text || '';
+        }
+
+        function cleanNomor(v) {
+            let s = String(v || '').split(/\s{2,}/)[0];
+            s = s.replace(/\s+(?:sifat|lampiran|hal|perihal)\s*[:;].*$/i, '');
+            s = s.replace(new RegExp('\\s+[A-Za-z .]+,\\s*\\d{1,2}\\s+' + MONTH_RE + '\\s+\\d{4}.*$', 'i'), '');
+            s = s.trim();
+            return (/\d/.test(s) && s.length <= 80) ? s : '';
+        }
+
+        function parseSuratText(raw) {
+            const text = String(raw || '').replace(/\r/g, '').replace(/\t/g, '  ');
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            let nomor = '';
+            for (const line of lines) {
+                const m = line.match(/^(?:nomor|no)\s*\.?\s*[:;]\s*(.+)$/i) || line.match(/^nomor\s+(.+)$/i);
+                if (m) { nomor = cleanNomor(m[1]); if (nomor) break; }
+            }
+            if (!nomor) {
+                const m = text.match(/\b\d{1,4}(?:\.\d+)?\s?\/[A-Za-z0-9.\-\/]+\/\d{4}\b/);
+                if (m) nomor = m[0];
+            }
+
+            let tanggal = '';
+            let m = text.match(new RegExp('[A-Za-z][A-Za-z .]*,\\s*(\\d{1,2}\\s+' + MONTH_RE + '\\s+\\d{4})', 'i'));
+            if (m) tanggal = extractIsoDate(m[1]);
+            if (!tanggal) {
+                m = text.match(new RegExp('\\b\\d{1,2}\\s+' + MONTH_RE + '\\s+\\d{4}\\b', 'i'));
+                if (m) tanggal = extractIsoDate(m[0]);
+            }
+
+            let perihal = '';
+            let idxPerihal = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const pm = lines[i].match(/(?:^|\s)(?:perihal|hal)\s*[:;]\s*(.+)$/i);
+                if (pm) {
+                    idxPerihal = i;
+                    perihal = pm[1].split(/\s{2,}/)[0].replace(/\s+(?:lampiran|sifat|nomor)\s*[:;].*$/i, '').trim();
+                    const nxt = lines[i + 1];
+                    if (nxt && /^[a-z]/.test(nxt) && !/^(yth|kepada)/i.test(nxt)) perihal += ' ' + nxt.split(/\s{2,}/)[0].trim();
+                    break;
+                }
+            }
+
+            const idxNomor = lines.findIndex(l => /^(?:nomor|no)\b/i.test(l));
+            const head = lines.slice(0, idxNomor > 0 ? Math.min(idxNomor, 12) : 8);
+            const isUpper = l => {
+                const letters = l.replace(/[^A-Za-z]/g, '');
+                return letters.length >= 6 && (l.replace(/[^A-Z]/g, '').length / letters.length) >= 0.7;
+            };
+            const skip = /(jalan|jl\.|telp|telepon|fax|e-?mail|website|laman|kode ?pos|www\.|@|http)/i;
+            let pengirim = head.filter(l => isUpper(l) && !skip.test(l) && l.length <= 90).slice(0, 3).join(' ');
+            if (!pengirim) {
+                const dm = text.match(/^dari\s*[:;]\s*(.+)$/im);
+                if (dm) pengirim = dm[1].trim();
+            }
+
+            const flat = lines.join(' ').replace(/\s+/g, ' ');
+            let body = '';
+            const hIdx = flat.search(/dengan hormat/i);
+            if (hIdx >= 0) {
+                body = flat.slice(hIdx).replace(/^dengan hormat\s*[,.:]?\s*/i, '');
+            } else {
+                body = lines.slice(idxPerihal >= 0 ? idxPerihal + 2 : 6)
+                    .filter(l => !/^(yth|kepada|di\s|lampiran|sifat)/i.test(l)).join(' ');
+            }
+            body = body.split(/\bdemikian\b/i)[0].trim();
+            const sentences = body.match(/[^.!?]+[.!?]+/g) || (body ? [body] : []);
+            let ringkasan = sentences.slice(0, 2).map(s => s.trim()).join(' ').trim();
+            if (ringkasan.length > 320) ringkasan = ringkasan.slice(0, 317).trim() + '...';
+
+            return { nomor_surat: nomor, tanggal_surat: tanggal, pengirim, perihal, isi_singkat: ringkasan, ocr_text: String(raw || '').trim(), gemini_notes: '' };
+        }
+
+        function applyParsedToForm(parsed, noteText) {
+            const $ = id => document.getElementById(id);
+            ['nomor_surat', 'pengirim', 'perihal', 'isi_singkat'].forEach(f => { if (parsed[f]) $(f).value = parsed[f]; });
+            if (parsed.tanggal_surat) $('tanggal_surat').value = parsed.tanggal_surat;
+            $('ocrText').textContent = parsed.ocr_text || 'Transkrip tidak tersedia.';
+            $('geminiReason').textContent = noteText;
+            $('copyOcrBtn').classList.remove('hidden');
+        }
+
+        async function runOfflineExtraction(prefix) {
+            const indicator = document.getElementById('loadingIndicator');
+            const sub = indicator.querySelectorAll('p')[1];
+            const defaultSub = sub ? sub.textContent : '';
+            const setStatus = t => { if (sub) sub.textContent = t; };
+            let text = '', source = '';
+            try {
+                if (currentPdfFile) {
+                    setStatus('Membaca teks PDF...');
+                    text = await extractPdfText(currentPdfFile);
+                    source = 'teks PDF';
+                }
+                if (!text || text.replace(/\s/g, '').length < 80) {
+                    setStatus('Menyiapkan OCR (pertama kali mengunduh data bahasa)...');
+                    const img = currentPdfFile ? await renderPdfForOcr(currentPdfFile) : currentFileBase64;
+                    text = await ocrImage(img, p => setStatus(`OCR membaca dokumen... ${p}%`));
+                    source = 'OCR Tesseract';
+                }
+            } finally {
+                if (sub) sub.textContent = defaultSub;
+            }
+            if (!text || text.trim().length < 20) {
+                throw new Error('Teks tidak terbaca dari dokumen. Coba file yang lebih jelas atau isi form secara manual.');
+            }
+
+            const parsed = parseSuratText(text);
+            const note = `${prefix ? prefix + ' ' : ''}Dibaca tanpa API Key (${source}) dengan aturan pola. Mohon periksa kembali hasil pengisian.`;
+            applyParsedToForm(parsed, note);
+            indicator.classList.add('hidden');
+            await runPostOcrAutomation(parsed);
+
+            const labels = { nomor_surat: 'nomor surat', tanggal_surat: 'tanggal surat', pengirim: 'pengirim', perihal: 'perihal', isi_singkat: 'ringkasan' };
+            const missing = Object.keys(labels).filter(k => !parsed[k]).map(k => labels[k]);
+            showAlert('Dokumen Terbaca',
+                `Form terisi otomatis dari ${source} (tanpa API Key). ` +
+                (missing.length ? `Belum terbaca: ${missing.join(', ')}. ` : '') +
+                'Mohon periksa kembali sebelum disimpan.', missing.length ? 'warning' : 'success');
+        }
+
+        function refreshApiModeLabel() {
+            const el = document.getElementById('apiKeyStatus');
+            if (el && !localStorage.getItem('gemini_custom_key')) el.textContent = 'Mode: Tanpa API Key (OCR di browser)';
+        }
+
+        // ========== PREVIEW ZOOM & PAN ==========
+        let previewZoom = 1;
+        const PREVIEW_ZOOM_MIN = 0.5;
+        const PREVIEW_ZOOM_MAX = 4;
+        const PREVIEW_ZOOM_STEP = 0.15;
+
+        function applyPreviewZoom() {
+            const img = document.getElementById('previewImage');
+            const label = document.getElementById('zoomLevelLabel');
+            if (!img) return;
+            img.style.transform = 'scale(' + previewZoom + ')';
+            if (label) label.textContent = Math.round(previewZoom * 100) + '%';
+        }
+
+        function setPreviewZoom(z) {
+            previewZoom = Math.min(PREVIEW_ZOOM_MAX, Math.max(PREVIEW_ZOOM_MIN, z));
+            applyPreviewZoom();
+        }
+
+        function resetPreviewZoom() {
+            previewZoom = 1;
+            applyPreviewZoom();
+            const vp = document.getElementById('previewViewport');
+            if (vp) { vp.scrollLeft = 0; vp.scrollTop = 0; }
+        }
+
+        function initPreviewZoomControls() {
+            const btnIn = document.getElementById('btnZoomIn');
+            const btnOut = document.getElementById('btnZoomOut');
+            const btnReset = document.getElementById('btnZoomReset');
+            const viewport = document.getElementById('previewViewport');
+            const img = document.getElementById('previewImage');
+
+            if (btnIn) btnIn.addEventListener('click', () => setPreviewZoom(previewZoom + PREVIEW_ZOOM_STEP));
+            if (btnOut) btnOut.addEventListener('click', () => setPreviewZoom(previewZoom - PREVIEW_ZOOM_STEP));
+            if (btnReset) btnReset.addEventListener('click', resetPreviewZoom);
+
+            if (viewport) {
+                viewport.addEventListener('wheel', function (e) {
+                    if (!e.ctrlKey && !e.metaKey) return;
+                    e.preventDefault();
+                    const delta = e.deltaY < 0 ? PREVIEW_ZOOM_STEP : -PREVIEW_ZOOM_STEP;
+                    setPreviewZoom(previewZoom + delta);
+                }, { passive: false });
+
+                let isPanning = false;
+                let startX = 0, startY = 0, scrollL = 0, scrollT = 0;
+                viewport.addEventListener('mousedown', function (e) {
+                    if (e.button !== 0) return;
+                    isPanning = true;
+                    viewport.classList.add('is-panning');
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    scrollL = viewport.scrollLeft;
+                    scrollT = viewport.scrollTop;
+                });
+                window.addEventListener('mousemove', function (e) {
+                    if (!isPanning) return;
+                    viewport.scrollLeft = scrollL - (e.clientX - startX);
+                    viewport.scrollTop = scrollT - (e.clientY - startY);
+                });
+                window.addEventListener('mouseup', function () {
+                    isPanning = false;
+                    viewport.classList.remove('is-panning');
+                });
+            }
+
+            if (img) {
+                img.addEventListener('load', function () {
+                    // jaga transform tetap setelah ganti file
+                    applyPreviewZoom();
+                });
+            }
+        }
+
+        // Initial launch initialization
+        window.onload = function() {
+            initPreviewZoomControls();
+            refreshApiModeLabel();
+            const existingCustomKey = localStorage.getItem('gemini_custom_key');
+            if (existingCustomKey) {
+                document.getElementById('apiKeyStatus').textContent = 'API Key: Custom Set';
+                document.getElementById('geminiApiKey').value = existingCustomKey;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const editId = params.get('edit');
+
+            if (editId) {
+                const item = dataSurat.find(s => s.id === editId);
+                if (item) showFormView(item);
+            } else {
+                showFormView();
+            }
+        };
+    </script>
+</body>
+</html>

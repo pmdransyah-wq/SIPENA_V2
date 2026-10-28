@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistem E-Arsip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR LEFT MENU -->
+    <aside id="sidebar" class="w-72 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 shrink-0">
+        <!-- Logo & Title -->
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <a href="#" onclick="showDashboardHome()" class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-base leading-tight">E-ARSIP</h1>
+                    <p class="text-xs text-brand-400 font-medium" id="display-instansi-name">Memuat...</p>
+                </div>
+            </a>
+            <button id="closeSidebarMobile" class="md:hidden text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto sidebar-scroll p-3 space-y-1 text-sm">
+            <!-- 1. Dashboard -->
+            <a href="#" onclick="showDashboardHome()" id="nav-dashboard" class="flex items-center px-3 py-2.5 rounded-lg bg-brand-600 text-white font-medium shadow sidebar-nav-item">
+                <i class="fa-solid fa-chart-pie w-6"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <!-- 2. Buku Agenda Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-agenda', 'arrow-agenda')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-book w-6 text-slate-400"></i>
+                        <span class="font-medium">Buku Agenda</span>
+                    </div>
+                    <i id="arrow-agenda" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-agenda" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('surat-masuk.html', 'Surat Masuk', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Surat Masuk</a>
+                    <a href="surat-keluar.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Keluar</a>
+                    <a href="nota-dinas.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Nota Dinas</a>
+                    <a href="no-sk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">No. SK</a>
+                    <a href="spk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Perjanjian Kerja</a>
+                    <a href="sertifikat.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Sertifikat</a>
+                    <a href="surat-edaran.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Edaran</a>
+                    <a href="surat-tugas.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Tugas</a>
+                    <a href="npd.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">NPD</a>
+                    <a href="sts.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">STS</a>
+                    <a href="bast.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">BAST</a>
+                    <a href="agenda-kegiatan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Agenda Kegiatan</a>
+                    <a href="agenda-aula.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Agenda Fasilitasi Aula</a>
+                    <a href="buku-tamu.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Tamu</a>
+                    <a href="buku-arsip.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Arsip</a>
+                    <a href="buku-ekspedisi.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Ekspedisi</a>
+                </div>
+            </div>
+
+            <!-- 3. Jenis Arsip Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-jenis', 'arrow-jenis')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-folder-tree w-6 text-slate-400"></i>
+                        <span class="font-medium">Jenis Arsip</span>
+                    </div>
+                    <i id="arrow-jenis" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-jenis" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <div class="font-semibold text-slate-500 pt-1 pb-0.5 uppercase tracking-wider text-[10px]">Arsip Dinamis</div>
+                    <a href="arsip-aktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Aktif</a>
+                    <a href="arsip-inaktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Inaktif</a>
+                    <a href="arsip-statis.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Statis</a>
+                    <a href="arsip-vital.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Vital</a>
+                    <a href="arsip-foto.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Foto</a>
+                    <a href="alihmedia-arsip.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Alihmedia Arsip</a>
+                </div>
+            </div>
+
+            <!-- 4. Record Center -->
+            <a href="javascript:void(0)" onclick="loadPage('record-center.html', 'Record Center', this)" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition sidebar-nav-item">
+                <i class="fa-solid fa-server w-6 text-slate-400"></i>
+                <span class="font-medium">Record Center</span>
+            </a>
+
+            <!-- 5. Peminjaman Arsip -->
+            <a href="peminjaman.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-arrows-left-right-to-line w-6 text-slate-400"></i>
+                <span class="font-medium">Peminjaman Arsip</span>
+            </a>
+
+            <!-- 6. Penyusutan Arsip -->
+            <a href="penyusutan.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-file-circle-minus w-6 text-slate-400"></i>
+                <span class="font-medium">Penyusutan Arsip</span>
+            </a>
+
+            <!-- 7. Pedoman Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-pedoman', 'arrow-pedoman')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-book-bookmark w-6 text-slate-400"></i>
+                        <span class="font-medium">Pedoman</span>
+                    </div>
+                    <i id="arrow-pedoman" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-pedoman" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('master-jra.html', 'Master JRA', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Master JRA</a>
+                    <a href="javascript:void(0)" onclick="loadPage('kode-klasifikasi.html', 'Kode Klasifikasi', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Kode Klasifikasi</a>
+                    <a href="peraturan-kearsipan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Peraturan Kearsipan</a>
+                </div>
+            </div>
+
+            <!-- 8. Menu Sampah -->
+            <a href="sampah.html" id="menu-sampah-link" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-trash-can w-6 text-slate-400"></i>
+                <span class="font-medium">Menu Sampah</span>
+            </a>
+
+            <!-- 9. Pengaturan Akun Submenu (Profil & Keamanan) -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-profil', 'arrow-profil')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-user-gear w-6 text-slate-400"></i>
+                        <span class="font-medium">Pengaturan Akun</span>
+                    </div>
+                    <i id="arrow-profil" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-profil" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('profil.html', 'Profil Instansi', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Profil Instansi</a>
+                    <a href="javascript:void(0)" onclick="loadPage('setelan-keamanan.html', 'Setelan & Keamanan System', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Setelan & Keamanan</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- User Brief Footer -->
+        <div class="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-950/40">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="text-xs">
+                    <p class="font-semibold text-white" id="user-display-name">Memuat...</p>
+                    <p class="text-[10px] text-brand-400 uppercase font-bold" id="user-role-display">USER</p>
+                </div>
+            </div>
+            <a href="javascript:void(0)" onclick="handleLogout()" title="Keluar Sistem" class="text-slate-400 hover:text-white text-sm">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <!-- RIGHT CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <!-- Top Navbar Header -->
+        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 z-20 shrink-0">
+            <div class="flex items-center space-x-3">
+                <button id="openSidebar" class="text-slate-600 hover:text-slate-900 md:hidden">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <h2 id="header-title" class="text-lg font-bold text-slate-800">Dashboard Utama</h2>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-3 py-1 rounded-full border border-brand-100" id="header-instansi-badge">
+                    Instansi: Memuat...
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content Wrapper -->
+        <div class="flex-1 relative w-full h-full overflow-hidden">
+            
+            <!-- 1. TAMPILAN DASHBOARD UTAMA -->
+            <main id="main-dashboard-content" class="h-full overflow-y-auto p-4 md:p-6 bg-slate-50 space-y-6">
+                
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-brand-700 to-indigo-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div class="relative z-10 max-w-xl">
+                        <h2 class="text-2xl font-bold mb-1">Selamat Datang di Sistem E-Arsip</h2>
+                        <p class="text-brand-100 text-xs sm:text-sm">Data statistik ini dikhususkan untuk instansi: <span class="font-bold underline" id="welcome-instansi-text">Memuat...</span></p>
+                    </div>
+                    <i class="fa-solid fa-chart-line absolute -right-4 -bottom-6 text-white/10 text-9xl pointer-events-none"></i>
+                </div>
+
+                <!-- Stats KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Total Surat Masuk</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">1,420</h3>
+                            <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-arrow-up text-[10px]"></i> +12% bulan ini</span>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-50 text-brand-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-inbox"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Total Surat Keluar</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">980</h3>
+                            <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-arrow-up text-[10px]"></i> +8% bulan ini</span>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Peminjaman Aktif</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">38</h3>
+                            <span class="text-xs text-amber-600 font-medium"><i class="fa-solid fa-clock text-[10px]"></i> 5 Jatuh Tempo</span>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-arrows-left-right-to-line"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Kapasitas Simpan</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">72.4 GB</h3>
+                            <span class="text-xs text-slate-500">Dari total 100 GB</span>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-hard-drive"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Grafik -->
+                    <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base" id="chart-title">Statistik Sistem E-Arsip</h3>
+                                <p class="text-xs text-slate-500">Volumetri entri berkas per bulan dalam tahun ini</p>
+                            </div>
+                            <select class="text-xs border border-slate-300 rounded-lg px-2.5 py-1 bg-slate-50 focus:outline-none">
+                                <option>Tahun 2026</option>
+                                <option>Tahun 2025</option>
+                            </select>
+                        </div>
+                        <div class="h-64 relative w-full">
+                            <canvas id="arsipChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Kalender -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-slate-800 text-base">Kalender Kegiatan</h3>
+                            <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full">Oktober 2026</span>
+                        </div>
+
+                        <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
+                            <span>Mg</span><span>Sn</span><span>Sl</span><span>Rb</span><span>Km</span><span>Jm</span><span>St</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-700 mb-4" id="calendarDays"></div>
+
+                        <div class="border-t border-slate-100 pt-3 space-y-2 flex-1 overflow-y-auto">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agenda Hari Ini:</p>
+                            
+                            <div class="p-2.5 bg-brand-50/70 border-l-4 border-brand-600 rounded-r-lg text-xs">
+                                <div class="font-bold text-slate-800">Rapat Fasilitasi Ruang Aula</div>
+                                <div class="text-slate-500 flex items-center justify-between mt-1">
+                                    <span><i class="fa-regular fa-clock mr-1"></i> 09:00 - 11:30 WIB</span>
+                                    <span class="font-semibold text-brand-700">Aula Utama</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 2. CONTAINER IFRAME UNTUK HALAMAN LUAR -->
+            <iframe id="iframe-content" class="w-full h-full border-0 hidden"></iframe>
+
+        </div>
+    </div>
+
+    <script>
+        const currentRole = localStorage.getItem('arsip_role') || 'umum';
+        const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+        const currentUsername = localStorage.getItem('arsip_username') || 'Pengguna';
+        const currentNama = localStorage.getItem('arsip_nama') || currentUsername;
+
+        window.onload = function() {
+            if (localStorage.getItem('arsip_logged_in') !== 'true') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const displayInstansi = document.getElementById('display-instansi-name');
+            if (displayInstansi) displayInstansi.innerText = currentInstansi;
+
+            const headerBadge = document.getElementById('header-instansi-badge');
+            if (headerBadge) headerBadge.innerText = 'Instansi: ' + currentInstansi;
+
+            const welcomeText = document.getElementById('welcome-instansi-text');
+            if (welcomeText) welcomeText.innerText = currentInstansi;
+
+            const userNameDisplay = document.getElementById('user-display-name');
+            if (userNameDisplay) userNameDisplay.innerText = currentNama;
+
+            const userRoleDisplay = document.getElementById('user-role-display');
+            if (userRoleDisplay) userRoleDisplay.innerText = currentRole.toUpperCase();
+
+            const menuSampah = document.getElementById('menu-sampah-link');
+            if (menuSampah && currentRole.toLowerCase() === 'umum') {
+                menuSampah.classList.add('hidden');
+            }
+
+            const chartTitle = document.getElementById('chart-title');
+            if (chartTitle) chartTitle.innerText = 'Statistik Sistem E-Arsip (' + currentInstansi + ')';
+
+            renderChart();
+            renderCalendar();
+        };
+
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function toggleSubmenu(menuId, arrowId) {
+            const menu = document.getElementById(menuId);
+            const arrow = document.getElementById(arrowId);
+            menu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-90');
+        }
+
+        function loadPage(pageUrl, pageTitle, element) {
+            const dashboardMain = document.getElementById('main-dashboard-content');
+            const iframe = document.getElementById('iframe-content');
+            const headerTitle = document.getElementById('header-title');
+
+            dashboardMain.classList.add('hidden');
+            iframe.classList.remove('hidden');
+            iframe.src = pageUrl;
+            headerTitle.innerText = pageTitle;
+
+            document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+                item.classList.remove('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+                item.classList.add('text-slate-300');
+            });
+
+            if (element) {
+                element.classList.add('text-white', 'font-bold');
+            }
+        }
+
+        function showDashboardHome() {
+            const dashboardMain = document.getElementById('main-dashboard-content');
+            const iframe = document.getElementById('iframe-content');
+            const headerTitle = document.getElementById('header-title');
+
+            iframe.classList.add('hidden');
+            iframe.src = '';
+            dashboardMain.classList.remove('hidden');
+            headerTitle.innerText = 'Dashboard Utama';
+
+            document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+                item.classList.remove('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+            });
+            const dashBtn = document.getElementById('nav-dashboard');
+            if (dashBtn) dashBtn.classList.add('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+        }
+
+        const sidebar = document.getElementById('sidebar');
+        const openSidebarBtn = document.getElementById('openSidebar');
+        const closeSidebarBtn = document.getElementById('closeSidebarMobile');
+
+        if(openSidebarBtn) {
+            openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('-translate-x-full'));
+        }
+        if(closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('-translate-x-full'));
+        }
+
+        function renderChart() {
+            const canvasEl = document.getElementById('arsipChart');
+            if (!canvasEl) return;
+            const ctx = canvasEl.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+                    datasets: [
+                        {
+                            label: 'Surat Masuk',
+                            data: [65, 78, 90, 81, 105, 112, 95, 120, 110, 128, 0, 0],
+                            borderColor: '#0284c7',
+                            backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Surat Keluar',
+                            data: [45, 52, 60, 55, 70, 85, 78, 92, 80, 85, 0, 0],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    },
+                    scales: {
+                        y: { grid: { borderDash: [2, 4] }, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendarDays');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const daysInMonth = 31;
+            const startDayOffset = 4;
+
+            for (let i = 0; i < startDayOffset; i++) {
+                const empty = document.createElement('span');
+                empty.className = 'text-slate-300 py-1';
+                container.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('span');
+                dayEl.className = 'py-1 rounded-full cursor-pointer hover:bg-slate-100 transition';
+                
+                if (day === 19) {
+                    dayEl.className = 'py-1 rounded-full bg-brand-600 text-white font-bold shadow-sm';
+                } else if ([5, 12, 26].includes(day)) {
+                    dayEl.className = 'py-1 rounded-full bg-amber-100 text-amber-800 font-bold';
+                }
+                
+                dayEl.innerText = day;
+                container.appendChild(dayEl);
+            }
+        }
+    </script>
+</body>
+</html>
