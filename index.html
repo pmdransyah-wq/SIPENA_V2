@@ -1,6 +1,5 @@
 <script>
   // ====================== KONFIGURASI ======================
-  // PASTIKAN PAKAI URL YANG BARU INI
   const GAS_URL = "https://script.google.com/macros/s/AKfycbyJ1pwbWObjqsN8vgJFZPRv4MC_qSuVZZvZvR4nb4Wyvm1NWf-jn6t7H9a4OulC4K5y/exec";
 
   // ====================== FUNGSI LOGIN ======================
@@ -32,12 +31,7 @@
         password: password
       })
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
       if (data.status === "success") {
         localStorage.setItem("arsip_logged_in", "true");
@@ -60,11 +54,11 @@
       }
     })
     .catch(error => {
-      console.error("Error detail:", error);
+      console.error(error);
       Swal.fire({
         icon: "error",
         title: "Koneksi Gagal",
-        html: "Tidak dapat terhubung ke server.<br><br>Pastikan:<br>1. URL Web App sudah yang terbaru<br>2. Deployment akses = <b>Siapa saja</b>"
+        text: "Tidak dapat terhubung ke server Google Apps Script."
       });
     });
   }
