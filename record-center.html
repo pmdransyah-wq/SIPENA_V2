@@ -276,27 +276,31 @@
           // ===== RECORD CENTER =====
           // Header sheet: No Box, Rak, Asal Arsip, Uraian Arsip, Tahun, Media, Kondisi, Jumlah, Jenis Arsip, Aktif, Inaktif, Status, Cover, UserInput, TglInput
           if (data && data.RecordCenter && Array.isArray(data.RecordCenter)) {
+            // map dulu dengan index sheet asli, baru filter & reverse
             arsipData = data.RecordCenter.slice(1)
-              .filter(r => r && (r[0] !== '' && r[0] != null))
-              .map((r, idx) => ({
-                id: 'ARC-' + (idx + 1) + '-' + String(r[0]), // generate id karena sheet tidak punya kolom ID
-                noBox: r[0],
-                rak: r[1],
-                asal: r[2],
-                uraian: r[3],
-                tahun: parseInt(r[4]) || 2024,
-                media: r[5],
-                kondisi: r[6],
-                jumlah: parseInt(r[7]) || 1,
-                jenisArsip: r[8],
-                aktif: r[9],
-                inaktif: r[10],
-                status: r[11],
-                cover: r[12],
-                userInput: r[13],
-                tglInput: r[14],
-                rowIndex: idx + 2 // baris di sheet (1-based + header)
-              }))
+              .map((r, idx) => {
+                if (!r || r[0] === '' || r[0] == null) return null;
+                return {
+                  id: 'ARC-' + (idx + 1) + '-' + String(r[0]),
+                  noBox: r[0],
+                  rak: r[1],
+                  asal: r[2],
+                  uraian: r[3],
+                  tahun: parseInt(r[4]) || 2024,
+                  media: r[5],
+                  kondisi: r[6],
+                  jumlah: parseInt(r[7]) || 1,
+                  jenisArsip: r[8],
+                  aktif: r[9],
+                  inaktif: r[10],
+                  status: r[11],
+                  cover: r[12] || '',
+                  userInput: (r[13] && r[13] !== 'undefined') ? r[13] : '',
+                  tglInput: r[14],
+                  rowIndex: idx + 2
+                };
+              })
+              .filter(Boolean)
               .reverse();
             localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
           }
@@ -412,16 +416,19 @@
       }
 
       const existingId = document.getElementById('arsipId').value;
+      const isEdit = !!existingId;
+      const existingItem = isEdit ? arsipData.find(a => a.id === existingId) : null;
       const id = existingId || ("ARC-" + (Math.floor(Math.random() * 9000) + 1000));
       const now = new Date();
       const tglStr = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
 
-      // Field name HARUS sesuai code.gs (type: record_center)
-      // cover = base64 → server upload ke Drive folder, sheet hanya simpan URL
+      // action: update jika edit, add jika baru
+      // rowIndex wajib untuk update (baris di Google Sheet)
       const payload = {
-        action: 'add',
+        action: isEdit ? 'update' : 'add',
         type: 'record_center',
         id: id,
+        rowIndex: existingItem ? existingItem.rowIndex : 0,
         noBox: document.getElementById('noBox').value,
         rak: document.getElementById('rakArsip').value,
         asalArsip: document.getElementById('asalArsip').value,
@@ -434,19 +441,19 @@
         aktif: validJra.aktif,
         inaktif: validJra.inaktif,
         status: validJra.status,
-        cover: base64File || '',
+        // Kirim base64 hanya jika user pilih file baru; jika edit tanpa file baru, kirim cover lama (URL)
+        cover: base64File || (existingItem ? (existingItem.cover || '') : ''),
         fileName: fileNameStr || ('cover_box' + document.getElementById('noBox').value),
         fileMime: fileMimeStr || '',
-        userInput: currentUserName,
-        tglInput: tglStr
+        userInput: currentUserName || 'Pengguna',
+        tglInput: isEdit && existingItem ? (existingItem.tglInput || tglStr) : tglStr
       };
 
-      Swal.fire({ title: 'Menyimpan Arsip & Upload Lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: isEdit ? 'Mengubah data & lampiran...' : 'Menyimpan Arsip & Upload Lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
       postToGAS(payload)
         .then(result => {
-          // Pakai URL Drive dari server (bukan base64)
-          const coverFinal = (result && result.coverUrl) ? result.coverUrl : '';
+          const coverFinal = (result && result.coverUrl) ? result.coverUrl : (payload.cover && payload.cover.indexOf('http') === 0 ? payload.cover : (existingItem ? existingItem.cover : ''));
 
           const localObj = {
             id: id,
@@ -462,12 +469,13 @@
             aktif: payload.aktif,
             inaktif: payload.inaktif,
             status: payload.status,
-            cover: coverFinal,
+            cover: coverFinal || '',
             userInput: payload.userInput,
-            tglInput: payload.tglInput
+            tglInput: payload.tglInput,
+            rowIndex: existingItem ? existingItem.rowIndex : undefined
           };
 
-          if (existingId) {
+          if (isEdit) {
             arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
           } else {
             arsipData.unshift(localObj);
@@ -477,44 +485,23 @@
           renderTableArsip();
           bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
 
+          // Reset file input state
+          base64File = ''; fileNameStr = ''; fileMimeStr = '';
+
           if (result && result.status === 'success') {
-            Swal.fire('Berhasil!', coverFinal
-              ? 'Data arsip & lampiran berhasil disimpan ke Google Drive.'
-              : 'Data arsip berhasil disimpan.', 'success');
+            const msg = isEdit ? 'Data arsip berhasil diubah.' : 'Data arsip berhasil disimpan.';
+            const extra = coverFinal && coverFinal.indexOf('drive.google.com') >= 0 ? '<br><small>Lampiran tersimpan di Google Drive.</small>' : '';
+            Swal.fire('Berhasil!', msg + extra, 'success');
           } else {
             Swal.fire('Info', 'Data tersimpan. Respons: ' + (result?.message || JSON.stringify(result)), 'info');
           }
+
+          // Setelah simpan, sync ulang agar rowIndex akurat
+          setTimeout(() => loadDataFromCloud(false), 800);
         })
         .catch(err => {
           console.error(err);
-          const localObj = {
-            id: id,
-            noBox: payload.noBox,
-            rak: payload.rak,
-            asal: payload.asalArsip,
-            uraian: payload.uraianArsip,
-            tahun: payload.tahun,
-            media: payload.media,
-            kondisi: payload.kondisi,
-            jumlah: payload.jumlah,
-            jenisArsip: payload.jenisArsip,
-            aktif: payload.aktif,
-            inaktif: payload.inaktif,
-            status: payload.status,
-            cover: '',
-            userInput: payload.userInput,
-            tglInput: payload.tglInput
-          };
-          if (existingId) {
-            arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
-          } else {
-            arsipData.unshift(localObj);
-          }
-          filteredArsip = [...arsipData];
-          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-          renderTableArsip();
-          bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
-          Swal.fire('Berhasil (lokal)', 'Data tersimpan lokal. Upload Drive gagal: ' + err.message, 'warning');
+          Swal.fire('Gagal', 'Tidak bisa menyimpan ke server: ' + err.message, 'error');
         });
     }
 
@@ -528,7 +515,7 @@
           localStorage.setItem('sampahArsip', JSON.stringify(sampah));
         }
         // Backend record_center delete butuh rowIndex; kirim juga id
-        postToGAS({ action: 'delete', type: 'record_center', id: itemToDelete?.rowIndex || id }).catch(()=>{});
+        postToGAS({ action: 'delete', type: 'record_center', rowIndex: itemToDelete?.rowIndex }).catch(()=>{});
         arsipData = arsipData.filter(a => a.id !== id);
         filteredArsip = [...arsipData];
         localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
