@@ -1,6 +1,7 @@
 <script>
   // ====================== KONFIGURASI ======================
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbyJ1pwbWObjqsN8vgJFZPRv4MC_qSuVZZvZvR4nb4Wyvm1NWf-jn6t7H9a4OulC4K5y/exec";
+  // GANTI dengan URL deployment TERBARU setelah kamu deploy ulang
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwZklRdcdvs3Yn2gGLl1cRESlIKrG1OGgVpKS0JELSIAKqBmo0dg5NcwyDBgjOeo4xm/exec";
 
   // ====================== FUNGSI LOGIN ======================
   function handleLogin(e) {
@@ -31,7 +32,18 @@
         password: password
       })
     })
-    .then(response => response.json())
+    .then(async (response) => {
+      const text = await response.text();
+
+      // Coba parse JSON
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        // Kalau yang balik HTML error Google
+        console.error("Response bukan JSON:", text.substring(0, 300));
+        throw new Error("Server mengembalikan halaman error. Cek deployment Web App.");
+      }
+    })
     .then(data => {
       if (data.status === "success") {
         localStorage.setItem("arsip_logged_in", "true");
@@ -58,7 +70,11 @@
       Swal.fire({
         icon: "error",
         title: "Koneksi Gagal",
-        text: "Tidak dapat terhubung ke server Google Apps Script."
+        html: `
+          Tidak dapat terhubung ke Google Apps Script.<br><br>
+          <small>${error.message}</small><br><br>
+          <b>Solusi:</b> Deploy ulang Web App dengan akses <b>Anyone</b>
+        `
       });
     });
   }
