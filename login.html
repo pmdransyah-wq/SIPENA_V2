@@ -1,81 +1,164 @@
-<script>
-  // ====================== KONFIGURASI ======================
-  // GANTI dengan URL deployment TERBARU setelah kamu deploy ulang
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbwZklRdcdvs3Yn2gGLl1cRESlIKrG1OGgVpKS0JELSIAKqBmo0dg5NcwyDBgjOeo4xm/exec";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - SIPENA</title>
 
-  // ====================== FUNGSI LOGIN ======================
-  function handleLogin(e) {
-    e.preventDefault();
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (!username || !password) {
-      Swal.fire("Peringatan", "Username dan Password wajib diisi", "warning");
-      return;
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
+    .login-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    .login-card h3 {
+      color: #1e3c72;
+      font-weight: 700;
+    }
+    .btn-login {
+      background: #1e3c72;
+      border: none;
+      padding: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .btn-login:hover {
+      background: #2a5298;
+    }
+    .form-control:focus {
+      border-color: #1e3c72;
+      box-shadow: 0 0 0 0.2rem rgba(30, 60, 114, 0.25);
+    }
+  </style>
+</head>
+<body>
 
-    Swal.fire({
-      title: "Memeriksa Akun...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
-    });
+  <div class="login-card">
+    <div class="text-center mb-4">
+      <h3>SIPENA</h3>
+      <p class="text-muted mb-0">Sistem Informasi Pengarsipan</p>
+    </div>
 
-    fetch(GAS_URL, {
-      method: "POST",
-      redirect: "follow",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password
-      })
-    })
-    .then(async (response) => {
-      const text = await response.text();
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" class="form-control form-control-lg" id="username" 
+               placeholder="Masukkan username" required autocomplete="username">
+      </div>
 
-      // Coba parse JSON
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        // Kalau yang balik HTML error Google
-        console.error("Response bukan JSON:", text.substring(0, 300));
-        throw new Error("Server mengembalikan halaman error. Cek deployment Web App.");
+      <div class="mb-4">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control form-control-lg" id="password" 
+               placeholder="Masukkan password" required autocomplete="current-password">
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-login w-100 btn-lg">
+        Masuk
+      </button>
+    </form>
+
+    <div class="text-center mt-4">
+      <small class="text-muted">© 2026 SIPENA</small>
+    </div>
+  </div>
+
+  <script>
+    // ====================== KONFIGURASI ======================
+    // Ganti URL ini dengan URL deployment Web App TERBARU
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbyJ1pwbWObjqsN8vgJFZPRv4MC_qSuVZZvZvR4nb4Wyvm1NWf-jn6t7H9a4OulC4K5y/exec";
+
+    // ====================== FUNGSI LOGIN ======================
+    function handleLogin(e) {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username || !password) {
+        Swal.fire("Peringatan", "Username dan Password wajib diisi", "warning");
+        return;
       }
-    })
-    .then(data => {
-      if (data.status === "success") {
-        localStorage.setItem("arsip_logged_in", "true");
-        localStorage.setItem("arsip_username", data.data.username);
-        localStorage.setItem("arsip_role", data.data.role);
-        localStorage.setItem("arsip_instansi", data.data.instansi);
-        localStorage.setItem("arsip_token", data.data.token);
 
-        Swal.fire({
-          icon: "success",
-          title: "Login Berhasil",
-          text: "Selamat datang, " + data.data.username,
-          timer: 1500,
-          showConfirmButton: false
-        }).then(() => {
-          window.location.href = "dashboard.html";
-        });
-      } else {
-        Swal.fire("Gagal", data.message || "Username atau Password salah!", "error");
-      }
-    })
-    .catch(error => {
-      console.error(error);
       Swal.fire({
-        icon: "error",
-        title: "Koneksi Gagal",
-        html: `
-          Tidak dapat terhubung ke Google Apps Script.<br><br>
-          <small>${error.message}</small><br><br>
-          <b>Solusi:</b> Deploy ulang Web App dengan akses <b>Anyone</b>
-        `
+        title: "Memeriksa Akun...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
       });
-    });
-  }
-</script>
+
+      fetch(GAS_URL, {
+        method: "POST",
+        redirect: "follow",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password
+        })
+      })
+      .then(async (response) => {
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch (err) {
+          console.error("Response bukan JSON:", text.substring(0, 400));
+          throw new Error("Server mengembalikan halaman error. Cek deployment Web App (akses harus Anyone).");
+        }
+      })
+      .then(data => {
+        if (data.status === "success") {
+          localStorage.setItem("arsip_logged_in", "true");
+          localStorage.setItem("arsip_username", data.data.username);
+          localStorage.setItem("arsip_role", data.data.role);
+          localStorage.setItem("arsip_instansi", data.data.instansi);
+          localStorage.setItem("arsip_token", data.data.token);
+
+          Swal.fire({
+            icon: "success",
+            title: "Login Berhasil",
+            text: "Selamat datang, " + data.data.username,
+            timer: 1500,
+            showConfirmButton: false
+          }).then(() => {
+            window.location.href = "dashboard.html";
+          });
+        } else {
+          Swal.fire("Gagal", data.message || "Username atau Password salah!", "error");
+        }
+      })
+      .catch(error => {
+        console.error(error);
+        Swal.fire({
+          icon: "error",
+          title: "Koneksi Gagal",
+          html: `
+            Tidak dapat terhubung ke Google Apps Script.<br><br>
+            <small>${error.message}</small><br><br>
+            <b>Pastikan:</b><br>
+            1. Web App sudah di-deploy dengan akses <b>Anyone</b><br>
+            2. URL di GAS_URL sudah benar
+          `
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>
