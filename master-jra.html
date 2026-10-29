@@ -110,7 +110,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwjwAlgfeCZiFOhxweqtnEcPHPk-RMIy3Z032PUthXhcjh2iTjNgAwI29FRsX8iAcr8Fw/exec";
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwSufaTvdgQJ_3m-bEFvIXVai3a12mLv6DA0YD9eU7zaXKp7eRPon8oTqriD26Nkn8wHQ/exec";
     
     // Ambil data sesi login dari localStorage
     const currentRole = localStorage.getItem('arsip_role') || 'umum';
@@ -121,6 +121,27 @@
     let filteredJra = [];
     let currentJraPage = 1, rowsPerPage = 10;
     let isLoading = false;
+
+    /**
+     * Kirim data ke Google Apps Script dengan cara yang aman dari CORS.
+     * Content-Type text/plain mencegah preflight OPTIONS yang sering gagal.
+     */
+    function postToGAS(payload) {
+      return fetch(GAS_BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      }).then(async (res) => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          if (res.ok) return { status: 'success', raw: text };
+          throw new Error('Response bukan JSON: ' + text.substring(0, 150));
+        }
+      });
+    }
 
     document.addEventListener("DOMContentLoaded", function() {
       // Periksa keamanan sesi
@@ -297,63 +318,74 @@
         status: document.getElementById('jraStatusAkhir').value
       };
 
+      if (!payload.jenisArsip || !payload.aktif || !payload.inaktif || !payload.status) {
+        Swal.fire('Perhatian', 'Semua field wajib diisi!', 'warning');
+        return;
+      }
+
       Swal.fire({ title: 'Menyimpan JRA...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-      fetch(GAS_BACKEND_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(result => {
-        // Update lokal
-        if (existingId) {
-          masterJraData = masterJraData.map(j => j.id === id ? {
+      postToGAS(payload)
+        .then(result => {
+          console.log('Response server:', result);
+
+          const obj = {
             id: payload.id,
             jenisArsip: payload.jenisArsip,
             aktif: payload.aktif,
             inaktif: payload.inaktif,
             status: payload.status
-          } : j);
-        } else {
-          masterJraData.unshift({
+          };
+
+          if (existingId) {
+            masterJraData = masterJraData.map(j => j.id === id ? obj : j);
+          } else {
+            masterJraData.unshift(obj);
+          }
+          filteredJra = [...masterJraData];
+          localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
+          renderTableJra();
+          bootstrap.Modal.getInstance(document.getElementById('modalJra')).hide();
+
+          if (result && result.status === 'success') {
+            Swal.fire('Berhasil!', 'Master JRA berhasil disimpan ke server & sheet.', 'success');
+          } else {
+            Swal.fire('Info', 'Data tersimpan lokal. Server: ' + (result?.message || JSON.stringify(result)), 'info');
+          }
+        })
+        .catch(err => {
+          console.error('Gagal simpan ke server:', err);
+
+          // Fallback lokal supaya data tidak hilang
+          const obj = {
             id: payload.id,
             jenisArsip: payload.jenisArsip,
             aktif: payload.aktif,
             inaktif: payload.inaktif,
             status: payload.status
+          };
+          if (existingId) {
+            masterJraData = masterJraData.map(j => j.id === id ? obj : j);
+          } else {
+            masterJraData.unshift(obj);
+          }
+          filteredJra = [...masterJraData];
+          localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
+          renderTableJra();
+          bootstrap.Modal.getInstance(document.getElementById('modalJra')).hide();
+
+          Swal.fire({
+            icon: 'warning',
+            title: 'Gagal ke Server',
+            html: `Data hanya tersimpan <b>lokal</b>.<br><br>
+                   <small>${err.message}</small><br><br>
+                   Checklist:<br>
+                   1. Kode.gs sudah diganti & <b>Deploy → New version</b><br>
+                   2. Execute as: <b>Me</b><br>
+                   3. Who has access: <b>Anyone</b><br>
+                   4. URL Web App di HTML masih sama`
           });
-        }
-        filteredJra = [...masterJraData];
-        localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
-        renderTableJra();
-        bootstrap.Modal.getInstance(document.getElementById('modalJra')).hide();
-        Swal.fire('Berhasil!', 'Master JRA berhasil disimpan.', 'success');
-      })
-      .catch(() => {
-        // Fallback: simpan lokal saja
-        if (existingId) {
-          masterJraData = masterJraData.map(j => j.id === id ? {
-            id: payload.id,
-            jenisArsip: payload.jenisArsip,
-            aktif: payload.aktif,
-            inaktif: payload.inaktif,
-            status: payload.status
-          } : j);
-        } else {
-          masterJraData.unshift({
-            id: payload.id,
-            jenisArsip: payload.jenisArsip,
-            aktif: payload.aktif,
-            inaktif: payload.inaktif,
-            status: payload.status
-          });
-        }
-        filteredJra = [...masterJraData];
-        localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
-        renderTableJra();
-        bootstrap.Modal.getInstance(document.getElementById('modalJra')).hide();
-        Swal.fire('Berhasil!', 'Master JRA tersimpan secara lokal (server belum sync).', 'success');
-      });
+        });
     }
 
     function detailJra(id) {
@@ -375,10 +407,7 @@
             sampah.push(itemToDelete);
             localStorage.setItem('sampahJra', JSON.stringify(sampah));
           }
-          fetch(GAS_BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'delete', type: 'jra', id: id })
-          }).catch(()=>{});
+          postToGAS({ action: 'delete', type: 'jra', id: id }).catch(()=>{});
           masterJraData = masterJraData.filter(j => j.id !== id);
           filteredJra = [...masterJraData];
           localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
@@ -399,10 +428,7 @@
             if(item) sampah.push(item);
           });
           localStorage.setItem('sampahJra', JSON.stringify(sampah));
-          fetch(GAS_BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'delete', type: 'jra', ids: selectedIds })
-          }).catch(()=>{});
+          postToGAS({ action: 'delete', type: 'jra', ids: selectedIds }).catch(()=>{});
           masterJraData = masterJraData.filter(j => !selectedIds.includes(j.id));
           filteredJra = [...masterJraData];
           localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
@@ -420,10 +446,7 @@
           sampah = sampah.concat(masterJraData);
           localStorage.setItem('sampahJra', JSON.stringify(sampah));
           const allIds = masterJraData.map(j => j.id);
-          fetch(GAS_BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'delete', type: 'jra', ids: allIds })
-          }).catch(()=>{});
+          postToGAS({ action: 'delete', type: 'jra', ids: allIds }).catch(()=>{});
           masterJraData = []; filteredJra = [];
           localStorage.removeItem('cachedMasterJra');
           renderTableJra();
@@ -476,17 +499,14 @@
         // Simpan ke server satu per satu (atau bisa digabung nanti)
         newItems.forEach(item => {
           masterJraData.push(item);
-          fetch(GAS_BACKEND_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-              action: 'add',
-              type: 'jra',
-              id: item.id,
-              jenisArsip: item.jenisArsip,
-              aktif: item.aktif,
-              inaktif: item.inaktif,
-              status: item.status
-            })
+          postToGAS({
+            action: 'add',
+            type: 'jra',
+            id: item.id,
+            jenisArsip: item.jenisArsip,
+            aktif: item.aktif,
+            inaktif: item.inaktif,
+            status: item.status
           }).catch(()=>{});
         });
 
