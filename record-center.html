@@ -154,7 +154,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     // ========== SAMAKAN URL DENGAN master-jra.html (deployment terbaru) ==========
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwSufaTvdgQJ_3m-bEFvIXVai3a12mLv6DA0YD9eU7zaXKp7eRPon8oTqriD26Nkn8wHQ/exec";
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbzHrNNp_mZ7TeuYu2dpsc16hCCKEV8sVCUkeCzWwR_dpHI7DLxYATE4OSF_AnThZHbrUg/exec";
     
     const currentRole = localStorage.getItem('arsip_role') || 'umum';
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
@@ -411,6 +411,7 @@
       const tglStr = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
 
       // Field name HARUS sesuai code.gs (type: record_center)
+      // cover = base64 → server upload ke Drive folder, sheet hanya simpan URL
       const payload = {
         action: 'add',
         type: 'record_center',
@@ -428,34 +429,38 @@
         inaktif: validJra.inaktif,
         status: validJra.status,
         cover: base64File || '',
+        fileName: fileNameStr || ('cover_box' + document.getElementById('noBox').value),
+        fileMime: fileMimeStr || '',
         userInput: currentUserName,
         tglInput: tglStr
       };
 
-      // Object lokal untuk tampilan
-      const localObj = {
-        id: id,
-        noBox: payload.noBox,
-        rak: payload.rak,
-        asal: payload.asalArsip,
-        uraian: payload.uraianArsip,
-        tahun: payload.tahun,
-        media: payload.media,
-        kondisi: payload.kondisi,
-        jumlah: payload.jumlah,
-        jenisArsip: payload.jenisArsip,
-        aktif: payload.aktif,
-        inaktif: payload.inaktif,
-        status: payload.status,
-        cover: payload.cover,
-        userInput: payload.userInput,
-        tglInput: payload.tglInput
-      };
-
-      Swal.fire({ title: 'Menyimpan Arsip...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      Swal.fire({ title: 'Menyimpan Arsip & Upload Lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
       postToGAS(payload)
         .then(result => {
+          // Pakai URL Drive dari server (bukan base64)
+          const coverFinal = (result && result.coverUrl) ? result.coverUrl : '';
+
+          const localObj = {
+            id: id,
+            noBox: payload.noBox,
+            rak: payload.rak,
+            asal: payload.asalArsip,
+            uraian: payload.uraianArsip,
+            tahun: payload.tahun,
+            media: payload.media,
+            kondisi: payload.kondisi,
+            jumlah: payload.jumlah,
+            jenisArsip: payload.jenisArsip,
+            aktif: payload.aktif,
+            inaktif: payload.inaktif,
+            status: payload.status,
+            cover: coverFinal,
+            userInput: payload.userInput,
+            tglInput: payload.tglInput
+          };
+
           if (existingId) {
             arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
           } else {
@@ -465,10 +470,35 @@
           localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
           renderTableArsip();
           bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
-          Swal.fire('Berhasil!', result?.status === 'success' ? 'Data arsip berhasil disimpan ke server.' : 'Data tersimpan (lokal + mencoba server).', 'success');
+
+          if (result && result.status === 'success') {
+            Swal.fire('Berhasil!', coverFinal
+              ? 'Data arsip & lampiran berhasil disimpan ke Google Drive.'
+              : 'Data arsip berhasil disimpan.', 'success');
+          } else {
+            Swal.fire('Info', 'Data tersimpan. Respons: ' + (result?.message || JSON.stringify(result)), 'info');
+          }
         })
         .catch(err => {
           console.error(err);
+          const localObj = {
+            id: id,
+            noBox: payload.noBox,
+            rak: payload.rak,
+            asal: payload.asalArsip,
+            uraian: payload.uraianArsip,
+            tahun: payload.tahun,
+            media: payload.media,
+            kondisi: payload.kondisi,
+            jumlah: payload.jumlah,
+            jenisArsip: payload.jenisArsip,
+            aktif: payload.aktif,
+            inaktif: payload.inaktif,
+            status: payload.status,
+            cover: '',
+            userInput: payload.userInput,
+            tglInput: payload.tglInput
+          };
           if (existingId) {
             arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
           } else {
@@ -478,7 +508,7 @@
           localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
           renderTableArsip();
           bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
-          Swal.fire('Berhasil (lokal)', 'Data arsip tersimpan secara lokal. Server gagal: ' + err.message, 'warning');
+          Swal.fire('Berhasil (lokal)', 'Data tersimpan lokal. Upload Drive gagal: ' + err.message, 'warning');
         });
     }
 
