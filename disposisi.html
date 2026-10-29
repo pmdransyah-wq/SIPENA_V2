@@ -423,13 +423,13 @@
             document.getElementById('val_nomor_surat').textContent = noSurat;
             document.getElementById('val_tanggal_surat').textContent = tglSurat;
             document.getElementById('val_perihal').textContent = perihal;
-            // Penerima disposisi: prioritaskan nama (bisa multi), fallback ke berkas/bidang
+            // Penerima disposisi: prioritaskan nama (bisa multi), fallback ke berkas/
             const rawKepada = (data.disposisi_kepada || data.nama_disposisi || '').trim();
             let listKepada = rawKepada
                 ? rawKepada.split(/[;|\n]/).map(s => s.trim()).filter(Boolean)
                 : [];
-            if (!listKepada.length && bidangPpd && bidangPpd !== '-') {
-                listKepada = [bidangPpd];
+            if (!listKepada.length && Ppd && - !== '-') {
+                listKepada = [-];
             }
             const listEl = document.getElementById('val_disposisi_kepada_list');
             if (listEl) {
