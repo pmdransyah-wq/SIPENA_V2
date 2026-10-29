@@ -128,7 +128,11 @@
                 </select>
               </div>
               <div class="col-md-6"><label class="form-label fw-semibold">Jumlah Berkas <span class="text-danger">*</span></label><input type="number" id="jumlahBerkas" class="form-control" min="1" required></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">File Cover</label><input type="file" id="fotoCover" class="form-control" accept=".jpg,.jpeg,.png,.pdf" onchange="previewFileCover(this)"></div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">File Cover</label>
+                <input type="file" id="fotoCover" class="form-control" accept=".jpg,.jpeg,.png,.pdf" onchange="previewFileCover(this)">
+                <small id="cover-status" class="text-muted">Tidak ada file dipilih</small>
+              </div>
               <div class="col-md-12 position-relative">
                 <label class="form-label fw-semibold">Jenis Arsip (Referensi Master JRA) <span class="text-danger">*</span></label>
                 <input type="text" id="jenisArsip" class="form-control" placeholder="Ketik kata kunci jenis arsip..." autocomplete="off" required>
@@ -154,7 +158,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     // ========== SAMAKAN URL DENGAN master-jra.html (deployment terbaru) ==========
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbzdEziyKbRmL52X-Nzpq3VideYkJcYOuuW3T9GX_azcdM8hUJuVwyQH68Z8lEKin8wmag/exec";
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
     
     const currentRole = localStorage.getItem('arsip_role') || 'umum';
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
@@ -380,6 +384,10 @@
       document.getElementById('jangkaInaktif').value = '';
       document.getElementById('statusArsip').value = '';
       base64File = ""; fileNameStr = ""; fileMimeStr = "";
+      const cs = document.getElementById('cover-status');
+      if (cs) cs.innerHTML = '<span class="text-muted">Tidak ada file dipilih</span>';
+      const fi = document.getElementById('fotoCover');
+      if (fi) fi.value = '';
       updateJraHint();
       new bootstrap.Modal(document.getElementById('modalArsip')).show();
     }
@@ -404,7 +412,7 @@
       new bootstrap.Modal(document.getElementById('modalArsip')).show();
     }
 
-    function simpanArsip() {
+    async function simpanArsip() {
       const form = document.getElementById('formArsip');
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
@@ -415,6 +423,29 @@
         return;
       }
 
+      // Pastikan FileReader selesai jika user baru pilih file
+      const fileInput = document.getElementById('fotoCover');
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        if (!base64File || base64File.length < 50) {
+          try {
+            await previewFileCover(fileInput);
+          } catch (e) {
+            Swal.fire('Error', 'Gagal membaca file lampiran', 'error');
+            return;
+          }
+        }
+        // Tunggu sampai base64 benar-benar siap (max 3 detik)
+        let waited = 0;
+        while ((!base64File || base64File.length < 50) && waited < 3000) {
+          await new Promise(r => setTimeout(r, 100));
+          waited += 100;
+        }
+        if (!base64File || base64File.length < 50) {
+          Swal.fire('Error', 'File belum siap dibaca. Coba pilih ulang file, tunggu sampai muncul tulisan "siap diupload", lalu simpan.', 'error');
+          return;
+        }
+      }
+
       const existingId = document.getElementById('arsipId').value;
       const isEdit = !!existingId;
       const existingItem = isEdit ? arsipData.find(a => a.id === existingId) : null;
@@ -422,13 +453,17 @@
       const now = new Date();
       const tglStr = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
 
-      // action: update jika edit, add jika baru
-      // rowIndex wajib untuk update (baris di Google Sheet)
+      // Cover: base64 baru jika ada, kalau edit tanpa file baru kirim URL lama
+      let coverPayload = base64File || "";
+      if (!coverPayload && existingItem && existingItem.cover) {
+        coverPayload = existingItem.cover;
+      }
+
       const payload = {
         action: isEdit ? 'update' : 'add',
         type: 'record_center',
         id: id,
-        rowIndex: existingItem ? existingItem.rowIndex : 0,
+        rowIndex: existingItem && existingItem.rowIndex ? existingItem.rowIndex : 0,
         noBox: document.getElementById('noBox').value,
         rak: document.getElementById('rakArsip').value,
         asalArsip: document.getElementById('asalArsip').value,
@@ -441,68 +476,85 @@
         aktif: validJra.aktif,
         inaktif: validJra.inaktif,
         status: validJra.status,
-        // Kirim base64 hanya jika user pilih file baru; jika edit tanpa file baru, kirim cover lama (URL)
-        cover: base64File || (existingItem ? (existingItem.cover || '') : ''),
+        cover: coverPayload,
         fileName: fileNameStr || ('cover_box' + document.getElementById('noBox').value),
         fileMime: fileMimeStr || '',
         userInput: currentUserName || 'Pengguna',
         tglInput: isEdit && existingItem ? (existingItem.tglInput || tglStr) : tglStr
       };
 
+      console.log('simpanArsip payload:', {
+        action: payload.action,
+        rowIndex: payload.rowIndex,
+        coverLen: (payload.cover || '').length,
+        coverIsUrl: (payload.cover || '').indexOf('http') === 0,
+        fileName: payload.fileName
+      });
+
       Swal.fire({ title: isEdit ? 'Mengubah data & lampiran...' : 'Menyimpan Arsip & Upload Lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-      postToGAS(payload)
-        .then(result => {
-          const coverFinal = (result && result.coverUrl) ? result.coverUrl : (payload.cover && payload.cover.indexOf('http') === 0 ? payload.cover : (existingItem ? existingItem.cover : ''));
+      try {
+        const result = await postToGAS(payload);
+        console.log('simpanArsip result:', result);
 
-          const localObj = {
-            id: id,
-            noBox: payload.noBox,
-            rak: payload.rak,
-            asal: payload.asalArsip,
-            uraian: payload.uraianArsip,
-            tahun: payload.tahun,
-            media: payload.media,
-            kondisi: payload.kondisi,
-            jumlah: payload.jumlah,
-            jenisArsip: payload.jenisArsip,
-            aktif: payload.aktif,
-            inaktif: payload.inaktif,
-            status: payload.status,
-            cover: coverFinal || '',
-            userInput: payload.userInput,
-            tglInput: payload.tglInput,
-            rowIndex: existingItem ? existingItem.rowIndex : undefined
-          };
+        const coverFinal = (result && result.coverUrl) ? result.coverUrl
+          : (payload.cover && payload.cover.indexOf('http') === 0 ? payload.cover
+          : (existingItem ? existingItem.cover : ''));
 
-          if (isEdit) {
-            arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
-          } else {
-            arsipData.unshift(localObj);
-          }
-          filteredArsip = [...arsipData];
-          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-          renderTableArsip();
-          bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
+        const serverRowIndex = (result && result.rowIndex) ? result.rowIndex
+          : (existingItem ? existingItem.rowIndex : undefined);
 
-          // Reset file input state
-          base64File = ''; fileNameStr = ''; fileMimeStr = '';
+        const localObj = {
+          id: id,
+          noBox: payload.noBox,
+          rak: payload.rak,
+          asal: payload.asalArsip,
+          uraian: payload.uraianArsip,
+          tahun: payload.tahun,
+          media: payload.media,
+          kondisi: payload.kondisi,
+          jumlah: payload.jumlah,
+          jenisArsip: payload.jenisArsip,
+          aktif: payload.aktif,
+          inaktif: payload.inaktif,
+          status: payload.status,
+          cover: coverFinal || '',
+          userInput: payload.userInput,
+          tglInput: payload.tglInput,
+          rowIndex: serverRowIndex
+        };
 
-          if (result && result.status === 'success') {
-            const msg = isEdit ? 'Data arsip berhasil diubah.' : 'Data arsip berhasil disimpan.';
-            const extra = coverFinal && coverFinal.indexOf('drive.google.com') >= 0 ? '<br><small>Lampiran tersimpan di Google Drive.</small>' : '';
-            Swal.fire('Berhasil!', msg + extra, 'success');
-          } else {
-            Swal.fire('Info', 'Data tersimpan. Respons: ' + (result?.message || JSON.stringify(result)), 'info');
-          }
+        if (isEdit) {
+          arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
+        } else {
+          arsipData.unshift(localObj);
+        }
+        filteredArsip = [...arsipData];
+        localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+        renderTableArsip();
+        bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
 
-          // Setelah simpan, sync ulang agar rowIndex akurat
-          setTimeout(() => loadDataFromCloud(false), 800);
-        })
-        .catch(err => {
-          console.error(err);
-          Swal.fire('Gagal', 'Tidak bisa menyimpan ke server: ' + err.message, 'error');
-        });
+        base64File = ''; fileNameStr = ''; fileMimeStr = '';
+        if (fileInput) fileInput.value = '';
+
+        if (result && result.status === 'success') {
+          const msg = isEdit ? 'Data arsip berhasil diubah.' : 'Data arsip berhasil disimpan.';
+          const extra = coverFinal && coverFinal.indexOf('drive.google.com') >= 0
+            ? '<br><small>Lampiran tersimpan di Google Drive.</small>'
+            : (payload.cover && payload.cover.indexOf('data:') === 0 && !coverFinal
+              ? '<br><small class="text-warning">Lampiran gagal di-upload (cek log Apps Script).</small>'
+              : '');
+          Swal.fire('Berhasil!', msg + extra, 'success');
+        } else {
+          Swal.fire('Info', 'Data tersimpan. Respons: ' + (result?.message || JSON.stringify(result)), 'info');
+        }
+
+        // Sync ulang agar data & rowIndex akurat dari sheet
+        setTimeout(() => loadDataFromCloud(false), 1000);
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Gagal', 'Tidak bisa menyimpan ke server: ' + err.message, 'error');
+      }
     }
 
     function hapusArsip(id) {
@@ -630,14 +682,43 @@
     }
 
     function previewFileCover(input) {
-      if (input.files && input.files[0]) {
-        const file = input.files[0];
-        fileNameStr = file.name;
-        fileMimeStr = file.type;
-        const reader = new FileReader();
-        reader.onload = e => base64File = e.target.result;
-        reader.readAsDataURL(file);
+      base64File = ""; fileNameStr = ""; fileMimeStr = "";
+      const statusEl = document.getElementById("cover-status");
+      if (!input || !input.files || !input.files[0]) {
+        if (statusEl) statusEl.innerHTML = '<span class="text-muted">Tidak ada file dipilih</span>';
+        return Promise.resolve("");
       }
+      const file = input.files[0];
+      // Batasi ukuran 5MB agar POST tidak gagal
+      if (file.size > 5 * 1024 * 1024) {
+        if (statusEl) statusEl.innerHTML = '<span class="text-danger">File terlalu besar (maks 5MB)</span>';
+        input.value = "";
+        Swal.fire("Error", "Ukuran file maksimal 5MB", "error");
+        return Promise.resolve("");
+      }
+      fileNameStr = file.name;
+      fileMimeStr = file.type || "";
+      if (statusEl) statusEl.innerHTML = '<span class="text-warning"><i class="fas fa-spinner fa-spin"></i> Membaca file...</span>';
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          base64File = e.target.result || "";
+          console.log("File dibaca OK:", fileNameStr, "base64 length:", base64File.length);
+          if (statusEl) {
+            statusEl.innerHTML = base64File
+              ? '<span class="text-success"><i class="fas fa-check"></i> ' + fileNameStr + ' siap diupload (' + Math.round(base64File.length/1024) + ' KB)</span>'
+              : '<span class="text-danger">Gagal membaca file</span>';
+          }
+          resolve(base64File);
+        };
+        reader.onerror = err => {
+          console.error("FileReader error", err);
+          if (statusEl) statusEl.innerHTML = '<span class="text-danger">Gagal membaca file</span>';
+          reject(err);
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     function applyFilterArsip() {
