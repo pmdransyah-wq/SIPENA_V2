@@ -10,10 +10,7 @@
   <style>
     :root { --primary-color: #2b3674; --secondary-color: #4318ff; --bg-light: #f4f7fe; }
     body { background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    
-    /* Layout full-width memenuhi lebar layar */
     .main-container { width: 100%; padding: 20px 30px; }
-    
     .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background-color: #ffffff; }
     .table-container { background: #ffffff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .table th { background-color: #f7f9fc; color: #1b2559; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; white-space: nowrap; }
@@ -29,7 +26,6 @@
 </head>
 <body>
 
-  <!-- MAIN CONTENT -->
   <div class="main-container">
     <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
       <div>
@@ -41,7 +37,6 @@
       </button>
     </div>
 
-    <!-- Tombol Aksi (Hanya muncul untuk role Admin/Superadmin) -->
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <div class="d-flex gap-2 flex-wrap super-admin-only">
         <button class="btn btn-primary fw-semibold" onclick="openModalTambahArsip()">
@@ -60,7 +55,6 @@
       <div class="badge bg-secondary p-2 fs-6">Total Arsip: <span id="total-arsip-count">0</span></div>
     </div>
 
-    <!-- Filter Section -->
     <div class="card card-custom mb-3 bg-light border-0">
       <div class="card-body p-3">
         <h6 class="card-title fw-bold text-secondary mb-2"><i class="fas fa-filter me-1"></i> Filter Pencarian Data</h6>
@@ -84,7 +78,6 @@
       </div>
     </div>
 
-    <!-- Table Arsip -->
     <div class="table-container mb-3">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -99,7 +92,6 @@
       </div>
     </div>
     
-    <!-- Paginasi -->
     <div class="d-flex justify-content-between align-items-center">
       <small class="text-muted" id="arsip-pagination-info">Menampilkan 0 data</small>
       <nav><ul class="pagination pagination-sm mb-0" id="arsip-pagination"></ul></nav>
@@ -139,8 +131,9 @@
               <div class="col-md-6"><label class="form-label fw-semibold">File Cover</label><input type="file" id="fotoCover" class="form-control" accept=".jpg,.jpeg,.png,.pdf" onchange="previewFileCover(this)"></div>
               <div class="col-md-12 position-relative">
                 <label class="form-label fw-semibold">Jenis Arsip (Referensi Master JRA) <span class="text-danger">*</span></label>
-                <input type="text" id="jenisArsip" class="form-control" placeholder="Ketik kata kunci..." autocomplete="off" required>
+                <input type="text" id="jenisArsip" class="form-control" placeholder="Ketik kata kunci jenis arsip..." autocomplete="off" required>
                 <div id="autocomplete-list" class="autocomplete-items d-none"></div>
+                <small class="text-muted" id="jra-hint">Memuat daftar Master JRA...</small>
               </div>
               <div class="col-md-4"><label class="form-label fw-semibold text-muted">Jangka Aktif</label><input type="text" id="jangkaAktif" class="form-control bg-light" readonly></div>
               <div class="col-md-4"><label class="form-label fw-semibold text-muted">Jangka Inaktif</label><input type="text" id="jangkaInaktif" class="form-control bg-light" readonly></div>
@@ -153,7 +146,6 @@
     </div>
   </div>
 
-  <!-- MODAL DETAIL ARSIP -->
   <div class="modal fade" id="modalDetailArsip" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-secondary text-white"><h5 class="modal-title">Detail Arsip</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" id="detail-arsip-body"></div></div></div>
   </div>
@@ -161,68 +153,160 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbybEL3DnNo2HVhMF85mMuQhvj6VddAqwq04KOC8KAOLVEvN3ovhemknBfzwx_ldOkMcCg/exec";
+    // ========== SAMAKAN URL DENGAN master-jra.html (deployment terbaru) ==========
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwSufaTvdgQJ_3m-bEFvIXVai3a12mLv6DA0YD9eU7zaXKp7eRPon8oTqriD26Nkn8wHQ/exec";
     
-    // Ambil data sesi login dari localStorage
     const currentRole = localStorage.getItem('arsip_role') || 'umum';
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
     const currentUserName = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
 
-    let masterJraData = [], arsipData = [], filteredArsip = [];
+    let masterJraData = [];
+    let arsipData = [];
+    let filteredArsip = [];
     let currentPage = 1, rowsPerPage = 10;
     let base64File = "", fileNameStr = "", fileMimeStr = "";
 
+    function postToGAS(payload) {
+      return fetch(GAS_BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      }).then(async (res) => {
+        const text = await res.text();
+        try { return JSON.parse(text); }
+        catch (e) {
+          if (res.ok) return { status: 'success', raw: text };
+          throw new Error('Response bukan JSON: ' + text.substring(0, 150));
+        }
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-      // Periksa keamanan sesi
       if (localStorage.getItem('arsip_logged_in') !== 'true') {
         window.location.href = 'login.html';
         return;
       }
 
-      // Tampilkan informasi instansi & pengguna di header
       document.getElementById('header-instansi-label').innerText = currentInstansi;
       document.getElementById('header-user-label').innerText = currentUserName + ` (${currentRole.toUpperCase()})`;
 
-      // Atur visibilitas tombol manajemen berdasarkan role
       if (currentRole.toLowerCase() !== 'umum') {
         document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('d-none'));
       } else {
         document.querySelectorAll('.super-admin-only').forEach(el => el.classList.add('d-none'));
       }
 
-      const cachedJra = localStorage.getItem('cachedMasterJra');
-      const cachedArsip = localStorage.getItem('cachedArsip');
-      if (cachedJra && cachedArsip) {
-        masterJraData = JSON.parse(cachedJra);
-        arsipData = JSON.parse(cachedArsip);
-        filteredArsip = [...arsipData];
-        setupAutocomplete();
-        renderTableArsip();
-      } else {
-        loadDataFromCloud(false);
-      }
+      // Ambil cache lokal dulu biar cepat tampil
+      try {
+        const cachedJra = localStorage.getItem('cachedMasterJra');
+        if (cachedJra) {
+          masterJraData = JSON.parse(cachedJra) || [];
+          updateJraHint();
+        }
+        const cachedArsip = localStorage.getItem('cachedArsip');
+        if (cachedArsip) {
+          arsipData = JSON.parse(cachedArsip) || [];
+          filteredArsip = [...arsipData];
+          renderTableArsip();
+        }
+      } catch (e) {}
+
+      setupAutocomplete();
+
+      // SELALU sync dari server (supaya Master JRA terbaru ikut masuk)
+      loadDataFromCloud(false);
     });
 
+    function updateJraHint() {
+      const hint = document.getElementById('jra-hint');
+      if (!hint) return;
+      if (masterJraData.length === 0) {
+        hint.innerHTML = '<span class="text-danger">Belum ada data Master JRA. Isi dulu di menu Master JRA, lalu klik Sinkronisasi Cloud.</span>';
+      } else {
+        hint.innerHTML = `<span class="text-success">${masterJraData.length} jenis arsip tersedia. Ketik untuk mencari.</span>`;
+      }
+    }
+
     function loadDataFromCloud(isManualSync) {
-      if (isManualSync) Swal.fire({ title: 'Sinkronisasi...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_BACKEND_URL).then(res => res.json()).then(data => {
-        if (isManualSync) Swal.close();
-        if (data.MasterJRA) {
-          masterJraData = data.MasterJRA.slice(1).map(r => ({ id: r[0], jenisArsip: r[1], aktif: r[2], inaktif: r[3], status: r[4] }));
-          localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
-        }
-        if (data.RecordCenter) {
-          arsipData = data.RecordCenter.slice(1).map(r => ({
-            id: r[0], noBox: r[1], rak: r[2], asal: r[3], uraian: r[4], tahun: parseInt(r[5])||2024, media: r[6], kondisi: r[7], jumlah: parseInt(r[8])||1, jenisArsip: r[9], aktif: r[10], inaktif: r[11], status: r[12], cover: r[13], userInput: r[14], tglInput: r[15]
-          })).reverse();
-          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-        }
-        filteredArsip = [...arsipData];
-        renderTableArsip(); setupAutocomplete();
-        if (isManualSync) Swal.fire('Berhasil', 'Sinkronisasi sukses.', 'success');
-      }).catch(() => {
-        if (isManualSync) Swal.fire('Gagal', 'Tidak dapat terhubung ke cloud.', 'error');
-      });
+      if (isManualSync) {
+        Swal.fire({ title: 'Sinkronisasi...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      }
+
+      fetch(GAS_BACKEND_URL)
+        .then(res => res.json())
+        .then(data => {
+          if (isManualSync) Swal.close();
+
+          // ===== MASTER JRA =====
+          if (data && data.MasterJRA && Array.isArray(data.MasterJRA)) {
+            const rows = data.MasterJRA;
+            const parsed = [];
+            for (let i = 1; i < rows.length; i++) {
+              const r = rows[i];
+              if (!r || r[0] === '' || r[0] == null) continue;
+              // Support 2 format: object-like or pure array
+              parsed.push({
+                id: String(r[0] || ''),
+                jenisArsip: String(r[1] || ''),
+                aktif: String(r[2] || ''),
+                inaktif: String(r[3] || ''),
+                status: String(r[4] || '')
+              });
+            }
+            masterJraData = parsed;
+            localStorage.setItem('cachedMasterJra', JSON.stringify(masterJraData));
+            updateJraHint();
+            setupAutocomplete();
+          } else {
+            // Fallback: coba dari localStorage lagi
+            try {
+              const cached = localStorage.getItem('cachedMasterJra');
+              if (cached) masterJraData = JSON.parse(cached) || [];
+            } catch (e) {}
+            updateJraHint();
+          }
+
+          // ===== RECORD CENTER =====
+          // Header sheet: No Box, Rak, Asal Arsip, Uraian Arsip, Tahun, Media, Kondisi, Jumlah, Jenis Arsip, Aktif, Inaktif, Status, Cover, UserInput, TglInput
+          if (data && data.RecordCenter && Array.isArray(data.RecordCenter)) {
+            arsipData = data.RecordCenter.slice(1)
+              .filter(r => r && (r[0] !== '' && r[0] != null))
+              .map((r, idx) => ({
+                id: 'ARC-' + (idx + 1) + '-' + String(r[0]), // generate id karena sheet tidak punya kolom ID
+                noBox: r[0],
+                rak: r[1],
+                asal: r[2],
+                uraian: r[3],
+                tahun: parseInt(r[4]) || 2024,
+                media: r[5],
+                kondisi: r[6],
+                jumlah: parseInt(r[7]) || 1,
+                jenisArsip: r[8],
+                aktif: r[9],
+                inaktif: r[10],
+                status: r[11],
+                cover: r[12],
+                userInput: r[13],
+                tglInput: r[14],
+                rowIndex: idx + 2 // baris di sheet (1-based + header)
+              }))
+              .reverse();
+            localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+          }
+
+          filteredArsip = [...arsipData];
+          renderTableArsip();
+
+          if (isManualSync) {
+            Swal.fire('Berhasil', `Sinkronisasi sukses.<br>Master JRA: ${masterJraData.length} data<br>Arsip: ${arsipData.length} data`, 'success');
+          }
+        })
+        .catch(err => {
+          console.warn('Gagal sync cloud:', err);
+          if (isManualSync) Swal.fire('Gagal', 'Tidak dapat terhubung ke cloud. Pastikan URL Web App benar & sudah Deploy New version.', 'error');
+          updateJraHint();
+        });
     }
 
     function renderTableArsip() {
@@ -251,11 +335,11 @@
               ${checkboxCol}
               <td>${startIndex + index + 1}</td>
               <td class="fw-bold">${item.noBox}</td><td>${item.rak}</td><td>${item.asal}</td>
-              <td><div class="uraian-column">${item.uraian}</div></td>
+              <td><div class="uraian-column">${item.uraian || ''}</div></td>
               <td>${item.tahun}</td><td>${item.media}</td><td>${item.kondisi}</td><td>${item.jumlah}</td>
-              <td class="fw-semibold text-primary">${item.jenisArsip}</td><td>${item.aktif}</td><td>${item.inaktif}</td>
-              <td><span class="badge ${badgeClass}">${item.status}</span></td><td>${coverLink}</td>
-              <td><small>${item.userInput}</small></td><td><small>${item.tglInput}</small></td>
+              <td class="fw-semibold text-primary">${item.jenisArsip || ''}</td><td>${item.aktif || ''}</td><td>${item.inaktif || ''}</td>
+              <td><span class="badge ${badgeClass}">${item.status || ''}</span></td><td>${coverLink}</td>
+              <td><small>${item.userInput || ''}</small></td><td><small>${item.tglInput || ''}</small></td>
               <td class="text-center text-nowrap">${actionButtons}</td>
             </tr>`;
         });
@@ -268,21 +352,25 @@
     function renderArsipPagination() {
       const totalPages = Math.ceil(filteredArsip.length / rowsPerPage) || 1;
       const paginationContainer = document.getElementById('arsip-pagination');
-      paginationContainer.innerHTML = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${currentPage - 1})">Prev</a></li>`;
+      paginationContainer.innerHTML = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${currentPage - 1}); return false;">Prev</a></li>`;
       for (let i = 1; i <= Math.min(totalPages, 5); i++) {
-        paginationContainer.innerHTML += `<li class="page-item ${currentPage === i ? 'active' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${i})">${i}</a></li>`;
+        paginationContainer.innerHTML += `<li class="page-item ${currentPage === i ? 'active' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${i}); return false;">${i}</a></li>`;
       }
-      paginationContainer.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${currentPage + 1})">Next</a></li>`;
+      paginationContainer.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="changeArsipPage(${currentPage + 1}); return false;">Next</a></li>`;
     }
 
-    function changeArsipPage(page) { if(page >= 1) { currentPage = page; renderTableArsip(); } }
+    function changeArsipPage(page) { if (page >= 1) { currentPage = page; renderTableArsip(); } }
     function toggleSelectAllArsip(source) { document.querySelectorAll('.arsip-checkbox').forEach(cb => cb.checked = source.checked); }
 
     function openModalTambahArsip() {
       document.getElementById('formArsip').reset();
       document.getElementById('arsipId').value = '';
       document.getElementById('modalArsipTitle').innerHTML = `<i class="fas fa-plus-circle me-2"></i>Tambah Data Arsip`;
+      document.getElementById('jangkaAktif').value = '';
+      document.getElementById('jangkaInaktif').value = '';
+      document.getElementById('statusArsip').value = '';
       base64File = ""; fileNameStr = ""; fileMimeStr = "";
+      updateJraHint();
       new bootstrap.Modal(document.getElementById('modalArsip')).show();
     }
 
@@ -309,67 +397,107 @@
     function simpanArsip() {
       const form = document.getElementById('formArsip');
       if (!form.checkValidity()) { form.reportValidity(); return; }
+
       const jenisInput = document.getElementById('jenisArsip').value.trim();
-      const validJra = masterJraData.find(j => j.jenisArsip.toLowerCase() === jenisInput.toLowerCase());
-      if (!validJra) { Swal.fire('Error', 'Jenis Arsip wajib dipilih dari rekomendasi Master JRA!', 'error'); return; }
+      const validJra = masterJraData.find(j => j.jenisArsip && j.jenisArsip.toLowerCase() === jenisInput.toLowerCase());
+      if (!validJra) {
+        Swal.fire('Error', 'Jenis Arsip wajib dipilih dari rekomendasi Master JRA!<br><small>Ketik di kolom Jenis Arsip lalu pilih dari daftar.</small>', 'error');
+        return;
+      }
 
       const existingId = document.getElementById('arsipId').value;
       const id = existingId || ("ARC-" + (Math.floor(Math.random() * 9000) + 1000));
       const now = new Date();
       const tglStr = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
 
+      // Field name HARUS sesuai code.gs (type: record_center)
       const payload = {
-        action: existingId ? 'update' : 'add', type: 'arsip', id: id,
-        noBox: document.getElementById('noBox').value, rak: document.getElementById('rakArsip').value,
-        asal: document.getElementById('asalArsip').value, uraian: document.getElementById('uraianArsip').value,
-        tahun: parseInt(document.getElementById('tahunArsip').value), media: document.getElementById('mediaArsip').value,
-        kondisi: document.getElementById('kondisiArsip').value, jumlah: parseInt(document.getElementById('jumlahBerkas').value),
-        jenisArsip: validJra.jenisArsip, aktif: validJra.aktif, inaktif: validJra.inaktif, status: validJra.status,
-        fileBase64: base64File, fileName: fileNameStr, fileMime: fileMimeStr, userInput: currentUserName, tglInput: tglStr
+        action: 'add',
+        type: 'record_center',
+        id: id,
+        noBox: document.getElementById('noBox').value,
+        rak: document.getElementById('rakArsip').value,
+        asalArsip: document.getElementById('asalArsip').value,
+        uraianArsip: document.getElementById('uraianArsip').value,
+        tahun: parseInt(document.getElementById('tahunArsip').value),
+        media: document.getElementById('mediaArsip').value,
+        kondisi: document.getElementById('kondisiArsip').value,
+        jumlah: parseInt(document.getElementById('jumlahBerkas').value),
+        jenisArsip: validJra.jenisArsip,
+        aktif: validJra.aktif,
+        inaktif: validJra.inaktif,
+        status: validJra.status,
+        cover: base64File || '',
+        userInput: currentUserName,
+        tglInput: tglStr
+      };
+
+      // Object lokal untuk tampilan
+      const localObj = {
+        id: id,
+        noBox: payload.noBox,
+        rak: payload.rak,
+        asal: payload.asalArsip,
+        uraian: payload.uraianArsip,
+        tahun: payload.tahun,
+        media: payload.media,
+        kondisi: payload.kondisi,
+        jumlah: payload.jumlah,
+        jenisArsip: payload.jenisArsip,
+        aktif: payload.aktif,
+        inaktif: payload.inaktif,
+        status: payload.status,
+        cover: payload.cover,
+        userInput: payload.userInput,
+        tglInput: payload.tglInput
       };
 
       Swal.fire({ title: 'Menyimpan Arsip...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) }).then(() => {
-        if (existingId) {
-          arsipData = arsipData.map(a => a.id === id ? { ...a, ...payload } : a);
-        } else {
-          arsipData.unshift(payload);
-        }
-        filteredArsip = [...arsipData];
-        localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-        renderTableArsip();
-        bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
-        Swal.fire('Berhasil!', 'Data arsip berhasil disimpan.', 'success');
-      }).catch(() => {
-        if (existingId) {
-          arsipData = arsipData.map(a => a.id === id ? { ...a, ...payload } : a);
-        } else {
-          arsipData.unshift(payload);
-        }
-        filteredArsip = [...arsipData];
-        localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-        renderTableArsip();
-        bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
-        Swal.fire('Berhasil!', 'Data arsip tersimpan secara lokal.', 'success');
-      });
+
+      postToGAS(payload)
+        .then(result => {
+          if (existingId) {
+            arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
+          } else {
+            arsipData.unshift(localObj);
+          }
+          filteredArsip = [...arsipData];
+          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+          renderTableArsip();
+          bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
+          Swal.fire('Berhasil!', result?.status === 'success' ? 'Data arsip berhasil disimpan ke server.' : 'Data tersimpan (lokal + mencoba server).', 'success');
+        })
+        .catch(err => {
+          console.error(err);
+          if (existingId) {
+            arsipData = arsipData.map(a => a.id === id ? { ...a, ...localObj } : a);
+          } else {
+            arsipData.unshift(localObj);
+          }
+          filteredArsip = [...arsipData];
+          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+          renderTableArsip();
+          bootstrap.Modal.getInstance(document.getElementById('modalArsip')).hide();
+          Swal.fire('Berhasil (lokal)', 'Data arsip tersimpan secara lokal. Server gagal: ' + err.message, 'warning');
+        });
     }
 
     function hapusArsip(id) {
       Swal.fire({ title: 'Pindahkan ke Sampah?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!' }).then(result => {
-        if (result.isConfirmed) {
-          const itemToDelete = arsipData.find(a => a.id === id);
-          if (itemToDelete) {
-            let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
-            sampah.push(itemToDelete);
-            localStorage.setItem('sampahArsip', JSON.stringify(sampah));
-          }
-          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'arsip', id: id }) }).catch(()=>{});
-          arsipData = arsipData.filter(a => a.id !== id);
-          filteredArsip = [...arsipData];
-          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-          renderTableArsip();
-          Swal.fire('Dipindahkan!', 'Data dipindahkan ke menu sampah.', 'success');
+        if (!result.isConfirmed) return;
+        const itemToDelete = arsipData.find(a => a.id === id);
+        if (itemToDelete) {
+          let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
+          sampah.push(itemToDelete);
+          localStorage.setItem('sampahArsip', JSON.stringify(sampah));
         }
+        // Backend record_center delete butuh rowIndex; kirim juga id
+        postToGAS({ action: 'delete', type: 'record_center', id: itemToDelete?.rowIndex || id }).catch(()=>{});
+        arsipData = arsipData.filter(a => a.id !== id);
+        filteredArsip = [...arsipData];
+        localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+        renderTableArsip();
+        Swal.fire('Dipindahkan!', 'Data dipindahkan ke menu sampah.', 'success');
       });
     }
 
@@ -377,37 +505,34 @@
       const selectedIds = Array.from(document.querySelectorAll('.arsip-checkbox:checked')).map(cb => cb.value);
       if (selectedIds.length === 0) { Swal.fire('Perhatian', 'Pilih minimal satu data!', 'warning'); return; }
       Swal.fire({ title: 'Pindahkan Terpilih ke Sampah?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!' }).then(result => {
-        if (result.isConfirmed) {
-          let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
-          selectedIds.forEach(id => {
-            const item = arsipData.find(a => a.id === id);
-            if(item) sampah.push(item);
-          });
-          localStorage.setItem('sampahArsip', JSON.stringify(sampah));
-          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'arsip', ids: selectedIds }) }).catch(()=>{});
-          arsipData = arsipData.filter(a => !selectedIds.includes(a.id));
-          filteredArsip = [...arsipData];
-          localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
-          renderTableArsip();
-          Swal.fire('Dipindahkan!', 'Data terpilih masuk ke menu sampah.', 'success');
-        }
+        if (!result.isConfirmed) return;
+        let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
+        selectedIds.forEach(id => {
+          const item = arsipData.find(a => a.id === id);
+          if (item) sampah.push(item);
+        });
+        localStorage.setItem('sampahArsip', JSON.stringify(sampah));
+        postToGAS({ action: 'delete_all', type: 'record_center' }).catch(()=>{}); // simplified
+        arsipData = arsipData.filter(a => !selectedIds.includes(a.id));
+        filteredArsip = [...arsipData];
+        localStorage.setItem('cachedArsip', JSON.stringify(arsipData));
+        renderTableArsip();
+        Swal.fire('Dipindahkan!', 'Data terpilih masuk ke menu sampah.', 'success');
       });
     }
 
     function hapusSemuaArsip() {
       if (arsipData.length === 0) return;
       Swal.fire({ title: 'PINDAHKAN SEMUA KE SAMPAH?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Pindahkan Semua!' }).then(result => {
-        if (result.isConfirmed) {
-          let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
-          sampah = sampah.concat(arsipData);
-          localStorage.setItem('sampahArsip', JSON.stringify(sampah));
-          const allIds = arsipData.map(a => a.id);
-          fetch(GAS_BACKEND_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', type: 'arsip', ids: allIds }) }).catch(()=>{});
-          arsipData = []; filteredArsip = [];
-          localStorage.removeItem('cachedArsip');
-          renderTableArsip();
-          Swal.fire('Dipindahkan!', 'Semua data arsip masuk ke menu sampah.', 'success');
-        }
+        if (!result.isConfirmed) return;
+        let sampah = JSON.parse(localStorage.getItem('sampahArsip') || '[]');
+        sampah = sampah.concat(arsipData);
+        localStorage.setItem('sampahArsip', JSON.stringify(sampah));
+        postToGAS({ action: 'delete_all', type: 'record_center' }).catch(()=>{});
+        arsipData = []; filteredArsip = [];
+        localStorage.removeItem('cachedArsip');
+        renderTableArsip();
+        Swal.fire('Dipindahkan!', 'Semua data arsip masuk ke menu sampah.', 'success');
       });
     }
 
@@ -430,18 +555,40 @@
     function setupAutocomplete() {
       const input = document.getElementById('jenisArsip');
       const listContainer = document.getElementById('autocomplete-list');
-      input.addEventListener('input', function() {
+      if (!input || !listContainer) return;
+
+      // Hapus listener lama dengan clone node
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+
+      newInput.addEventListener('input', function() {
         const val = this.value.trim().toLowerCase();
         listContainer.innerHTML = '';
-        if (!val) { listContainer.classList.add('d-none'); return; }
-        const matches = masterJraData.filter(item => item.jenisArsip && item.jenisArsip.toLowerCase().includes(val)).slice(0, 10);
-        if (matches.length === 0) { listContainer.classList.add('d-none'); return; }
+        if (!val) {
+          listContainer.classList.add('d-none');
+          return;
+        }
+        if (!masterJraData || masterJraData.length === 0) {
+          listContainer.innerHTML = '<div class="text-danger p-2">Data Master JRA kosong. Sinkronisasi dulu.</div>';
+          listContainer.classList.remove('d-none');
+          return;
+        }
+        const matches = masterJraData.filter(item =>
+          item.jenisArsip && item.jenisArsip.toLowerCase().includes(val)
+        ).slice(0, 15);
+
+        if (matches.length === 0) {
+          listContainer.innerHTML = '<div class="text-muted p-2">Tidak ditemukan. Coba kata kunci lain.</div>';
+          listContainer.classList.remove('d-none');
+          return;
+        }
         listContainer.classList.remove('d-none');
         matches.forEach(item => {
           const div = document.createElement('div');
-          div.innerHTML = `<strong>${item.jenisArsip}</strong><small class="d-block text-muted">Aktif: ${item.aktif} | Inaktif: ${item.inaktif} | Status: ${item.status}</small>`;
+          div.innerHTML = `<strong>${item.jenisArsip}</strong>
+            <small class="d-block text-muted">Aktif: ${item.aktif} | Inaktif: ${item.inaktif} | Status: ${item.status}</small>`;
           div.addEventListener('click', function() {
-            input.value = item.jenisArsip;
+            newInput.value = item.jenisArsip;
             document.getElementById('jangkaAktif').value = item.aktif;
             document.getElementById('jangkaInaktif').value = item.inaktif;
             document.getElementById('statusArsip').value = item.status;
@@ -450,12 +597,20 @@
           listContainer.appendChild(div);
         });
       });
+
+      // Tutup dropdown saat klik di luar
+      document.addEventListener('click', function(e) {
+        if (e.target !== newInput && !listContainer.contains(e.target)) {
+          listContainer.classList.add('d-none');
+        }
+      });
     }
 
     function previewFileCover(input) {
       if (input.files && input.files[0]) {
         const file = input.files[0];
-        fileNameStr = file.name; fileMimeStr = file.type;
+        fileNameStr = file.name;
+        fileMimeStr = file.type;
         const reader = new FileReader();
         reader.onload = e => base64File = e.target.result;
         reader.readAsDataURL(file);
@@ -468,12 +623,13 @@
       const tahun = document.getElementById('filter-tahun').value;
       const status = document.getElementById('filter-status').value;
       filteredArsip = arsipData.filter(item => {
-        return item.uraian.toLowerCase().includes(uraian) &&
-               item.asal.toLowerCase().includes(asal) &&
+        return (item.uraian || '').toLowerCase().includes(uraian) &&
+               (item.asal || '').toLowerCase().includes(asal) &&
                (tahun ? item.tahun.toString() === tahun : true) &&
                (status ? item.status === status : true);
       });
-      currentPage = 1; renderTableArsip();
+      currentPage = 1;
+      renderTableArsip();
     }
 
     function resetFilterArsip() {
@@ -482,13 +638,14 @@
       document.getElementById('filter-tahun').value = '';
       document.getElementById('filter-status').value = '';
       filteredArsip = [...arsipData];
-      currentPage = 1; renderTableArsip();
+      currentPage = 1;
+      renderTableArsip();
     }
 
     function exportDataArsipExcel() {
       let csvContent = "data:text/csv;charset=utf-8,ID,No Box,Rak,Asal Arsip,Uraian Arsip,Tahun,Media,Kondisi,Jumlah,Jenis Arsip,Aktif,Inaktif,Status,User Input,Tgl Input\n";
       arsipData.forEach(row => {
-        csvContent += `"${row.id}","${row.noBox}","${row.rak}","${row.asal}","${row.uraian.replace(/\n/g, ' ')}","${row.tahun}","${row.media}","${row.kondisi}","${row.jumlah}","${row.jenisArsip}","${row.aktif}","${row.inaktif}","${row.status}","${row.userInput}","${row.tglInput}"\n`;
+        csvContent += `"${row.id}","${row.noBox}","${row.rak}","${row.asal}","${(row.uraian || '').replace(/\n/g, ' ')}","${row.tahun}","${row.media}","${row.kondisi}","${row.jumlah}","${row.jenisArsip}","${row.aktif}","${row.inaktif}","${row.status}","${row.userInput}","${row.tglInput}"\n`;
       });
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
