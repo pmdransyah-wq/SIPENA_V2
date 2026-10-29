@@ -428,8 +428,8 @@
             let listKepada = rawKepada
                 ? rawKepada.split(/[;|\n]/).map(s => s.trim()).filter(Boolean)
                 : [];
-            if (!listKepada.length && Ppd && - !== '-') {
-                listKepada = [-];
+            if (!listKepada.length && Ppd && bidangPpd !== '-') {
+                listKepada = [bidangPpd];
             }
             const listEl = document.getElementById('val_disposisi_kepada_list');
             if (listEl) {
