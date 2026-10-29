@@ -158,7 +158,13 @@
     
     const currentRole = localStorage.getItem('arsip_role') || 'umum';
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
-    const currentUserName = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
+    // Hindari nilai literal "undefined" / "null" dari localStorage
+    function safeLocal(key, fallback) {
+      const v = localStorage.getItem(key);
+      if (!v || v === 'undefined' || v === 'null') return fallback;
+      return v;
+    }
+    const currentUserName = safeLocal('arsip_nama', safeLocal('arsip_username', 'Pengguna'));
 
     let masterJraData = [];
     let arsipData = [];
