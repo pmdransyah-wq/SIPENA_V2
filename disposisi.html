@@ -413,7 +413,7 @@
             
             // Pengambilan langsung secara spesifik dari properti data
             const indeks = data.indeks || '-';
-            const bidangPpd = data.berkas || '-';
+            const bidangPpd = data.berkas || 'BIDANG PPD';
             const kodeKlasifikasi = safeCode(data.kode_klasifikasi || data.kode);
             const uraianKlasifikasi = data.uraian_klasifikasi || data.klasifikasi_arsip || '-';
 
@@ -423,12 +423,12 @@
             document.getElementById('val_nomor_surat').textContent = noSurat;
             document.getElementById('val_tanggal_surat').textContent = tglSurat;
             document.getElementById('val_perihal').textContent = perihal;
-            // Penerima disposisi: prioritaskan nama (bisa multi), fallback ke berkas/
+            // Penerima disposisi: prioritaskan nama (bisa multi), fallback ke berkas/bidang
             const rawKepada = (data.disposisi_kepada || data.nama_disposisi || '').trim();
             let listKepada = rawKepada
                 ? rawKepada.split(/[;|\n]/).map(s => s.trim()).filter(Boolean)
                 : [];
-            if (!listKepada.length && Ppd && bidangPpd !== '-') {
+            if (!listKepada.length && bidangPpd && bidangPpd !== '-') {
                 listKepada = [bidangPpd];
             }
             const listEl = document.getElementById('val_disposisi_kepada_list');
