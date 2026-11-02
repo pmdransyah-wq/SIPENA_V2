@@ -25,7 +25,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 md:p-6">
 
-  <!-- GANTI URL INI SETELAH DEPLOY -->
+  <!-- GANTI URL INI DENGAN URL DEPLOYMENT ANDA -->
   <script>
     const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbymEVIgJHdOR40889FNIMySQH0Onz_fY2qtRtJuGc4x_8mjRrqQLEu-nDvxgQgP5smg/exec";
     const KLASIFIKASI_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
@@ -195,10 +195,31 @@
   </div>
 
   <script>
+    // ========== GLOBAL ==========
     let currentData = [], filteredData = [], isTrashMode = false, currentPage = 1;
     const PER_PAGE = 15;
-    let userRole = 'user';
     let klasifikasiList = [];
+
+    // Ambil role dari localStorage (sama seperti dashboard)
+    let userRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
+    document.getElementById('userRole').textContent = userRole.toUpperCase();
+
+    // ========== ROLE UI ==========
+    function applyRoleUI() {
+      // Reset dulu semua tombol
+      document.querySelectorAll('#actionButtons button').forEach(btn => btn.style.display = '');
+
+      if (userRole === 'user' || userRole === 'umum') {
+        document.querySelectorAll('#actionButtons button').forEach(btn => {
+          if (!btn.innerText.includes('Sinkron')) btn.style.display = 'none';
+        });
+      } else if (userRole === 'admin') {
+        document.getElementById('btnImport').style.display = 'none';
+        document.getElementById('btnExport').style.display = 'none';
+        document.getElementById('btnTrash').style.display = 'none';
+      }
+      // superadmin → semua tombol tampil
+    }
 
     // ========== HELPER FETCH ==========
     async function apiGet(params = {}) {
@@ -225,8 +246,6 @@
         const res = await apiGet({ action: 'getdata', trash: isTrashMode });
         if (res.status !== 'success') throw new Error(res.message || 'Gagal memuat data');
 
-        userRole = res.role || 'user';
-        document.getElementById('userRole').textContent = userRole.toUpperCase();
         applyRoleUI();
 
         currentData = res.data || [];
@@ -235,18 +254,6 @@
         renderTable();
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-red-500">${err.message}</td></tr>`;
-      }
-    }
-
-    function applyRoleUI() {
-      if (userRole === 'user') {
-        document.querySelectorAll('#actionButtons button').forEach(btn => {
-          if (!btn.innerText.includes('Sinkron')) btn.style.display = 'none';
-        });
-      } else if (userRole === 'admin') {
-        document.getElementById('btnImport').style.display = 'none';
-        document.getElementById('btnExport').style.display = 'none';
-        document.getElementById('btnTrash').style.display = 'none';
       }
     }
 
@@ -338,7 +345,7 @@
 
         let aksi = `<button onclick="viewData(${row._row})" class="action-btn bg-sky-100 text-sky-700" title="View"><i class="fa-solid fa-eye"></i></button>`;
 
-        if (userRole !== 'user') {
+        if (userRole !== 'user' && userRole !== 'umum') {
           aksi += `
             <button onclick="editData(${row._row})" class="action-btn bg-amber-100 text-amber-700" title="Edit"><i class="fa-solid fa-pen"></i></button>
             <button onclick="uploadLampiranPrompt(${row._row})" class="action-btn bg-emerald-100 text-emerald-700" title="Upload"><i class="fa-solid fa-upload"></i></button>
@@ -593,6 +600,7 @@
     }
 
     // Init
+    applyRoleUI();
     loadKlasifikasi();
     loadData();
   </script>
