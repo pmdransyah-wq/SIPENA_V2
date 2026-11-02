@@ -73,7 +73,7 @@
         </div>
     </div>
 
-    <!-- Main Container (Diubah menjadi w-full agar penuh) -->
+    <!-- Main Container -->
     <main class="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex-1">
         <section class="space-y-4">
             
@@ -211,7 +211,6 @@
     <script>
         const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
 
-        // Proteksi: cegah kode klasifikasi yang sudah berubah jadi string tanggal
         function sanitizeKodeKlasifikasi(val) {
             if (val == null || val === '') return '';
             const s = String(val).trim();
@@ -221,7 +220,6 @@
             return s;
         }
 
-        // ID stabil: jangan pakai Math.random() (berubah tiap refresh)
         function makeStableId(item) {
             const raw = item && (item["ID"] || item.id);
             if (raw != null && String(raw).trim() !== '' && String(raw) !== 'undefined') {
@@ -232,7 +230,6 @@
             const peng = String((item && (item["Pengirim / Instansi"] || item.pengirim)) || '').trim();
             const key = (no + '|' + tgl + '|' + peng).toLowerCase().replace(/\s+/g, ' ');
             if (key.replace(/\|/g, '').trim()) {
-                // hash sederhana agar pendek & stabil
                 let h = 0;
                 for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i) | 0;
                 return 'surat-' + Math.abs(h);
@@ -241,18 +238,16 @@
         }
         
         const userRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
-        // Role dengan akses penuh (hapus, sampah, dll)
         const isFullAccess = ['superadmin', 'utama', 'owner', 'admin_utama'].includes(userRole);
         const canDelete = isFullAccess;
         const canEdit = isFullAccess || userRole === 'admin';
-        const canAdd = isFullAccess || userRole === 'admin' || userRole === 'user'; // sesuaikan jika perlu
+        const canAdd = isFullAccess || userRole === 'admin' || userRole === 'user';
 
         let dataSurat = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
         let viewingTrash = false;
         let currentPage = 1;
         const itemsPerPage = 15;
         let selectedRowIds = new Set();
-        let cloudSyncing = false;
 
         function applyRolePermissions() {
             const roleBadge = document.getElementById('userRoleBadge');
@@ -266,22 +261,24 @@
             const btnExportData = document.getElementById('btnExportData');
             const btnImportData = document.getElementById('btnImportData');
 
-            // Import & Export: superadmin + role akses penuh (utama, owner, dll)
-            const canImportExport = isFullAccess; // superadmin, utama, owner, admin_utama
+            // Import & Export: hanya role akses penuh
+            const canImportExport = isFullAccess;
             if (btnExportData) btnExportData.style.display = canImportExport ? 'inline-flex' : 'none';
             if (btnImportData) btnImportData.style.display = canImportExport ? 'inline-flex' : 'none';
 
-            if (!canEdit && !isFullAccess) {
-                // role user biasa
-                if (btnTambahData) btnTambahData.style.display = 'none';
-                if (btnToggleTrash) btnToggleTrash.style.display = 'none';
-                if (btnHapusTerpilih) btnHapusTerpilih.style.display = 'none';
-                if (btnHapusSemua) btnHapusSemua.style.display = 'none';
-                if (thCheckbox) thCheckbox.style.display = 'none';
-            } else if (userRole === 'admin' && !isFullAccess) {
-                if (btnToggleTrash) btnToggleTrash.style.display = 'none';
-                if (btnHapusTerpilih) btnHapusTerpilih.style.display = 'none';
-                if (btnHapusSemua) btnHapusSemua.style.display = 'none';
+            // Checkbox kolom: hanya tampil jika bisa hapus (supaya header & body SELARAS)
+            if (thCheckbox) {
+                thCheckbox.style.display = canDelete ? '' : 'none';
+            }
+
+            // Tombol tempat sampah & hapus massal: hanya full access
+            if (btnToggleTrash) btnToggleTrash.style.display = canDelete ? '' : 'none';
+            if (btnHapusTerpilih) btnHapusTerpilih.style.display = canDelete ? '' : 'none';
+            if (btnHapusSemua) btnHapusSemua.style.display = canDelete ? '' : 'none';
+
+            // Tombol tambah data
+            if (btnTambahData) {
+                btnTambahData.style.display = canAdd ? '' : 'none';
             }
         }
 
@@ -319,7 +316,6 @@
                 const response = await fetch(SURAT_MASUK_GAS_URL);
                 const res = await response.json();
                 if (res.status === 'success' && Array.isArray(res.data)) {
-                    // Simpan preview lokal sebelum diganti data cloud
                     const localPreview = {};
                     dataSurat.forEach(d => {
                         if (d.preview_image) localPreview[String(d.id)] = d.preview_image;
@@ -350,7 +346,6 @@
                             file_url: item["File URL"] || '',
                             status_arsip: item["Status Arsip"] || 'aktif',
                             no_agenda: item["no agenda"] || item["No Agenda"] || item["Nomor Agenda"] || item["No. Agenda"] || '',
-                            // Pertahankan preview lokal jika cloud belum punya file_url
                             preview_image: localPreview[id] || null
                         };
                     }).reverse();
@@ -439,10 +434,8 @@
                     
                     let lampiranHtml = '-';
                     if (item.file_url) {
-                        // Link Drive yang valid
                         lampiranHtml = `<a href="${escapeHtml(item.file_url)}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800" title="Lihat berkas di Google Drive"><i class="fa-solid fa-paperclip text-sm"></i></a>`;
                     } else if (item.preview_image) {
-                        // JANGAN buka data: URL di tab baru (sering putih / gagal). Pakai modal.
                         const safeId = String(item.id).replace(/'/g, "\\'");
                         lampiranHtml = `<button type="button" onclick="previewLampiranLokal('${safeId}')" class="text-amber-600 hover:text-amber-800" title="Preview lokal (belum di Drive)"><i class="fa-solid fa-paperclip text-sm"></i></button>`;
                     }
@@ -467,6 +460,7 @@
                         `;
                     }
 
+                    // Checkbox hanya jika canDelete (selaras dengan header)
                     let checkboxColHtml = !canDelete ? '' : `
                         <td class="p-3 text-center align-top">
                             <input type="checkbox" class="row-checkbox rounded border-slate-300 text-blue-600 focus:ring-blue-500" data-id="${item.id}" ${selectedRowIds.has(item.id) ? 'checked' : ''}>
@@ -546,7 +540,6 @@
                     item.status_arsip = 'sampah';
                     saveStorage();
                     renderTable();
-
                     try {
                         await fetch(SURAT_MASUK_GAS_URL, {
                             method: 'POST',
@@ -568,7 +561,6 @@
                     item.status_arsip = 'aktif';
                     saveStorage();
                     renderTable();
-
                     try {
                         await fetch(SURAT_MASUK_GAS_URL, {
                             method: 'POST',
@@ -588,7 +580,6 @@
                 dataSurat = dataSurat.filter(d => String(d.id) !== String(id));
                 saveStorage();
                 renderTable();
-
                 try {
                     await fetch(SURAT_MASUK_GAS_URL, {
                         method: 'POST',
@@ -612,7 +603,6 @@
             });
         }
 
-        // ========== EXPORT / IMPORT (superadmin only) ==========
         function exportSuratData() {
             if (!isFullAccess) return;
             try {
@@ -662,7 +652,6 @@
                         'Ditemukan ' + rows.length + ' data.\n\nPilih OK untuk MENGGANTI semua data lokal, atau tutup lalu batalkan.',
                         'info',
                         function () {
-                            // Normalisasi minimal field
                             dataSurat = rows.map(function (r, idx) {
                                 const id = String(r.id || r.ID || ('surat-import-' + Date.now() + '-' + idx));
                                 return Object.assign({}, r, {
@@ -677,7 +666,7 @@
                             });
                             saveStorage();
                             renderTable();
-                            showAlert('Import Berhasil', rows.length + ' data dimuat ke browser. Klik Sinkron Cloud jika ingin mengirim ke Sheet (per baris lewat form edit/simpan).', 'success');
+                            showAlert('Import Berhasil', rows.length + ' data dimuat ke browser. Klik Sinkron Cloud jika ingin mengirim ke Sheet.', 'success');
                         }
                     );
                 } catch (err) {
@@ -701,11 +690,99 @@
             e.target.value = '';
         });
 
+        // Select all & row checkbox
+        document.getElementById('selectAllCheckbox')?.addEventListener('change', function() {
+            if (!canDelete) return;
+            const checked = this.checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const id = cb.getAttribute('data-id');
+                if (checked) selectedRowIds.add(id);
+                else selectedRowIds.delete(id);
+            });
+            updateSelectedCount();
+        });
+
+        document.getElementById('suratTableBody')?.addEventListener('change', function(e) {
+            if (!canDelete || !e.target.classList.contains('row-checkbox')) return;
+            const id = e.target.getAttribute('data-id');
+            if (e.target.checked) selectedRowIds.add(id);
+            else selectedRowIds.delete(id);
+            updateSelectedCount();
+            const allCbs = document.querySelectorAll('.row-checkbox');
+            const allChecked = allCbs.length > 0 && Array.from(allCbs).every(cb => cb.checked);
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = allChecked;
+        });
+
+        // Hapus terpilih
+        document.getElementById('btnHapusTerpilih')?.addEventListener('click', function() {
+            if (!canDelete || selectedRowIds.size === 0) return;
+            showAlert("Hapus Terpilih", `Pindahkan ${selectedRowIds.size} surat terpilih ke tempat sampah?`, "warning", async () => {
+                const ids = Array.from(selectedRowIds);
+                ids.forEach(id => {
+                    const item = dataSurat.find(d => String(d.id) === String(id));
+                    if (item) item.status_arsip = 'sampah';
+                });
+                selectedRowIds.clear();
+                saveStorage();
+                renderTable();
+                for (const id of ids) {
+                    try {
+                        await fetch(SURAT_MASUK_GAS_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: 'trash', id: id })
+                        });
+                    } catch (err) {
+                        console.warn("Gagal sync trash:", err);
+                    }
+                }
+            });
+        });
+
+        // Hapus semua
+        document.getElementById('btnHapusSemua')?.addEventListener('click', function() {
+            if (!canDelete) return;
+            const aktifCount = dataSurat.filter(i => i.status_arsip !== 'sampah').length;
+            if (aktifCount === 0) {
+                showAlert("Info", "Tidak ada data aktif untuk dihapus.", "info");
+                return;
+            }
+            showAlert("Hapus Semua", `Pindahkan SEMUA ${aktifCount} data aktif ke tempat sampah?`, "warning", async () => {
+                dataSurat.forEach(item => {
+                    if (item.status_arsip !== 'sampah') item.status_arsip = 'sampah';
+                });
+                selectedRowIds.clear();
+                saveStorage();
+                renderTable();
+                try {
+                    await fetch(SURAT_MASUK_GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'trash_all' })
+                    });
+                } catch (err) {
+                    console.warn("Gagal sync trash all:", err);
+                }
+            });
+        });
+
+        // Pagination
+        document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+        document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+            currentPage++;
+            renderTable();
+        });
+
         window.onload = function() {
             applyRolePermissions();
-            // Local-first: tampilkan data browser dulu agar cepat
             renderTable();
-            // Sync cloud di background (tidak memblokir UI)
             fetchCloudData();
         };
     </script>
