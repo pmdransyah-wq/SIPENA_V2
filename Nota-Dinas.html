@@ -17,12 +17,19 @@
     }
     .dropdown-klasifikasi {
       max-height: 220px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.5rem;
-      background: white; position: absolute; width: 100%; z-index: 50; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      background: white; position: absolute; width: 100%; z-index: 50;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     }
     .dropdown-item:hover { background-color: #f1f5f9; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 md:p-6">
+
+  <!-- GANTI URL INI SETELAH DEPLOY -->
+  <script>
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbymEVIgJHdOR40889FNIMySQH0Onz_fY2qtRtJuGc4x_8mjRrqQLEu-nDvxgQgP5smg/exec";
+    const KLASIFIKASI_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
+  </script>
 
   <!-- HEADER -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -31,7 +38,7 @@
       <p class="text-sm text-slate-500">Manajemen data Nota Dinas • Role: <span id="userRole" class="font-semibold text-blue-600">...</span></p>
     </div>
     <div class="flex flex-wrap gap-2" id="actionButtons">
-      <button onclick="openModal('add')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+      <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
         <i class="fa-solid fa-plus"></i> Tambah Data
       </button>
       <button onclick="document.getElementById('importFile').click()" id="btnImport" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -108,7 +115,7 @@
           </div>
         </div>
 
-        <!-- KODE KLASIFIKASI (Searchable) -->
+        <!-- KODE KLASIFIKASI -->
         <div class="relative">
           <label class="block text-sm font-medium text-slate-700 mb-1">Kode Klasifikasi <span class="text-red-500">*</span></label>
           <input type="text" id="kodeKlasifikasiSearch" placeholder="Ketik untuk mencari kode klasifikasi..." 
@@ -116,7 +123,6 @@
                  oninput="filterKlasifikasi()" autocomplete="off">
           <input type="hidden" id="kodeKlasifikasi" required>
           <div id="dropdownKlasifikasi" class="dropdown-klasifikasi hidden"></div>
-          <p class="text-xs text-slate-500 mt-1">Pilih dari master Kode Klasifikasi</p>
         </div>
 
         <div>
@@ -152,7 +158,7 @@
           <input type="file" id="lampiran" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm">
         </div>
         <div class="flex justify-end gap-3 pt-4">
-          <button type="button" onclick="closeModal('modalForm')" class="px-5 py-2 rounded-lg border border-slate-300 hover:bg-slate-50">Batal</button>
+          <button type="button" onclick="closeModal('modalForm')" class="px-5 py-2 rounded-lg border">Batal</button>
           <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Simpan</button>
         </div>
       </form>
@@ -179,7 +185,7 @@
       </div>
       <div class="p-6">
         <input type="hidden" id="disposisiRow">
-        <textarea id="disposisiText" rows="4" placeholder="Isi disposisi..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+        <textarea id="disposisiText" rows="4" placeholder="Isi disposisi..." class="w-full px-3 py-2 border rounded-lg"></textarea>
         <div class="flex justify-end gap-3 mt-4">
           <button onclick="closeModal('modalDisposisi')" class="px-4 py-2 border rounded-lg">Batal</button>
           <button onclick="submitDisposisi()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Simpan</button>
@@ -189,71 +195,94 @@
   </div>
 
   <script>
-    // ========== GLOBAL ==========
-    let currentData = [];
-    let filteredData = [];
-    let isTrashMode = false;
-    let currentPage = 1;
+    let currentData = [], filteredData = [], isTrashMode = false, currentPage = 1;
     const PER_PAGE = 15;
-    let userRole = '<?= role ?>';
-    let klasifikasiList = []; // dari master kode-klasifikasi
+    let userRole = 'user';
+    let klasifikasiList = [];
 
-    // URL backend Kode Klasifikasi (sama seperti di kode-klasifikasi.html)
-    const KLASIFIKASI_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
-
-    document.getElementById('userRole').textContent = userRole.toUpperCase();
-
-    if (userRole === 'user') {
-      document.querySelectorAll('#actionButtons button').forEach(btn => {
-        if (!btn.innerText.includes('Sinkron')) btn.style.display = 'none';
-      });
-    } else if (userRole === 'admin') {
-      document.getElementById('btnImport').style.display = 'none';
-      document.getElementById('btnExport').style.display = 'none';
-      document.getElementById('btnTrash').style.display = 'none';
+    // ========== HELPER FETCH ==========
+    async function apiGet(params = {}) {
+      const url = new URL(GAS_BACKEND_URL);
+      Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+      const res = await fetch(url);
+      return res.json();
     }
 
-    // Load master Kode Klasifikasi
-    function loadKlasifikasi() {
-      fetch(KLASIFIKASI_URL)
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === "success") {
-            const raw = data.KodeKlasifikasi || data.dataKlasifikasi || [];
-            klasifikasiList = raw.slice(1).map(r => ({ kode: String(r[0]), uraian: String(r[1] || '') }));
-          }
-        })
-        .catch(() => {
-          // fallback jika gagal
-          klasifikasiList = [
-            { kode: '400.10.4.0', uraian: 'Sekretariat' },
-            { kode: '400.10.4.1', uraian: 'PUEMD' },
-            { kode: '400.10.4.2', uraian: 'PMLKD' },
-            { kode: '400.10.4.3', uraian: 'PPD' }
-          ];
+    async function apiPost(body) {
+      const res = await fetch(GAS_BACKEND_URL, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      return res.json();
+    }
+
+    // ========== LOAD DATA ==========
+    async function loadData() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat...</td></tr>';
+
+      try {
+        const res = await apiGet({ action: 'getdata', trash: isTrashMode });
+        if (res.status !== 'success') throw new Error(res.message || 'Gagal memuat data');
+
+        userRole = res.role || 'user';
+        document.getElementById('userRole').textContent = userRole.toUpperCase();
+        applyRoleUI();
+
+        currentData = res.data || [];
+        filteredData = [...currentData];
+        currentPage = 1;
+        renderTable();
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-red-500">${err.message}</td></tr>`;
+      }
+    }
+
+    function applyRoleUI() {
+      if (userRole === 'user') {
+        document.querySelectorAll('#actionButtons button').forEach(btn => {
+          if (!btn.innerText.includes('Sinkron')) btn.style.display = 'none';
         });
+      } else if (userRole === 'admin') {
+        document.getElementById('btnImport').style.display = 'none';
+        document.getElementById('btnExport').style.display = 'none';
+        document.getElementById('btnTrash').style.display = 'none';
+      }
+    }
+
+    // ========== KODE KLASIFIKASI ==========
+    async function loadKlasifikasi() {
+      try {
+        const res = await fetch(KLASIFIKASI_URL).then(r => r.json());
+        if (res.status === 'success') {
+          const raw = res.KodeKlasifikasi || res.dataKlasifikasi || [];
+          klasifikasiList = raw.slice(1).map(r => ({ kode: String(r[0]), uraian: String(r[1] || '') }));
+        }
+      } catch (e) {
+        klasifikasiList = [
+          { kode: '400.10.4.0', uraian: 'Sekretariat' },
+          { kode: '400.10.4.1', uraian: 'PUEMD' },
+          { kode: '400.10.4.2', uraian: 'PMLKD' },
+          { kode: '400.10.4.3', uraian: 'PPD' }
+        ];
+      }
     }
 
     function filterKlasifikasi() {
       const q = document.getElementById('kodeKlasifikasiSearch').value.toLowerCase();
       const dropdown = document.getElementById('dropdownKlasifikasi');
-      if (!q) {
-        dropdown.classList.add('hidden');
-        return;
-      }
-      const filtered = klasifikasiList.filter(k => 
+      if (!q) { dropdown.classList.add('hidden'); return; }
+
+      const filtered = klasifikasiList.filter(k =>
         k.kode.toLowerCase().includes(q) || k.uraian.toLowerCase().includes(q)
       ).slice(0, 15);
 
-      if (filtered.length === 0) {
-        dropdown.innerHTML = '<div class="px-3 py-2 text-slate-400 text-sm">Tidak ditemukan</div>';
-      } else {
-        dropdown.innerHTML = filtered.map(k => `
-          <div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi('${k.kode}', '${k.uraian.replace(/'/g, "\\'")}')">
-            <span class="font-medium text-blue-700">${k.kode}</span> — ${k.uraian}
-          </div>
-        `).join('');
-      }
+      dropdown.innerHTML = filtered.length === 0
+        ? '<div class="px-3 py-2 text-slate-400 text-sm">Tidak ditemukan</div>'
+        : filtered.map(k => `
+            <div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi('${k.kode}', \`${k.uraian.replace(/`/g,'')}\`)">
+              <span class="font-medium text-blue-700">${k.kode}</span> — ${k.uraian}
+            </div>`).join('');
       dropdown.classList.remove('hidden');
     }
 
@@ -264,8 +293,7 @@
       updateNoNotaPreview();
     }
 
-    // Tutup dropdown jika klik di luar
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', e => {
       if (!e.target.closest('#kodeKlasifikasiSearch') && !e.target.closest('#dropdownKlasifikasi')) {
         document.getElementById('dropdownKlasifikasi').classList.add('hidden');
       }
@@ -279,28 +307,10 @@
         document.getElementById('noNota').value = '';
         return;
       }
-      const year = new Date().getFullYear();
-      document.getElementById('noNota').value = `${no}/${kode}/${bidang}-DPMD/${year}`;
+      document.getElementById('noNota').value = `${no}/${kode}/${bidang}-DPMD/${new Date().getFullYear()}`;
     }
 
-    // ========== LOAD DATA ==========
-    function loadData() {
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat...</td></tr>';
-
-      google.script.run
-        .withSuccessHandler(data => {
-          currentData = data || [];
-          filteredData = [...currentData];
-          currentPage = 1;
-          renderTable();
-        })
-        .withFailureHandler(err => {
-          tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-red-500">${err.message}</td></tr>`;
-        })
-        .getAllData(isTrashMode);
-    }
-
+    // ========== RENDER TABLE + PAGINATION ==========
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       const total = filteredData.length;
@@ -313,7 +323,7 @@
       const pageData = filteredData.slice(start, end);
 
       document.getElementById('totalData').textContent = total;
-      document.getElementById('pageInfo').textContent = total === 0 ? '0' : `${start + 1}–${Math.min(end, total)}`;
+      document.getElementById('pageInfo').textContent = total === 0 ? '0' : `${start+1}–${Math.min(end, total)}`;
       renderPagination(totalPages);
 
       if (pageData.length === 0) {
@@ -322,63 +332,56 @@
       }
 
       tbody.innerHTML = pageData.map(row => {
-        const lampiran = row['LAMPIRAN'] 
-          ? `<a href="${row['LAMPIRAN']}" target="_blank" class="text-blue-600 hover:underline text-xs"><i class="fa-solid fa-paperclip"></i> Lihat</a>` 
+        const lampiran = row['LAMPIRAN']
+          ? `<a href="${row['LAMPIRAN']}" target="_blank" class="text-blue-600 hover:underline text-xs"><i class="fa-solid fa-paperclip"></i> Lihat</a>`
           : '-';
 
-        let aksi = `<button onclick="viewData(${row._row})" class="action-btn bg-sky-100 text-sky-700 hover:bg-sky-200" title="View"><i class="fa-solid fa-eye"></i></button>`;
+        let aksi = `<button onclick="viewData(${row._row})" class="action-btn bg-sky-100 text-sky-700" title="View"><i class="fa-solid fa-eye"></i></button>`;
 
         if (userRole !== 'user') {
           aksi += `
-            <button onclick="editData(${row._row})" class="action-btn bg-amber-100 text-amber-700 hover:bg-amber-200" title="Edit"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="uploadLampiranPrompt(${row._row})" class="action-btn bg-emerald-100 text-emerald-700 hover:bg-emerald-200" title="Upload"><i class="fa-solid fa-upload"></i></button>
-            <button onclick="openDisposisi(${row._row})" class="action-btn bg-purple-100 text-purple-700 hover:bg-purple-200" title="Disposisi"><i class="fa-solid fa-share"></i></button>
-          `;
+            <button onclick="editData(${row._row})" class="action-btn bg-amber-100 text-amber-700" title="Edit"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="uploadLampiranPrompt(${row._row})" class="action-btn bg-emerald-100 text-emerald-700" title="Upload"><i class="fa-solid fa-upload"></i></button>
+            <button onclick="openDisposisi(${row._row})" class="action-btn bg-purple-100 text-purple-700" title="Disposisi"><i class="fa-solid fa-share"></i></button>`;
         }
         if (userRole === 'superadmin') {
           if (isTrashMode) {
             aksi += `
-              <button onclick="restore(${row._row})" class="action-btn bg-green-100 text-green-700 hover:bg-green-200" title="Restore"><i class="fa-solid fa-rotate-left"></i></button>
-              <button onclick="permanentDel(${row._row})" class="action-btn bg-red-100 text-red-700 hover:bg-red-200" title="Hapus Permanen"><i class="fa-solid fa-trash"></i></button>
-            `;
+              <button onclick="restore(${row._row})" class="action-btn bg-green-100 text-green-700" title="Restore"><i class="fa-solid fa-rotate-left"></i></button>
+              <button onclick="permanentDel(${row._row})" class="action-btn bg-red-100 text-red-700" title="Hapus Permanen"><i class="fa-solid fa-trash"></i></button>`;
           } else {
-            aksi += `<button onclick="hapus(${row._row})" class="action-btn bg-red-100 text-red-700 hover:bg-red-200" title="Hapus"><i class="fa-solid fa-trash"></i></button>`;
+            aksi += `<button onclick="hapus(${row._row})" class="action-btn bg-red-100 text-red-700" title="Hapus"><i class="fa-solid fa-trash"></i></button>`;
           }
         }
 
-        return `
-          <tr class="hover:bg-slate-50">
-            <td class="px-3 py-2.5 font-medium">${row['No.'] || ''}</td>
-            <td class="px-3 py-2.5 font-medium text-blue-700 text-xs">${row['NO. NOTA DINAS'] || ''}</td>
-            <td class="px-3 py-2.5 whitespace-nowrap">${formatDate(row['TANGGAL'])}</td>
-            <td class="px-3 py-2.5"><div class="uraian-3baris" title="${(row['URAIAN']||'').replace(/"/g,'&quot;')}">${row['URAIAN']||''}</div></td>
-            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${row['BIDANG']||''}</span></td>
-            <td class="px-3 py-2.5">${row['INSTANSI TUJUAN']||''}</td>
-            <td class="px-3 py-2.5"><div class="uraian-3baris">${row['KETERANGAN']||''}</div></td>
-            <td class="px-3 py-2.5">${lampiran}</td>
-            <td class="px-3 py-2.5 text-center space-x-1 whitespace-nowrap">${aksi}</td>
-          </tr>
-        `;
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-3 py-2.5 font-medium">${row['No.']||''}</td>
+          <td class="px-3 py-2.5 font-medium text-blue-700 text-xs">${row['NO. NOTA DINAS']||''}</td>
+          <td class="px-3 py-2.5 whitespace-nowrap">${formatDate(row['TANGGAL'])}</td>
+          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['URAIAN']||''}</div></td>
+          <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${row['BIDANG']||''}</span></td>
+          <td class="px-3 py-2.5">${row['INSTANSI TUJUAN']||''}</td>
+          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['KETERANGAN']||''}</div></td>
+          <td class="px-3 py-2.5">${lampiran}</td>
+          <td class="px-3 py-2.5 text-center space-x-1 whitespace-nowrap">${aksi}</td>
+        </tr>`;
       }).join('');
     }
 
     function renderPagination(totalPages) {
       const container = document.getElementById('paginationButtons');
       if (totalPages <= 1) { container.innerHTML = ''; return; }
-
-      let html = `<button onclick="goToPage(${currentPage-1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===1?'opacity-40 cursor-not-allowed':'hover:bg-slate-100'}" ${currentPage===1?'disabled':''}><i class="fa-solid fa-chevron-left"></i></button>`;
-      let startPage = Math.max(1, currentPage - 2);
-      let endPage = Math.min(totalPages, startPage + 4);
-      if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
-
-      for (let i = startPage; i <= endPage; i++) {
-        html += `<button onclick="goToPage(${i})" class="px-3 py-1.5 rounded-lg border text-sm min-w-[36px] ${i===currentPage?'bg-blue-600 text-white border-blue-600':'hover:bg-slate-100'}">${i}</button>`;
+      let html = `<button onclick="goToPage(${currentPage-1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===1?'opacity-40 cursor-not-allowed':''}" ${currentPage===1?'disabled':''}><i class="fa-solid fa-chevron-left"></i></button>`;
+      let start = Math.max(1, currentPage-2), end = Math.min(totalPages, start+4);
+      if (end-start < 4) start = Math.max(1, end-4);
+      for (let i=start; i<=end; i++) {
+        html += `<button onclick="goToPage(${i})" class="px-3 py-1.5 rounded-lg border text-sm min-w-[36px] ${i===currentPage?'bg-blue-600 text-white border-blue-600':''}">${i}</button>`;
       }
-      html += `<button onclick="goToPage(${currentPage+1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===totalPages?'opacity-40 cursor-not-allowed':'hover:bg-slate-100'}" ${currentPage===totalPages?'disabled':''}><i class="fa-solid fa-chevron-right"></i></button>`;
+      html += `<button onclick="goToPage(${currentPage+1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===totalPages?'opacity-40 cursor-not-allowed':''}" ${currentPage===totalPages?'disabled':''}><i class="fa-solid fa-chevron-right"></i></button>`;
       container.innerHTML = html;
     }
 
-    function goToPage(page) { currentPage = page; renderTable(); }
+    function goToPage(p) { currentPage = p; renderTable(); }
     function filterTable() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       filteredData = !q ? [...currentData] : currentData.filter(r =>
@@ -394,36 +397,38 @@
 
     function formatDate(d) {
       if (!d) return '-';
-      try { return new Date(d).toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }); }
+      try { return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
       catch { return d; }
     }
 
     // ========== MODAL & FORM ==========
-    function openModal() {
+    async function openModal() {
       document.getElementById('modalForm').classList.add('active');
       document.getElementById('formNota').reset();
       document.getElementById('editRow').value = '';
       document.getElementById('modalTitle').textContent = 'Tambah Nota Dinas';
       document.getElementById('kodeKlasifikasi').value = '';
       document.getElementById('kodeKlasifikasiSearch').value = '';
-
-      google.script.run.withSuccessHandler(no => {
-        document.getElementById('noAgenda').value = no;
-        updateNoNotaPreview();
-      }).getNextNoAgenda();
-
       document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+
+      const res = await apiGet({ action: 'getnextno' });
+      if (res.status === 'success') {
+        document.getElementById('noAgenda').value = res.noAgenda;
+        updateNoNotaPreview();
+      }
     }
 
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-    function saveData(e) {
+    async function saveData(e) {
       e.preventDefault();
       const kode = document.getElementById('kodeKlasifikasi').value;
-      if (!kode) { alert('Pilih Kode Klasifikasi terlebih dahulu'); return; }
+      if (!kode) return alert('Pilih Kode Klasifikasi terlebih dahulu');
 
       const row = document.getElementById('editRow').value;
       const formData = {
+        action: row ? 'update' : 'add',
+        row: row ? parseInt(row) : null,
         TANGGAL: document.getElementById('tanggal').value,
         URAIAN: document.getElementById('uraian').value,
         BIDANG: document.getElementById('bidang').value,
@@ -434,83 +439,92 @@
       };
 
       const fileInput = document.getElementById('lampiran');
-      const doSave = (url) => {
-        formData.LAMPIRAN = url || '';
-        if (row) {
-          google.script.run.withSuccessHandler(() => { closeModal('modalForm'); loadData(); alert('Data berhasil diupdate'); })
-            .withFailureHandler(err => alert(err.message)).updateData(parseInt(row), formData);
-        } else {
-          google.script.run.withSuccessHandler(() => { closeModal('modalForm'); loadData(); alert('Data berhasil ditambahkan'); })
-            .withFailureHandler(err => alert(err.message)).addData(formData);
-        }
-      };
-
       if (fileInput.files.length > 0) {
         const file = fileInput.files[0];
         const reader = new FileReader();
-        reader.onload = ev => {
+        reader.onload = async ev => {
           const base64 = ev.target.result.split(',')[1];
-          google.script.run.withSuccessHandler(url => doSave(url))
-            .withFailureHandler(err => alert('Gagal upload: ' + err.message))
-            .uploadLampiran(base64, file.name, file.type);
+          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type });
+          if (up.status !== 'success') return alert(up.message || 'Gagal upload');
+          formData.LAMPIRAN = up.url;
+          await submitForm(formData);
         };
         reader.readAsDataURL(file);
       } else {
-        doSave('');
+        await submitForm(formData);
       }
     }
 
-    function viewData(row) {
-      google.script.run.withSuccessHandler(data => {
-        document.getElementById('viewContent').innerHTML = `
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><span class="text-slate-500 text-xs">No. Agenda</span><p class="font-medium">${data['No.']}</p></div>
-            <div><span class="text-slate-500 text-xs">No. Nota Dinas</span><p class="font-medium text-blue-700">${data['NO. NOTA DINAS']}</p></div>
-            <div><span class="text-slate-500 text-xs">Kode Klasifikasi</span><p class="font-medium">${data['KODE_KLASIFIKASI'] || '-'}</p></div>
-            <div><span class="text-slate-500 text-xs">Tanggal</span><p class="font-medium">${formatDate(data['TANGGAL'])}</p></div>
-            <div><span class="text-slate-500 text-xs">Bidang</span><p class="font-medium">${data['BIDANG']}</p></div>
-            <div class="md:col-span-2"><span class="text-slate-500 text-xs">Uraian</span><p class="font-medium whitespace-pre-wrap">${data['URAIAN']||'-'}</p></div>
-            <div class="md:col-span-2"><span class="text-slate-500 text-xs">Instansi Tujuan</span><p class="font-medium">${data['INSTANSI TUJUAN']||'-'}</p></div>
-            <div class="md:col-span-2"><span class="text-slate-500 text-xs">Keterangan</span><p class="font-medium whitespace-pre-wrap">${data['KETERANGAN']||'-'}</p></div>
-            <div class="md:col-span-2"><span class="text-slate-500 text-xs">Lampiran</span><p>${data['LAMPIRAN'] ? `<a href="${data['LAMPIRAN']}" target="_blank" class="text-blue-600">Buka Lampiran</a>` : '-'}</p></div>
-          </div>`;
-        document.getElementById('modalView').classList.add('active');
-      }).getDataById(row, isTrashMode);
+    async function submitForm(formData) {
+      const res = await apiPost(formData);
+      if (res.status === 'success') {
+        closeModal('modalForm');
+        loadData();
+        alert(formData.action === 'add' ? 'Data berhasil ditambahkan' : 'Data berhasil diupdate');
+      } else {
+        alert(res.message || 'Gagal menyimpan');
+      }
     }
 
-    function editData(row) {
-      google.script.run.withSuccessHandler(data => {
-        document.getElementById('modalTitle').textContent = 'Edit Nota Dinas';
-        document.getElementById('editRow').value = row;
-        document.getElementById('noAgenda').value = data['No.'];
-        document.getElementById('noNota').value = data['NO. NOTA DINAS'];
-        document.getElementById('kodeKlasifikasi').value = data['KODE_KLASIFIKASI'] || '';
-        document.getElementById('kodeKlasifikasiSearch').value = data['KODE_KLASIFIKASI'] || '';
-        document.getElementById('tanggal').value = data['TANGGAL'] ? new Date(data['TANGGAL']).toISOString().split('T')[0] : '';
-        document.getElementById('uraian').value = data['URAIAN'] || '';
-        document.getElementById('bidang').value = data['BIDANG'] || '';
-        document.getElementById('instansi').value = data['INSTANSI TUJUAN'] || '';
-        document.getElementById('keterangan').value = data['KETERANGAN'] || '';
-        document.getElementById('modalForm').classList.add('active');
-      }).getDataById(row, false);
+    async function viewData(row) {
+      const res = await apiGet({ action: 'getbyid', row, trash: isTrashMode });
+      if (res.status !== 'success') return alert(res.message);
+      const d = res.data;
+      document.getElementById('viewContent').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><span class="text-slate-500 text-xs">No. Agenda</span><p class="font-medium">${d['No.']}</p></div>
+          <div><span class="text-slate-500 text-xs">No. Nota Dinas</span><p class="font-medium text-blue-700">${d['NO. NOTA DINAS']}</p></div>
+          <div><span class="text-slate-500 text-xs">Kode Klasifikasi</span><p class="font-medium">${d['KODE_KLASIFIKASI']||'-'}</p></div>
+          <div><span class="text-slate-500 text-xs">Tanggal</span><p class="font-medium">${formatDate(d['TANGGAL'])}</p></div>
+          <div><span class="text-slate-500 text-xs">Bidang</span><p class="font-medium">${d['BIDANG']}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Uraian</span><p class="font-medium whitespace-pre-wrap">${d['URAIAN']||'-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Instansi Tujuan</span><p class="font-medium">${d['INSTANSI TUJUAN']||'-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Keterangan</span><p class="font-medium whitespace-pre-wrap">${d['KETERANGAN']||'-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Lampiran</span><p>${d['LAMPIRAN']?`<a href="${d['LAMPIRAN']}" target="_blank" class="text-blue-600">Buka Lampiran</a>`:'-'}</p></div>
+        </div>`;
+      document.getElementById('modalView').classList.add('active');
     }
 
-    function hapus(row) {
-      if (!confirm('Pindahkan data ke Tempat Sampah?')) return;
-      google.script.run.withSuccessHandler(() => loadData()).withFailureHandler(e => alert(e.message)).deleteData(row);
+    async function editData(row) {
+      const res = await apiGet({ action: 'getbyid', row });
+      if (res.status !== 'success') return alert(res.message);
+      const d = res.data;
+      document.getElementById('modalTitle').textContent = 'Edit Nota Dinas';
+      document.getElementById('editRow').value = row;
+      document.getElementById('noAgenda').value = d['No.'];
+      document.getElementById('noNota').value = d['NO. NOTA DINAS'];
+      document.getElementById('kodeKlasifikasi').value = d['KODE_KLASIFIKASI'] || '';
+      document.getElementById('kodeKlasifikasiSearch').value = d['KODE_KLASIFIKASI'] || '';
+      document.getElementById('tanggal').value = d['TANGGAL'] ? new Date(d['TANGGAL']).toISOString().split('T')[0] : '';
+      document.getElementById('uraian').value = d['URAIAN'] || '';
+      document.getElementById('bidang').value = d['BIDANG'] || '';
+      document.getElementById('instansi').value = d['INSTANSI TUJUAN'] || '';
+      document.getElementById('keterangan').value = d['KETERANGAN'] || '';
+      document.getElementById('modalForm').classList.add('active');
     }
-    function restore(row) {
-      if (!confirm('Kembalikan data ini?')) return;
-      google.script.run.withSuccessHandler(() => loadData()).withFailureHandler(e => alert(e.message)).restoreData(row);
+
+    async function hapus(row) {
+      if (!confirm('Pindahkan ke Tempat Sampah?')) return;
+      const res = await apiPost({ action: 'delete', row });
+      if (res.status === 'success') loadData();
+      else alert(res.message);
     }
-    function permanentDel(row) {
+    async function restore(row) {
+      if (!confirm('Kembalikan data?')) return;
+      const res = await apiPost({ action: 'restore', row });
+      if (res.status === 'success') loadData();
+      else alert(res.message);
+    }
+    async function permanentDel(row) {
       if (!confirm('Hapus permanen?')) return;
-      google.script.run.withSuccessHandler(() => loadData()).withFailureHandler(e => alert(e.message)).permanentDelete(row);
+      const res = await apiPost({ action: 'permanentdelete', row });
+      if (res.status === 'success') loadData();
+      else alert(res.message);
     }
     function toggleTrash() {
       isTrashMode = !isTrashMode;
-      document.getElementById('btnTrash').innerHTML = isTrashMode 
-        ? '<i class="fa-solid fa-list"></i> Kembali ke Data' 
+      document.getElementById('btnTrash').innerHTML = isTrashMode
+        ? '<i class="fa-solid fa-list"></i> Kembali ke Data'
         : '<i class="fa-solid fa-trash"></i> Tempat Sampah';
       currentPage = 1;
       loadData();
@@ -521,50 +535,57 @@
       document.getElementById('disposisiText').value = '';
       document.getElementById('modalDisposisi').classList.add('active');
     }
-    function submitDisposisi() {
+    async function submitDisposisi() {
       const text = document.getElementById('disposisiText').value;
       if (!text.trim()) return alert('Isi disposisi dulu');
-      google.script.run.withSuccessHandler(() => {
-        closeModal('modalDisposisi'); loadData(); alert('Disposisi tersimpan');
-      }).withFailureHandler(e => alert(e.message)).saveDisposisi(parseInt(document.getElementById('disposisiRow').value), text);
+      const res = await apiPost({ action: 'disposisi', row: parseInt(document.getElementById('disposisiRow').value), text });
+      if (res.status === 'success') {
+        closeModal('modalDisposisi');
+        loadData();
+        alert('Disposisi tersimpan');
+      } else alert(res.message);
     }
 
     function uploadLampiranPrompt(row) {
       const input = document.createElement('input');
       input.type = 'file'; input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-      input.onchange = function() {
+      input.onchange = async function() {
         const file = this.files[0]; if (!file) return;
         const reader = new FileReader();
-        reader.onload = ev => {
+        reader.onload = async ev => {
           const base64 = ev.target.result.split(',')[1];
-          google.script.run.withSuccessHandler(url => {
-            google.script.run.withSuccessHandler(() => { loadData(); alert('Lampiran berhasil diupload'); })
-              .updateLampiranOnly(row, url);
-          }).uploadLampiran(base64, file.name, file.type);
+          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type });
+          if (up.status !== 'success') return alert(up.message);
+          const res = await apiPost({ action: 'updatelampiran', row, url: up.url });
+          if (res.status === 'success') { loadData(); alert('Lampiran berhasil diupload'); }
+          else alert(res.message);
         };
         reader.readAsDataURL(file);
       };
       input.click();
     }
 
-    function exportData() {
-      google.script.run.withSuccessHandler(data => {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `nota-dinas-${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-      }).withFailureHandler(e => alert(e.message)).exportData();
+    async function exportData() {
+      const res = await apiPost({ action: 'export' });
+      if (res.status !== 'success') return alert(res.message);
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `nota-dinas-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
     }
 
-    function handleImport(e) {
+    async function handleImport(e) {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
-      reader.onload = ev => {
+      reader.onload = async ev => {
         try {
           const data = JSON.parse(ev.target.result);
-          google.script.run.withSuccessHandler(res => { alert(`Berhasil import ${res.count} data`); loadData(); })
-            .withFailureHandler(err => alert(err.message)).importData(JSON.stringify(data));
+          const res = await apiPost({ action: 'import', data });
+          if (res.status === 'success') {
+            alert(`Berhasil import ${res.count} data`);
+            loadData();
+          } else alert(res.message);
         } catch { alert('File JSON tidak valid'); }
       };
       reader.readAsText(file);
