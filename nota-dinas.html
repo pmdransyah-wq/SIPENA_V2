@@ -47,14 +47,14 @@
 <body class="bg-slate-50 text-slate-800 p-4 md:p-6">
 
   <script>
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbzvq-Bh5118CBkD91g62WmW8GkfZQDoJkDvgl8BUm8FX-4rCuACHJBXeo16FAGYJDUl/exec";
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbxc6ukjC1O_bcQA99fNPtkA7zGndYPJMjazlrHr4fQMmmIbOIoNKjqz9i8uNr_NoOC5/exec";
     const KLASIFIKASI_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
   </script>
 
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
       <h1 class="text-2xl font-bold text-slate-800">Nota Dinas</h1>
-      <p class="text-sm text-slate-500">Manajemen data Nota Dinas • Role: <span id="userRole" class="font-semibold text-blue-600">...</span></p>
+      <p class="text-sm text-slate-500">Manajemen data Nota Dinas • Role: <span id="userRole" class="font-semibold text-blue-600">SUPERADMIN</span></p>
     </div>
     <div class="flex flex-wrap gap-2" id="actionButtons">
       <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -69,9 +69,6 @@
       </button>
       <button onclick="loadData()" class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
         <i class="fa-solid fa-rotate"></i> Sinkron
-      </button>
-      <button onclick="runFixHeaders()" id="btnFix" class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2" title="Perbaiki header & data bergeser">
-        <i class="fa-solid fa-wrench"></i> Perbaiki Kolom
       </button>
       <button onclick="toggleTrash()" id="btnTrash" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
         <i class="fa-solid fa-trash"></i> Tempat Sampah
@@ -298,8 +295,9 @@
     let currentData = [], filteredData = [], isTrashMode = false, currentPage = 1;
     const PER_PAGE = 15;
     let klasifikasiList = [];
-    let userRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
-    document.getElementById('userRole').textContent = userRole.toUpperCase();
+    let userRole = (localStorage.getItem('arsip_role') || localStorage.getItem('role') || 'superadmin').toLowerCase();
+    const roleEl = document.getElementById('userRole');
+    if (roleEl) roleEl.textContent = userRole.toUpperCase();
 
     function applyRoleUI() {
       document.querySelectorAll('#actionButtons button').forEach(btn => btn.style.display = '');
@@ -308,7 +306,7 @@
           if (!btn.innerText.includes('Sinkron')) btn.style.display = 'none';
         });
       } else if (userRole === 'admin') {
-        ['btnImport','btnExport','btnTrash','btnFix'].forEach(id => {
+        ['btnImport','btnExport','btnTrash'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.style.display = 'none';
         });
@@ -318,8 +316,11 @@
     async function apiGet(params = {}) {
       const url = new URL(GAS_BACKEND_URL);
       Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
-      const res = await fetch(url);
-      return res.json();
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' - cek deployment Apps Script (Anyone access?)');
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error('Respons bukan JSON. Deploy ulang web app & pastikan Execute as: Me, Who has access: Anyone.'); }
     }
     async function apiPost(body) {
       body.role = userRole;
@@ -352,27 +353,23 @@
 
     async function loadData() {
       const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat data...</td></tr>';
       try {
         const res = await apiGet({ action: 'getdata', trash: isTrashMode });
-        if (res.status !== 'success') throw new Error(res.message || 'Gagal memuat data');
+        if (!res || res.status !== 'success') throw new Error((res && res.message) || 'Gagal memuat data');
         applyRoleUI();
         currentData = res.data || [];
         filteredData = [...currentData];
         currentPage = 1;
         renderTable();
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-500">' + err.message + '</td></tr>';
+        console.error('loadData error:', err);
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-500">' +
+          '<div class="font-medium mb-1">Gagal memuat data</div>' +
+          '<div class="text-xs text-slate-500 max-w-lg mx-auto">' + (err.message || err) + '</div>' +
+          '<button onclick="loadData()" class="mt-3 px-3 py-1.5 bg-slate-600 text-white rounded text-xs">Coba lagi</button>' +
+          '</td></tr>';
       }
-    }
-
-    async function runFixHeaders() {
-      if (!confirm('Perbaiki header kolom & data yang bergeser di spreadsheet?\\nJalankan sekali setelah update backend.')) return;
-      try {
-        const res = await apiPost({ action: 'fixheaders' });
-        alert(res.message || (res.status === 'success' ? 'Berhasil' : 'Gagal'));
-        loadData();
-      } catch (e) { alert('Gagal: ' + e.message); }
     }
 
     async function loadKlasifikasi() {
