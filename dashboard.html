@@ -25,6 +25,46 @@
     <style>
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
         .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .cal-header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .cal-day {
+            transition: all 0.15s ease;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+        .cal-day:hover:not(.empty) { background: #fee2e2; }
+        .cal-day.today {
+            background: #dc2626 !important;
+            color: white !important;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(220,38,38,0.4);
+        }
+        .cal-day.selected {
+            outline: 2px solid #0284c7;
+            outline-offset: 1px;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .cal-day.holiday, .cal-day.sunday { color: #dc2626; font-weight: 700; }
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            background: #0284c7;
+            border-radius: 50%;
+        }
+        .cal-day.today.has-event::after { background: #fff; }
+        .cal-day.empty { cursor: default; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
@@ -261,48 +301,53 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Grafik -->
-                    <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                        <div class="flex items-center justify-between mb-4">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    <!-- Grafik (lebih kecil) -->
+                    <div class="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
                             <div>
-                                <h3 class="font-bold text-slate-800 text-base" id="chart-title">Statistik sipena.v2</h3>
-                                <p class="text-xs text-slate-500">Volumetri entri berkas per bulan dalam tahun ini</p>
+                                <h3 class="font-bold text-slate-800 text-sm" id="chart-title">Statistik sipena.v2</h3>
+                                <p class="text-[11px] text-slate-500">Volumetri entri per bulan</p>
                             </div>
-                            <select class="text-xs border border-slate-300 rounded-lg px-2.5 py-1 bg-slate-50 focus:outline-none">
+                            <select class="text-[11px] border border-slate-300 rounded-lg px-2 py-1 bg-slate-50 focus:outline-none">
                                 <option>Tahun 2026</option>
                                 <option>Tahun 2025</option>
                             </select>
                         </div>
-                        <div class="h-64 relative w-full">
+                        <div class="h-48 relative w-full">
                             <canvas id="arsipChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Kalender -->
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                        <div class="flex items-center justify-between mb-3 gap-2">
-                            <h3 class="font-bold text-slate-800 text-base shrink-0">Kalender Kegiatan</h3>
+                    <!-- Kalender (utama) - tema seperti agenda-aula -->
+                    <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                        <div class="cal-header px-3 py-2.5 flex items-center justify-between text-white">
+                            <button type="button" id="calPrevMonth" class="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition" title="Bulan sebelumnya">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                            </button>
+                            <div class="text-center">
+                                <div class="text-[10px] font-semibold uppercase tracking-widest opacity-90">Calendar</div>
+                                <div class="text-sm font-bold" id="calendar-month-label">-</div>
+                            </div>
                             <div class="flex items-center gap-1">
-                                <button type="button" id="calPrevMonth" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center" title="Bulan sebelumnya">
-                                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                                <button type="button" id="calTodayBtn" class="text-[10px] font-semibold px-2 py-1 rounded-lg bg-white/15 hover:bg-white/25" title="Hari ini">Hari ini</button>
+                                <button type="button" id="calNextMonth" class="w-8 h-8 rounded-lg hover:bg-white/20 flex items-center justify-center transition" title="Bulan berikutnya">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
                                 </button>
-                                <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full min-w-[110px] text-center" id="calendar-month-label">-</span>
-                                <button type="button" id="calNextMonth" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center" title="Bulan berikutnya">
-                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                                </button>
-                                <button type="button" id="calTodayBtn" class="ml-1 text-[10px] font-semibold px-2 py-1 rounded-lg border border-brand-200 text-brand-700 bg-brand-50 hover:bg-brand-100" title="Kembali ke hari ini">Hari ini</button>
                             </div>
                         </div>
-
-                        <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
-                            <span>Mg</span><span>Sn</span><span>Sl</span><span>Rb</span><span>Km</span><span>Jm</span><span>St</span>
+                        <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 border-b border-slate-100 py-1.5 px-1">
+                            <span class="text-red-500">Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
                         </div>
-                        <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-700 mb-4" id="calendarDays"></div>
-
-                        <div class="border-t border-slate-100 pt-3 space-y-2 flex-1 overflow-y-auto max-h-48" id="calendar-agenda-list">
-                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agenda Hari Ini:</p>
-                            <p class="text-xs text-slate-400" id="calendar-agenda-empty">Memuat agenda...</p>
+                        <div id="calendarDays" class="grid grid-cols-7 gap-0.5 p-2 content-start"></div>
+                        <div class="px-3 py-1.5 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-500">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> Libur / Minggu</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brand-600"></span> Ada agenda</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-red-600"></span> Hari ini</span>
+                        </div>
+                        <div class="border-t border-slate-100 px-3 pt-2 pb-3 space-y-2 flex-1 overflow-y-auto max-h-52" id="calendar-agenda-list">
+                            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agenda:</p>
+                            <p class="text-xs text-slate-400">Memuat agenda...</p>
                         </div>
                     </div>
                 </div>
@@ -321,8 +366,27 @@
         const currentNama = localStorage.getItem('arsip_nama') || currentUsername;
 
         const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
+        const AGENDA_AULA_GAS_URL = "https://script.google.com/macros/s/AKfycbz6UYIGVMYDWHx0JH2g836ABWLcNzCZof1DZX71Dad8Z-57ER4mLCZug20b7wJyywkUBg/exec";
         const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
         const bulanShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        // Hari libur nasional (cuplikan 2025-2027 + tetap)
+        const HOLIDAYS = {
+            '2025-01-01':'Tahun Baru','2025-01-27':'Isra Miraj','2025-01-29':'Tahun Baru Imlek',
+            '2025-03-29':'Hari Suci Nyepi','2025-03-31':'Idul Fitri','2025-04-01':'Idul Fitri',
+            '2025-04-18':'Wafat Isa Almasih','2025-05-01':'Hari Buruh','2025-05-12':'Hari Raya Waisak',
+            '2025-05-29':'Kenaikan Isa Almasih','2025-06-01':'Hari Lahir Pancasila','2025-06-06':'Idul Adha',
+            '2025-06-27':'Tahun Baru Islam','2025-08-17':'Hari Kemerdekaan RI','2025-09-05':'Maulid Nabi',
+            '2025-12-25':'Hari Natal',
+            '2026-01-01':'Tahun Baru','2026-01-16':'Isra Miraj','2026-02-17':'Tahun Baru Imlek',
+            '2026-03-19':'Hari Suci Nyepi','2026-03-20':'Idul Fitri','2026-03-21':'Idul Fitri',
+            '2026-04-03':'Wafat Isa Almasih','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Isa Almasih',
+            '2026-05-27':'Hari Raya Waisak','2026-05-28':'Idul Adha','2026-06-01':'Hari Lahir Pancasila',
+            '2026-06-16':'Tahun Baru Islam','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi',
+            '2026-12-25':'Hari Natal',
+            '2027-01-01':'Tahun Baru','2027-02-06':'Tahun Baru Imlek','2027-03-10':'Hari Suci Nyepi',
+            '2027-05-01':'Hari Buruh','2027-06-01':'Hari Lahir Pancasila','2027-08-17':'Hari Kemerdekaan RI',
+            '2027-12-25':'Hari Natal'
+        };
 
         let chartInstance = null;
         let calendarEvents = [];
@@ -354,7 +418,7 @@
         }
 
         function loadAgendaAulaLocal() {
-            const keys = ['gemini_agenda_aula_db','agenda_aula_db','arsip_agenda_aula','agenda_fasilitasi_aula','gemini_fasilitasi_aula_db'];
+            const keys = ['gemini_agenda_aula_db','agenda_aula_db','arsip_agenda_aula','agenda_fasilitasi_aula','gemini_fasilitasi_aula_db','agendaAulaData'];
             for (const k of keys) {
                 try {
                     const raw = localStorage.getItem(k);
@@ -365,6 +429,26 @@
                 } catch (e) {}
             }
             return [];
+        }
+
+        async function fetchAgendaAulaCloud() {
+            try {
+                const url = AGENDA_AULA_GAS_URL + (AGENDA_AULA_GAS_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=list';
+                const response = await fetch(url);
+                const json = await response.json();
+                let rows = [];
+                if (json && json.success && Array.isArray(json.data)) rows = json.data;
+                else if (json && json.status === 'success' && Array.isArray(json.data)) rows = json.data;
+                else if (Array.isArray(json)) rows = json;
+                else if (json && Array.isArray(json.data)) rows = json.data;
+                if (rows.length) {
+                    try { localStorage.setItem('gemini_agenda_aula_db', JSON.stringify(rows)); } catch (e) {}
+                }
+                return rows;
+            } catch (e) {
+                console.warn('Gagal fetch agenda aula:', e);
+                return loadAgendaAulaLocal();
+            }
         }
 
         function isAktif(item) {
@@ -418,30 +502,55 @@
             return series;
         }
 
+        function eachDateInRange(startIso, endIso, fn) {
+            const s = formatDateISO(startIso);
+            const e = formatDateISO(endIso || startIso) || s;
+            if (!s) return;
+            const start = new Date(s + 'T00:00:00');
+            const end = new Date(e + 'T00:00:00');
+            if (isNaN(start.getTime())) return;
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                fn(key);
+            }
+        }
+
         function collectCalendarEvents(dataSurat, dataAula) {
             const events = [];
-            (dataAula || []).forEach(a => {
-                const tgl = formatDateISO(a.tanggal || a.tanggal_kegiatan || a.tgl || a.date || a['Tanggal'] || a['Tanggal Kegiatan'] || '');
-                if (!tgl) return;
-                const title = a.judul || a.nama_kegiatan || a.perihal || a.kegiatan || a['Nama Kegiatan'] || a['Judul'] || 'Kegiatan Aula';
-                const time = a.waktu || a.jam || a.pukul || a['Waktu'] || a['Jam'] || '';
-                const place = a.tempat || a.lokasi || a.ruangan || a['Tempat'] || a['Ruangan'] || 'Aula';
-                events.push({ date: tgl, title: String(title), time: String(time), place: String(place), source: 'aula', link: '', nomor_surat: '' });
+            // 1) Agenda Fasilitasi Aula (tglMulai s.d. tglSelesai)
+            (dataAula || []).forEach(function(a) {
+                const start = a.tglMulai || a.tanggal || a.tanggal_kegiatan || a.tgl || a.date || a['Tanggal'] || a['Tanggal Mulai'] || '';
+                const end = a.tglSelesai || a.tanggal_selesai || a['Tanggal Selesai'] || start;
+                const title = a.perihal || a.judul || a.nama_kegiatan || a.kegiatan || a['Perihal'] || 'Kegiatan Aula';
+                const timeStart = a.waktuMulai || a.waktu || a.jam || '';
+                const timeEnd = a.waktuSelesai || '';
+                const time = timeStart ? (timeEnd ? (timeStart + ' - ' + timeEnd) : timeStart) : '';
+                const place = a.pelaksana || a.tempat || a.lokasi || 'Aula';
+                eachDateInRange(start, end, function(dateKey) {
+                    events.push({
+                        date: dateKey,
+                        title: String(title),
+                        time: String(time),
+                        place: String(place),
+                        source: 'aula',
+                        link: '',
+                        nomor_surat: '',
+                        indeks: ''
+                    });
+                });
             });
-            (dataSurat || []).filter(isAktif).forEach(s => {
+            // 2) Surat masuk: indeks undangan / pemberitahuan
+            (dataSurat || []).filter(isAktif).forEach(function(s) {
                 const indeks = String(s.indeks || s['Indeks'] || '').toLowerCase().trim();
                 if (!indeks) return;
-                if (!(indeks.includes('undangan') || indeks.includes('pemberitahuan'))) return;
+                if (!(indeks.indexOf('undangan') >= 0 || indeks.indexOf('pemberitahuan') >= 0)) return;
                 const tgl = formatDateISO(s.tanggal_kegiatan || s['Tanggal Kegiatan'] || s.tanggal_surat || s['Tanggal Surat'] || s.tanggal_terima || s['Tanggal Diterima'] || '');
                 if (!tgl) return;
                 const title = s.perihal || s['Perihal'] || s.isi_singkat || indeks;
                 const nomor = s.nomor_surat || s['Nomor Surat'] || '';
                 const fileUrl = s.file_url || s['File URL'] || s.fileUrl || '';
-                // Link prioritaskan file URL; jika tidak ada, buka halaman surat masuk dengan query nomor
                 let link = fileUrl || '';
-                if (!link && nomor) {
-                    link = 'surat-masuk.html?q=' + encodeURIComponent(nomor);
-                }
+                if (!link && nomor) link = 'surat-masuk.html?q=' + encodeURIComponent(nomor);
                 events.push({
                     date: tgl,
                     title: String(title),
@@ -453,7 +562,7 @@
                     indeks: indeks
                 });
             });
-            events.sort((a, b) => a.date.localeCompare(b.date));
+            events.sort(function(a, b) { return a.date.localeCompare(b.date); });
             return events;
         }
 
@@ -503,6 +612,9 @@
                 headerLabel = 'Agenda ' + parseInt(p[2],10) + ' ' + bulanIndo[parseInt(p[1],10)-1] + ' ' + p[0] + ':';
             }
             let html = '<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">' + headerLabel + '</p>';
+            if (HOLIDAYS[isoDate]) {
+                html += '<p class="text-[11px] font-semibold text-red-600 mb-1"><i class="fa-solid fa-calendar-day mr-1"></i>' + escapeHtml(HOLIDAYS[isoDate]) + '</p>';
+            }
             if (!items.length) {
                 html += '<p class="text-xs text-slate-400">Tidak ada agenda pada tanggal ini.</p>';
             } else {
@@ -546,40 +658,46 @@
             const todayY = now.getFullYear();
             const todayM = now.getMonth();
             const todayD = now.getDate();
+            const todayStr = todayY + '-' + String(todayM + 1).padStart(2, '0') + '-' + String(todayD).padStart(2, '0');
             const label = document.getElementById('calendar-month-label');
             if (label) label.textContent = bulanIndo[month] + ' ' + year;
-            const firstDay = new Date(year, month, 1);
-            const startDayOffset = firstDay.getDay();
+            const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const ymPrefix = year + '-' + String(month+1).padStart(2,'0');
-            const eventDays = new Set(
-                calendarEvents.filter(e => e.date.startsWith(ymPrefix)).map(e => parseInt(e.date.split('-')[2], 10))
-            );
-            // Jika selected date di luar bulan yang ditampilkan, pilih hari 1 atau hari ini
-            if (!selectedCalDate || !selectedCalDate.startsWith(ymPrefix)) {
+            const ymPrefix = year + '-' + String(month + 1).padStart(2, '0');
+            const eventDays = {};
+            calendarEvents.forEach(function(e) {
+                if (e.date && e.date.indexOf(ymPrefix) === 0) {
+                    eventDays[parseInt(e.date.split('-')[2], 10)] = true;
+                }
+            });
+            if (!selectedCalDate || selectedCalDate.indexOf(ymPrefix) !== 0) {
                 if (year === todayY && month === todayM) {
-                    selectedCalDate = ymPrefix + '-' + String(todayD).padStart(2,'0');
+                    selectedCalDate = todayStr;
                 } else {
                     selectedCalDate = ymPrefix + '-01';
                 }
             }
-            for (let i = 0; i < startDayOffset; i++) {
-                const empty = document.createElement('span');
-                empty.className = 'text-slate-300 py-1';
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'cal-day empty';
                 container.appendChild(empty);
             }
             for (let day = 1; day <= daysInMonth; day++) {
-                const iso = ymPrefix + '-' + String(day).padStart(2,'0');
-                const dayEl = document.createElement('span');
-                dayEl.innerText = day;
+                const iso = ymPrefix + '-' + String(day).padStart(2, '0');
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
                 dayEl.dataset.date = iso;
-                const isToday = (year === todayY && month === todayM && day === todayD);
-                const hasEvent = eventDays.has(day);
-                const isSelected = selectedCalDate === iso;
-                if (isSelected) dayEl.className = 'py-1 rounded-full bg-brand-600 text-white font-bold shadow-sm cursor-pointer';
-                else if (isToday) dayEl.className = 'py-1 rounded-full bg-brand-100 text-brand-800 font-bold cursor-pointer';
-                else if (hasEvent) dayEl.className = 'py-1 rounded-full bg-amber-100 text-amber-800 font-bold cursor-pointer';
-                else dayEl.className = 'py-1 rounded-full cursor-pointer hover:bg-slate-100 transition';
+                const dow = new Date(year, month, day).getDay();
+                let cls = 'cal-day';
+                if (dow === 0) cls += ' sunday';
+                if (HOLIDAYS[iso]) {
+                    cls += ' holiday';
+                    dayEl.title = HOLIDAYS[iso];
+                }
+                if (iso === todayStr) cls += ' today';
+                if (eventDays[day]) cls += ' has-event';
+                if (selectedCalDate === iso) cls += ' selected';
+                dayEl.className = cls;
                 dayEl.addEventListener('click', function() {
                     selectedCalDate = iso;
                     renderCalendar();
@@ -651,7 +769,11 @@
             } catch (e) {
                 console.warn('Sync surat masuk gagal, pakai lokal:', e);
             }
-            const dataAula = loadAgendaAulaLocal();
+            let dataAula = loadAgendaAulaLocal();
+            try {
+                const cloudAula = await fetchAgendaAulaCloud();
+                if (cloudAula && cloudAula.length) dataAula = cloudAula;
+            } catch (e) {}
             calendarEvents = collectCalendarEvents(dataSurat, dataAula);
             renderCalendar();
         }
