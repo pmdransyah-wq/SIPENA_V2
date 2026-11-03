@@ -1,1 +1,872 @@
-v
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - sipena.v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .cal-header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+        .cal-day {
+            transition: all 0.15s ease;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+        }
+        .cal-day:hover:not(.empty) { background: #fee2e2; }
+        .cal-day.today {
+            background: #dc2626 !important;
+            color: white !important;
+            font-weight: 700;
+            box-shadow: 0 1px 4px rgba(220,38,38,0.35);
+        }
+        .cal-day.selected {
+            outline: 2px solid #0284c7;
+            outline-offset: 0px;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .cal-day.holiday, .cal-day.sunday { color: #dc2626; font-weight: 700; }
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: #0284c7;
+            border-radius: 50%;
+        }
+        .cal-day.today.has-event::after { background: #fff; }
+        .cal-day.empty { cursor: default; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR LEFT MENU -->
+    <aside id="sidebar" class="w-72 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 shrink-0">
+        <!-- Logo & Title -->
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <a href="#" onclick="showDashboardHome()" class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-base leading-tight">sipena</h1>
+                    <p class="text-xs text-brand-400 font-medium" id="display-instansi-name">Memuat...</p>
+                </div>
+            </a>
+            <button id="closeSidebarMobile" class="md:hidden text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto sidebar-scroll p-3 space-y-1 text-sm">
+            <!-- 1. Dashboard -->
+            <a href="#" onclick="showDashboardHome()" id="nav-dashboard" class="flex items-center px-3 py-2.5 rounded-lg bg-brand-600 text-white font-medium shadow sidebar-nav-item">
+                <i class="fa-solid fa-chart-pie w-6"></i>
+                <span>Dashboard</span>
+            </a>
+
+            <!-- 2. Buku Agenda Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-agenda', 'arrow-agenda')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-book w-6 text-slate-400"></i>
+                        <span class="font-medium">Buku Agenda</span>
+                    </div>
+                    <i id="arrow-agenda" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-agenda" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('surat-masuk.html', 'Surat Masuk', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Surat Masuk</a>
+                    <a href="surat-keluar.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Keluar</a>
+                    <a href="javascript:void(0)" onclick="loadPage('nota-dinas.html', 'Nota Dinas', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Nota Dinas</a>
+                    <a href="no-sk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">No. SK</a>
+                    <a href="spk.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Perjanjian Kerja</a>
+                    <a href="sertifikat.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Sertifikat</a>
+                    <a href="surat-edaran.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Edaran</a>
+                    <a href="surat-tugas.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Surat Tugas</a>
+                    <a href="npd.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">NPD</a>
+                    <a href="sts.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">STS</a>
+                    <a href="bast.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">BAST</a>
+                    <a href="agenda-kegiatan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Agenda Kegiatan</a>
+                    <a href="javascript:void(0)" onclick="loadPage('agenda-aula.html', 'Agenda Fasilitasi Aula', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Agenda Fasilitasi Aula</a>
+                    <a href="buku-tamu.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Buku Tamu</a>
+                    <a href="javascript:void(0)" onclick="loadPage('buku-arsip.html', 'Buku Arsip', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Buku Arsip</a>
+                    <a href="javascript:void(0)" onclick="loadPage('buku-ekspedisi.html', 'Buku Ekspedisi', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Buku Ekspedisi</a>
+                </div>
+            </div>
+
+            <!-- 3. Jenis Arsip Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-jenis', 'arrow-jenis')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-folder-tree w-6 text-slate-400"></i>
+                        <span class="font-medium">Jenis Arsip</span>
+                    </div>
+                    <i id="arrow-jenis" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-jenis" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <div class="font-semibold text-slate-500 pt-1 pb-0.5 uppercase tracking-wider text-[10px]">Arsip Dinamis</div>
+                    <a href="arsip-aktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Aktif</a>
+                    <a href="arsip-inaktif.html" class="block py-1 px-2 rounded hover:text-white hover:bg-slate-800 pl-4">• Arsip Inaktif</a>
+                    <a href="arsip-statis.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Statis</a>
+                    <a href="arsip-vital.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Vital</a>
+                    <a href="arsip-foto.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Arsip Foto</a>
+                    <a href="alihmedia-arsip.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Alihmedia Arsip</a>
+                </div>
+            </div>
+
+            <!-- 4. Record Center -->
+            <a href="javascript:void(0)" onclick="loadPage('record-center.html', 'Record Center', this)" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition sidebar-nav-item">
+                <i class="fa-solid fa-server w-6 text-slate-400"></i>
+                <span class="font-medium">Record Center</span>
+            </a>
+
+            <!-- 5. Peminjaman Arsip -->
+            <a href="peminjaman.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-arrows-left-right-to-line w-6 text-slate-400"></i>
+                <span class="font-medium">Peminjaman Arsip</span>
+            </a>
+
+            <!-- 6. Penyusutan Arsip -->
+            <a href="penyusutan.html" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-file-circle-minus w-6 text-slate-400"></i>
+                <span class="font-medium">Penyusutan Arsip</span>
+            </a>
+
+            <!-- 7. Pedoman Submenu -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-pedoman', 'arrow-pedoman')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-book-bookmark w-6 text-slate-400"></i>
+                        <span class="font-medium">Pedoman</span>
+                    </div>
+                    <i id="arrow-pedoman" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-pedoman" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('master-jra.html', 'Master JRA', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Master JRA</a>
+                    <a href="javascript:void(0)" onclick="loadPage('kode-klasifikasi.html', 'Kode Klasifikasi', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Kode Klasifikasi</a>
+                    <a href="peraturan-kearsipan.html" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800">Peraturan Kearsipan</a>
+                </div>
+            </div>
+
+            <!-- 8. Menu Sampah -->
+            <a href="sampah.html" id="menu-sampah-link" class="flex items-center px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-trash-can w-6 text-slate-400"></i>
+                <span class="font-medium">Menu Sampah</span>
+            </a>
+
+            <!-- 9. Pengaturan Akun Submenu (Profil & Keamanan) -->
+            <div class="pt-1">
+                <button onclick="toggleSubmenu('submenu-profil', 'arrow-profil')" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-user-gear w-6 text-slate-400"></i>
+                        <span class="font-medium">Pengaturan Akun</span>
+                    </div>
+                    <i id="arrow-profil" class="fa-solid fa-chevron-right text-xs transition-transform duration-200"></i>
+                </button>
+                <div id="submenu-profil" class="hidden pl-8 pr-1 py-1 space-y-1 text-xs text-slate-400">
+                    <a href="javascript:void(0)" onclick="loadPage('Profil.html', 'Profil Instansi', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Profil Instansi</a>
+                    <a href="javascript:void(0)" onclick="loadPage('setelan-keamanan.html', 'Setelan & Keamanan System', this)" class="block py-1.5 px-2 rounded hover:text-white hover:bg-slate-800 sidebar-nav-item">Setelan & Keamanan</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- User Brief Footer -->
+        <div class="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-950/40">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-xs">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="text-xs">
+                    <p class="font-semibold text-white" id="user-display-name">Memuat...</p>
+                    <p class="text-[10px] text-brand-400 uppercase font-bold" id="user-role-display">USER</p>
+                </div>
+            </div>
+            <a href="javascript:void(0)" onclick="handleLogout()" title="Keluar Sistem" class="text-slate-400 hover:text-white text-sm">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <!-- RIGHT CONTENT AREA -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <!-- Top Navbar Header -->
+        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 md:px-6 z-20 shrink-0">
+            <div class="flex items-center space-x-3">
+                <button id="openSidebar" class="text-slate-600 hover:text-slate-900 md:hidden">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <h2 id="header-title" class="text-lg font-bold text-slate-800">Dashboard Utama</h2>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 shadow-inner font-mono text-sm tracking-wider" id="digital-clock" title="Jam digital">
+                    <i class="fa-regular fa-clock text-emerald-500/80 text-xs"></i>
+                    <span id="digital-clock-time">--:--:--</span>
+                    <span class="text-slate-500 text-[10px]" id="digital-clock-date"></span>
+                </div>
+                <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-3 py-1 rounded-full border border-brand-100" id="header-instansi-badge">
+                    Instansi: Memuat...
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content Wrapper -->
+        <div class="flex-1 relative w-full h-full overflow-hidden">
+            
+            <!-- 1. TAMPILAN DASHBOARD UTAMA -->
+            <main id="main-dashboard-content" class="h-full overflow-y-auto p-3 md:p-4 bg-slate-50 space-y-3">
+                
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-brand-700 to-indigo-800 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
+                    <div class="relative z-10 max-w-xl">
+                        <h2 class="text-lg font-bold mb-0.5">Selamat Datang di sipena.v2</h2>
+                        <p class="text-brand-100 text-xs sm:text-sm">Data statistik ini dikhususkan untuk instansi: <span class="font-bold underline" id="welcome-instansi-text">Memuat...</span></p>
+                    </div>
+                    <i class="fa-solid fa-chart-line absolute -right-4 -bottom-6 text-white/10 text-9xl pointer-events-none"></i>
+                </div>
+
+                <!-- Stats KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Total Surat Masuk</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1" id="kpi-surat-masuk">-</h3>
+                            <span class="text-xs text-emerald-600 font-medium" id="kpi-surat-masuk-sub"><i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Memuat data...</span>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-50 text-brand-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-inbox"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Total Surat Keluar</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">980</h3>
+                            <span class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-arrow-up text-[10px]"></i> +8% bulan ini</span>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Peminjaman Aktif</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">38</h3>
+                            <span class="text-xs text-amber-600 font-medium"><i class="fa-solid fa-clock text-[10px]"></i> 5 Jatuh Tempo</span>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-arrows-left-right-to-line"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase">Kapasitas Simpan</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mt-1">72.4 GB</h3>
+                            <span class="text-xs text-slate-500">Dari total 100 GB</span>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-hard-drive"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                    <!-- Grafik (lebih kecil) -->
+                    <div class="lg:col-span-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm" id="chart-title">Statistik sipena.v2</h3>
+                                <p class="text-[11px] text-slate-500">Volumetri entri per bulan</p>
+                            </div>
+                            <select class="text-[11px] border border-slate-300 rounded-lg px-2 py-1 bg-slate-50 focus:outline-none">
+                                <option>Tahun 2026</option>
+                                <option>Tahun 2025</option>
+                            </select>
+                        </div>
+                        <div class="h-36 relative w-full">
+                            <canvas id="arsipChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Kalender (utama) - tema seperti agenda-aula -->
+                    <div class="lg:col-span-3 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                        <div class="cal-header px-2.5 py-1.5 flex items-center justify-between text-white">
+                            <button type="button" id="calPrevMonth" class="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center transition" title="Bulan sebelumnya">
+                                <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                            </button>
+                            <div class="text-center">
+                                <div class="text-[9px] font-semibold uppercase tracking-widest opacity-90">Calendar</div>
+                                <div class="text-xs font-bold leading-tight" id="calendar-month-label">-</div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button type="button" id="calTodayBtn" class="text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-white/15 hover:bg-white/25" title="Hari ini">Hari ini</button>
+                                <button type="button" id="calNextMonth" class="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center transition" title="Bulan berikutnya">
+                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400 border-b border-slate-100 py-1 px-1">
+                            <span class="text-red-500">Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+                        </div>
+                        <div id="calendarDays" class="grid grid-cols-7 gap-0.5 px-1.5 py-1 content-start"></div>
+                        <div class="px-2 py-1 border-t border-slate-100 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-slate-500">
+                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Libur</span>
+                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-brand-600"></span> Agenda</span>
+                            <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded bg-red-600"></span> Hari ini</span>
+                        </div>
+                        <div class="border-t border-slate-100 px-2.5 pt-1.5 pb-2 space-y-1.5 overflow-y-auto max-h-28" id="calendar-agenda-list">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Agenda:</p>
+                            <p class="text-[11px] text-slate-400">Memuat agenda...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 2. CONTAINER IFRAME UNTUK HALAMAN LUAR -->
+            <iframe id="iframe-content" class="w-full h-full border-0 hidden"></iframe>
+
+        </div>
+    </div>
+
+    <script>
+        const currentRole = localStorage.getItem('arsip_role') || 'umum';
+        const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+        const currentUsername = localStorage.getItem('arsip_username') || 'Pengguna';
+        const currentNama = localStorage.getItem('arsip_nama') || currentUsername;
+
+        const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
+        const AGENDA_AULA_GAS_URL = "https://script.google.com/macros/s/AKfycbz6UYIGVMYDWHx0JH2g836ABWLcNzCZof1DZX71Dad8Z-57ER4mLCZug20b7wJyywkUBg/exec";
+        const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        const bulanShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        // Hari libur nasional (cuplikan 2025-2027 + tetap)
+        const HOLIDAYS = {
+            '2025-01-01':'Tahun Baru','2025-01-27':'Isra Miraj','2025-01-29':'Tahun Baru Imlek',
+            '2025-03-29':'Hari Suci Nyepi','2025-03-31':'Idul Fitri','2025-04-01':'Idul Fitri',
+            '2025-04-18':'Wafat Isa Almasih','2025-05-01':'Hari Buruh','2025-05-12':'Hari Raya Waisak',
+            '2025-05-29':'Kenaikan Isa Almasih','2025-06-01':'Hari Lahir Pancasila','2025-06-06':'Idul Adha',
+            '2025-06-27':'Tahun Baru Islam','2025-08-17':'Hari Kemerdekaan RI','2025-09-05':'Maulid Nabi',
+            '2025-12-25':'Hari Natal',
+            '2026-01-01':'Tahun Baru','2026-01-16':'Isra Miraj','2026-02-17':'Tahun Baru Imlek',
+            '2026-03-19':'Hari Suci Nyepi','2026-03-20':'Idul Fitri','2026-03-21':'Idul Fitri',
+            '2026-04-03':'Wafat Isa Almasih','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Isa Almasih',
+            '2026-05-27':'Hari Raya Waisak','2026-05-28':'Idul Adha','2026-06-01':'Hari Lahir Pancasila',
+            '2026-06-16':'Tahun Baru Islam','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi',
+            '2026-12-25':'Hari Natal',
+            '2027-01-01':'Tahun Baru','2027-02-06':'Tahun Baru Imlek','2027-03-10':'Hari Suci Nyepi',
+            '2027-05-01':'Hari Buruh','2027-06-01':'Hari Lahir Pancasila','2027-08-17':'Hari Kemerdekaan RI',
+            '2027-12-25':'Hari Natal'
+        };
+
+        let chartInstance = null;
+        let calendarEvents = [];
+        let selectedCalDate = null;
+        const _nowInit = new Date();
+        let calViewYear = _nowInit.getFullYear();
+        let calViewMonth = _nowInit.getMonth(); // 0-based
+
+        function formatDateISO(dateStr) {
+            if (!dateStr) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+            const dmy = String(dateStr).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (dmy) return dmy[3] + '-' + dmy[2].padStart(2,'0') + '-' + dmy[1].padStart(2,'0');
+            const indo = String(dateStr).match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+            if (indo) {
+                const mIdx = bulanIndo.findIndex(b => b.toLowerCase() === indo[2].toLowerCase());
+                if (mIdx >= 0) return indo[3] + '-' + String(mIdx+1).padStart(2,'0') + '-' + indo[1].padStart(2,'0');
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+            return '';
+        }
+
+        function loadSuratMasukLocal() {
+            try { return JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]'); }
+            catch (e) { return []; }
+        }
+
+        function loadAgendaAulaLocal() {
+            const keys = ['gemini_agenda_aula_db','agenda_aula_db','arsip_agenda_aula','agenda_fasilitasi_aula','gemini_fasilitasi_aula_db','agendaAulaData'];
+            for (const k of keys) {
+                try {
+                    const raw = localStorage.getItem(k);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    const rows = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.data) ? parsed.data : null);
+                    if (rows && rows.length) return rows;
+                } catch (e) {}
+            }
+            return [];
+        }
+
+        async function fetchAgendaAulaCloud() {
+            try {
+                const url = AGENDA_AULA_GAS_URL + (AGENDA_AULA_GAS_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=list';
+                const response = await fetch(url);
+                const json = await response.json();
+                let rows = [];
+                if (json && json.success && Array.isArray(json.data)) rows = json.data;
+                else if (json && json.status === 'success' && Array.isArray(json.data)) rows = json.data;
+                else if (Array.isArray(json)) rows = json;
+                else if (json && Array.isArray(json.data)) rows = json.data;
+                if (rows.length) {
+                    try { localStorage.setItem('gemini_agenda_aula_db', JSON.stringify(rows)); } catch (e) {}
+                }
+                return rows;
+            } catch (e) {
+                console.warn('Gagal fetch agenda aula:', e);
+                return loadAgendaAulaLocal();
+            }
+        }
+
+        function isAktif(item) {
+            const st = (item.status_arsip || item.status || 'aktif').toString().toLowerCase();
+            return st !== 'sampah' && st !== 'trash' && st !== 'deleted';
+        }
+
+        function updateKpiSuratMasuk(dataSurat) {
+            const aktif = (dataSurat || []).filter(isAktif);
+            const total = aktif.length;
+            const el = document.getElementById('kpi-surat-masuk');
+            const sub = document.getElementById('kpi-surat-masuk-sub');
+            if (el) el.textContent = total.toLocaleString('id-ID');
+
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const prevM = m === 1 ? 12 : m - 1;
+            const prevY = m === 1 ? y - 1 : y;
+            let thisMonth = 0, prevMonth = 0;
+            aktif.forEach(item => {
+                const tgl = formatDateISO(item.tanggal_terima || item.tanggal_surat || item['Tanggal Diterima'] || item['Tanggal Surat'] || '');
+                if (!tgl) return;
+                const parts = tgl.split('-').map(Number);
+                const yy = parts[0], mm = parts[1];
+                if (yy === y && mm === m) thisMonth++;
+                if (yy === prevY && mm === prevM) prevMonth++;
+            });
+            if (sub) {
+                if (prevMonth > 0) {
+                    const pct = Math.round(((thisMonth - prevMonth) / prevMonth) * 100);
+                    const up = pct >= 0;
+                    sub.innerHTML = '<i class="fa-solid fa-arrow-' + (up ? 'up' : 'down') + ' text-[10px]"></i> ' + (up ? '+' : '') + pct + '% bulan ini (' + thisMonth + ' entri)';
+                    sub.className = 'text-xs font-medium ' + (up ? 'text-emerald-600' : 'text-rose-600');
+                } else {
+                    sub.innerHTML = '<i class="fa-solid fa-calendar text-[10px]"></i> ' + thisMonth + ' entri bulan ini';
+                    sub.className = 'text-xs text-slate-500 font-medium';
+                }
+            }
+        }
+
+        function buildMonthlySeries(dataSurat, year) {
+            const series = Array(12).fill(0);
+            (dataSurat || []).filter(isAktif).forEach(item => {
+                const tgl = formatDateISO(item.tanggal_terima || item.tanggal_surat || item['Tanggal Diterima'] || item['Tanggal Surat'] || '');
+                if (!tgl) return;
+                const parts = tgl.split('-').map(Number);
+                const yy = parts[0], mm = parts[1];
+                if (yy === year && mm >= 1 && mm <= 12) series[mm - 1]++;
+            });
+            return series;
+        }
+
+        function eachDateInRange(startIso, endIso, fn) {
+            const s = formatDateISO(startIso);
+            const e = formatDateISO(endIso || startIso) || s;
+            if (!s) return;
+            const start = new Date(s + 'T00:00:00');
+            const end = new Date(e + 'T00:00:00');
+            if (isNaN(start.getTime())) return;
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                fn(key);
+            }
+        }
+
+        function collectCalendarEvents(dataSurat, dataAula) {
+            const events = [];
+            // 1) Agenda Fasilitasi Aula (tglMulai s.d. tglSelesai)
+            (dataAula || []).forEach(function(a) {
+                const start = a.tglMulai || a.tanggal || a.tanggal_kegiatan || a.tgl || a.date || a['Tanggal'] || a['Tanggal Mulai'] || '';
+                const end = a.tglSelesai || a.tanggal_selesai || a['Tanggal Selesai'] || start;
+                const title = a.perihal || a.judul || a.nama_kegiatan || a.kegiatan || a['Perihal'] || 'Kegiatan Aula';
+                const timeStart = a.waktuMulai || a.waktu || a.jam || '';
+                const timeEnd = a.waktuSelesai || '';
+                const time = timeStart ? (timeEnd ? (timeStart + ' - ' + timeEnd) : timeStart) : '';
+                const place = a.pelaksana || a.tempat || a.lokasi || 'Aula';
+                eachDateInRange(start, end, function(dateKey) {
+                    events.push({
+                        date: dateKey,
+                        title: String(title),
+                        time: String(time),
+                        place: String(place),
+                        source: 'aula',
+                        link: '',
+                        nomor_surat: '',
+                        indeks: ''
+                    });
+                });
+            });
+            // 2) Surat masuk: indeks undangan / pemberitahuan
+            (dataSurat || []).filter(isAktif).forEach(function(s) {
+                const indeks = String(s.indeks || s['Indeks'] || '').toLowerCase().trim();
+                if (!indeks) return;
+                if (!(indeks.indexOf('undangan') >= 0 || indeks.indexOf('pemberitahuan') >= 0)) return;
+                const tgl = formatDateISO(s.tanggal_kegiatan || s['Tanggal Kegiatan'] || s.tanggal_surat || s['Tanggal Surat'] || s.tanggal_terima || s['Tanggal Diterima'] || '');
+                if (!tgl) return;
+                const title = s.perihal || s['Perihal'] || s.isi_singkat || indeks;
+                const nomor = s.nomor_surat || s['Nomor Surat'] || '';
+                const fileUrl = s.file_url || s['File URL'] || s.fileUrl || '';
+                let link = fileUrl || '';
+                if (!link && nomor) link = 'surat-masuk.html?q=' + encodeURIComponent(nomor);
+                events.push({
+                    date: tgl,
+                    title: String(title),
+                    time: '',
+                    place: s.pengirim || s['Pengirim / Instansi'] || '',
+                    source: 'surat',
+                    link: link,
+                    nomor_surat: String(nomor),
+                    indeks: indeks
+                });
+            });
+            events.sort(function(a, b) { return a.date.localeCompare(b.date); });
+            return events;
+        }
+
+        function renderChart(dataSurat) {
+            const canvasEl = document.getElementById('arsipChart');
+            if (!canvasEl) return;
+            const year = new Date().getFullYear();
+            const masukSeries = buildMonthlySeries(dataSurat, year);
+            const keluarSeries = Array(12).fill(0);
+            if (chartInstance) { try { chartInstance.destroy(); } catch (e) {} }
+            const ctx = canvasEl.getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: bulanShort,
+                    datasets: [
+                        { label: 'Surat Masuk', data: masukSeries, borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Surat Keluar', data: keluarSeries, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+                    scales: {
+                        y: { grid: { borderDash: [2, 4] }, ticks: { font: { size: 10 } }, beginAtZero: true },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function renderAgendaList(isoDate) {
+            const box = document.getElementById('calendar-agenda-list');
+            if (!box) return;
+            const items = calendarEvents.filter(e => e.date === isoDate);
+            const now = new Date();
+            const todayIso = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            let headerLabel = 'Agenda Hari Ini:';
+            if (isoDate !== todayIso) {
+                const p = isoDate.split('-');
+                headerLabel = 'Agenda ' + parseInt(p[2],10) + ' ' + bulanIndo[parseInt(p[1],10)-1] + ' ' + p[0] + ':';
+            }
+            let html = '<p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">' + headerLabel + '</p>';
+            if (HOLIDAYS[isoDate]) {
+                html += '<p class="text-[11px] font-semibold text-red-600 mb-1"><i class="fa-solid fa-calendar-day mr-1"></i>' + escapeHtml(HOLIDAYS[isoDate]) + '</p>';
+            }
+            if (!items.length) {
+                html += '<p class="text-xs text-slate-400">Tidak ada agenda pada tanggal ini.</p>';
+            } else {
+                items.forEach(ev => {
+                    const isSurat = ev.source === 'surat';
+                    const borderCls = isSurat ? 'border-amber-500 bg-amber-50/70' : 'border-brand-600 bg-brand-50/70';
+                    const badge = isSurat
+                        ? '<span class="text-[10px] font-semibold text-amber-700 uppercase">' + escapeHtml(ev.indeks || 'Surat') + '</span>'
+                        : '<span class="text-[10px] font-semibold text-brand-700">Aula</span>';
+                    const timeHtml = ev.time
+                        ? '<span><i class="fa-regular fa-clock mr-1"></i>' + escapeHtml(ev.time) + '</span>'
+                        : '<span class="text-slate-400">—</span>';
+                    let linkHtml = '';
+                    if (isSurat && ev.link) {
+                        const label = ev.nomor_surat ? escapeHtml(ev.nomor_surat) : 'Lihat surat';
+                        linkHtml = '<a href="' + escapeHtml(ev.link) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline">'
+                            + '<i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> ' + label + '</a>';
+                    } else if (isSurat && ev.nomor_surat) {
+                        linkHtml = '<span class="inline-block mt-1.5 text-[11px] text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>' + escapeHtml(ev.nomor_surat) + '</span>';
+                    }
+                    html += '<div class="p-2.5 ' + borderCls + ' border-l-4 rounded-r-lg text-xs">'
+                        + '<div class="font-bold text-slate-800">' + escapeHtml(ev.title) + '</div>'
+                        + '<div class="text-slate-500 flex items-center justify-between mt-1 gap-2">'
+                        + timeHtml
+                        + '<span class="font-semibold text-slate-600 truncate">' + escapeHtml(ev.place || '') + '</span>'
+                        + badge + '</div>'
+                        + linkHtml
+                        + '</div>';
+                });
+            }
+            box.innerHTML = html;
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendarDays');
+            if (!container) return;
+            container.innerHTML = '';
+            const year = calViewYear;
+            const month = calViewMonth;
+            const now = new Date();
+            const todayY = now.getFullYear();
+            const todayM = now.getMonth();
+            const todayD = now.getDate();
+            const todayStr = todayY + '-' + String(todayM + 1).padStart(2, '0') + '-' + String(todayD).padStart(2, '0');
+            const label = document.getElementById('calendar-month-label');
+            if (label) label.textContent = bulanIndo[month] + ' ' + year;
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const ymPrefix = year + '-' + String(month + 1).padStart(2, '0');
+            const eventDays = {};
+            calendarEvents.forEach(function(e) {
+                if (e.date && e.date.indexOf(ymPrefix) === 0) {
+                    eventDays[parseInt(e.date.split('-')[2], 10)] = true;
+                }
+            });
+            if (!selectedCalDate || selectedCalDate.indexOf(ymPrefix) !== 0) {
+                if (year === todayY && month === todayM) {
+                    selectedCalDate = todayStr;
+                } else {
+                    selectedCalDate = ymPrefix + '-01';
+                }
+            }
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'cal-day empty';
+                container.appendChild(empty);
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const iso = ymPrefix + '-' + String(day).padStart(2, '0');
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
+                dayEl.dataset.date = iso;
+                const dow = new Date(year, month, day).getDay();
+                let cls = 'cal-day';
+                if (dow === 0) cls += ' sunday';
+                if (HOLIDAYS[iso]) {
+                    cls += ' holiday';
+                    dayEl.title = HOLIDAYS[iso];
+                }
+                if (iso === todayStr) cls += ' today';
+                if (eventDays[day]) cls += ' has-event';
+                if (selectedCalDate === iso) cls += ' selected';
+                dayEl.className = cls;
+                dayEl.addEventListener('click', function() {
+                    selectedCalDate = iso;
+                    renderCalendar();
+                    renderAgendaList(iso);
+                });
+                container.appendChild(dayEl);
+            }
+            renderAgendaList(selectedCalDate);
+        }
+
+        function shiftCalendarMonth(delta) {
+            calViewMonth += delta;
+            if (calViewMonth < 0) { calViewMonth = 11; calViewYear -= 1; }
+            if (calViewMonth > 11) { calViewMonth = 0; calViewYear += 1; }
+            selectedCalDate = null;
+            renderCalendar();
+        }
+
+        function goCalendarToday() {
+            const now = new Date();
+            calViewYear = now.getFullYear();
+            calViewMonth = now.getMonth();
+            selectedCalDate = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            renderCalendar();
+        }
+
+        function updateDigitalClock() {
+            const timeEl = document.getElementById('digital-clock-time');
+            const dateEl = document.getElementById('digital-clock-date');
+            if (!timeEl) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = hh + ':' + mm + ':' + ss;
+            if (dateEl) {
+                const hari = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'][now.getDay()];
+                dateEl.textContent = hari + ', ' + now.getDate() + ' ' + bulanShort[now.getMonth()];
+            }
+        }
+
+        async function refreshDashboardData() {
+            let dataSurat = loadSuratMasukLocal();
+            updateKpiSuratMasuk(dataSurat);
+            renderChart(dataSurat);
+            try {
+                const response = await fetch(SURAT_MASUK_GAS_URL);
+                const res = await response.json();
+                if (res.status === 'success' && Array.isArray(res.data)) {
+                    dataSurat = res.data.map(function(item, idx) {
+                        return {
+                            id: item.ID || item.id || ('surat-' + idx),
+                            nomor_surat: item['Nomor Surat'] || '',
+                            tanggal_surat: item['Tanggal Surat'] || '',
+                            tanggal_terima: item['Tanggal Diterima'] || '',
+                            tanggal_kegiatan: item['Tanggal Kegiatan'] || '',
+                            pengirim: item['Pengirim / Instansi'] || '',
+                            perihal: item['Perihal'] || '',
+                            indeks: item['Indeks'] || '',
+                            file_url: item['File URL'] || item['File Url'] || '',
+                            nomor_surat: item['Nomor Surat'] || '',
+                            status_arsip: item['Status Arsip'] || 'aktif'
+                        };
+                    });
+                    localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
+                    updateKpiSuratMasuk(dataSurat);
+                    renderChart(dataSurat);
+                }
+            } catch (e) {
+                console.warn('Sync surat masuk gagal, pakai lokal:', e);
+            }
+            let dataAula = loadAgendaAulaLocal();
+            try {
+                const cloudAula = await fetchAgendaAulaCloud();
+                if (cloudAula && cloudAula.length) dataAula = cloudAula;
+            } catch (e) {}
+            calendarEvents = collectCalendarEvents(dataSurat, dataAula);
+            renderCalendar();
+        }
+
+        window.onload = function() {
+            if (localStorage.getItem('arsip_logged_in') !== 'true') {
+                window.location.href = 'login.html';
+                return;
+            }
+            var displayInstansi = document.getElementById('display-instansi-name');
+            if (displayInstansi) displayInstansi.innerText = currentInstansi;
+            var headerBadge = document.getElementById('header-instansi-badge');
+            if (headerBadge) headerBadge.innerText = 'Instansi: ' + currentInstansi;
+            var welcomeText = document.getElementById('welcome-instansi-text');
+            if (welcomeText) welcomeText.innerText = currentInstansi;
+            var userNameDisplay = document.getElementById('user-display-name');
+            if (userNameDisplay) userNameDisplay.innerText = currentNama;
+            var userRoleDisplay = document.getElementById('user-role-display');
+            if (userRoleDisplay) userRoleDisplay.innerText = currentRole.toUpperCase();
+            var menuSampah = document.getElementById('menu-sampah-link');
+            if (menuSampah && currentRole.toLowerCase() === 'umum') menuSampah.classList.add('hidden');
+            var chartTitle = document.getElementById('chart-title');
+            if (chartTitle) chartTitle.innerText = 'Statistik Sistem sipena.v2 (' + currentInstansi + ')';
+
+            var localSurat = loadSuratMasukLocal();
+            updateKpiSuratMasuk(localSurat);
+            renderChart(localSurat);
+            calendarEvents = collectCalendarEvents(localSurat, loadAgendaAulaLocal());
+            renderCalendar();
+            refreshDashboardData();
+
+            // Navigasi bulan kalender
+            var btnPrev = document.getElementById('calPrevMonth');
+            var btnNext = document.getElementById('calNextMonth');
+            var btnToday = document.getElementById('calTodayBtn');
+            if (btnPrev) btnPrev.addEventListener('click', function() { shiftCalendarMonth(-1); });
+            if (btnNext) btnNext.addEventListener('click', function() { shiftCalendarMonth(1); });
+            if (btnToday) btnToday.addEventListener('click', goCalendarToday);
+
+            // Jam digital
+            updateDigitalClock();
+            setInterval(updateDigitalClock, 1000);
+        };
+
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function toggleSubmenu(menuId, arrowId) {
+            var menu = document.getElementById(menuId);
+            var arrow = document.getElementById(arrowId);
+            menu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-90');
+        }
+
+        function loadPage(pageUrl, pageTitle, element) {
+            var dashboardMain = document.getElementById('main-dashboard-content');
+            var iframe = document.getElementById('iframe-content');
+            var headerTitle = document.getElementById('header-title');
+            dashboardMain.classList.add('hidden');
+            iframe.classList.remove('hidden');
+            iframe.src = pageUrl;
+            headerTitle.innerText = pageTitle;
+            document.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
+                item.classList.remove('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+                item.classList.add('text-slate-300');
+            });
+            if (element) element.classList.add('text-white', 'font-bold');
+        }
+
+        function showDashboardHome() {
+            var dashboardMain = document.getElementById('main-dashboard-content');
+            var iframe = document.getElementById('iframe-content');
+            var headerTitle = document.getElementById('header-title');
+            iframe.classList.add('hidden');
+            iframe.src = '';
+            dashboardMain.classList.remove('hidden');
+            headerTitle.innerText = 'Dashboard Utama';
+            document.querySelectorAll('.sidebar-nav-item').forEach(function(item) {
+                item.classList.remove('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+            });
+            var dashBtn = document.getElementById('nav-dashboard');
+            if (dashBtn) dashBtn.classList.add('bg-brand-600', 'text-white', 'shadow', 'font-medium');
+            refreshDashboardData();
+        }
+
+        var sidebar = document.getElementById('sidebar');
+        var openSidebarBtn = document.getElementById('openSidebar');
+        var closeSidebarBtn = document.getElementById('closeSidebarMobile');
+        if (openSidebarBtn) openSidebarBtn.addEventListener('click', function() { sidebar.classList.remove('-translate-x-full'); });
+        if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', function() { sidebar.classList.add('-translate-x-full'); });
+    </script>
+</body>
+</html>
+
