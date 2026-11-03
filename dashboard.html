@@ -188,6 +188,11 @@
                 <h2 id="header-title" class="text-lg font-bold text-slate-800">Dashboard Utama</h2>
             </div>
             <div class="flex items-center space-x-3">
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 shadow-inner font-mono text-sm tracking-wider" id="digital-clock" title="Jam digital">
+                    <i class="fa-regular fa-clock text-emerald-500/80 text-xs"></i>
+                    <span id="digital-clock-time">--:--:--</span>
+                    <span class="text-slate-500 text-[10px]" id="digital-clock-date"></span>
+                </div>
                 <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-3 py-1 rounded-full border border-brand-100" id="header-instansi-badge">
                     Instansi: Memuat...
                 </span>
@@ -276,9 +281,18 @@
 
                     <!-- Kalender -->
                     <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-bold text-slate-800 text-base">Kalender Kegiatan</h3>
-                            <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full" id="calendar-month-label">-</span>
+                        <div class="flex items-center justify-between mb-3 gap-2">
+                            <h3 class="font-bold text-slate-800 text-base shrink-0">Kalender Kegiatan</h3>
+                            <div class="flex items-center gap-1">
+                                <button type="button" id="calPrevMonth" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center" title="Bulan sebelumnya">
+                                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                                </button>
+                                <span class="text-xs font-semibold bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full min-w-[110px] text-center" id="calendar-month-label">-</span>
+                                <button type="button" id="calNextMonth" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center" title="Bulan berikutnya">
+                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                </button>
+                                <button type="button" id="calTodayBtn" class="ml-1 text-[10px] font-semibold px-2 py-1 rounded-lg border border-brand-200 text-brand-700 bg-brand-50 hover:bg-brand-100" title="Kembali ke hari ini">Hari ini</button>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-400 mb-2">
@@ -286,7 +300,7 @@
                         </div>
                         <div class="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-700 mb-4" id="calendarDays"></div>
 
-                        <div class="border-t border-slate-100 pt-3 space-y-2 flex-1 overflow-y-auto" id="calendar-agenda-list">
+                        <div class="border-t border-slate-100 pt-3 space-y-2 flex-1 overflow-y-auto max-h-48" id="calendar-agenda-list">
                             <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Agenda Hari Ini:</p>
                             <p class="text-xs text-slate-400" id="calendar-agenda-empty">Memuat agenda...</p>
                         </div>
@@ -313,6 +327,9 @@
         let chartInstance = null;
         let calendarEvents = [];
         let selectedCalDate = null;
+        const _nowInit = new Date();
+        let calViewYear = _nowInit.getFullYear();
+        let calViewMonth = _nowInit.getMonth(); // 0-based
 
         function formatDateISO(dateStr) {
             if (!dateStr) return '';
@@ -409,7 +426,7 @@
                 const title = a.judul || a.nama_kegiatan || a.perihal || a.kegiatan || a['Nama Kegiatan'] || a['Judul'] || 'Kegiatan Aula';
                 const time = a.waktu || a.jam || a.pukul || a['Waktu'] || a['Jam'] || '';
                 const place = a.tempat || a.lokasi || a.ruangan || a['Tempat'] || a['Ruangan'] || 'Aula';
-                events.push({ date: tgl, title: String(title), time: String(time), place: String(place), source: 'aula' });
+                events.push({ date: tgl, title: String(title), time: String(time), place: String(place), source: 'aula', link: '', nomor_surat: '' });
             });
             (dataSurat || []).filter(isAktif).forEach(s => {
                 const indeks = String(s.indeks || s['Indeks'] || '').toLowerCase().trim();
@@ -418,7 +435,23 @@
                 const tgl = formatDateISO(s.tanggal_kegiatan || s['Tanggal Kegiatan'] || s.tanggal_surat || s['Tanggal Surat'] || s.tanggal_terima || s['Tanggal Diterima'] || '');
                 if (!tgl) return;
                 const title = s.perihal || s['Perihal'] || s.isi_singkat || indeks;
-                events.push({ date: tgl, title: String(title), time: '', place: s.pengirim || s['Pengirim / Instansi'] || '', source: 'surat' });
+                const nomor = s.nomor_surat || s['Nomor Surat'] || '';
+                const fileUrl = s.file_url || s['File URL'] || s.fileUrl || '';
+                // Link prioritaskan file URL; jika tidak ada, buka halaman surat masuk dengan query nomor
+                let link = fileUrl || '';
+                if (!link && nomor) {
+                    link = 'surat-masuk.html?q=' + encodeURIComponent(nomor);
+                }
+                events.push({
+                    date: tgl,
+                    title: String(title),
+                    time: '',
+                    place: s.pengirim || s['Pengirim / Instansi'] || '',
+                    source: 'surat',
+                    link: link,
+                    nomor_surat: String(nomor),
+                    indeks: indeks
+                });
             });
             events.sort((a, b) => a.date.localeCompare(b.date));
             return events;
@@ -474,18 +507,30 @@
                 html += '<p class="text-xs text-slate-400">Tidak ada agenda pada tanggal ini.</p>';
             } else {
                 items.forEach(ev => {
-                    const badge = ev.source === 'aula'
-                        ? '<span class="text-[10px] font-semibold text-brand-700">Aula</span>'
-                        : '<span class="text-[10px] font-semibold text-amber-700">Surat</span>';
+                    const isSurat = ev.source === 'surat';
+                    const borderCls = isSurat ? 'border-amber-500 bg-amber-50/70' : 'border-brand-600 bg-brand-50/70';
+                    const badge = isSurat
+                        ? '<span class="text-[10px] font-semibold text-amber-700 uppercase">' + escapeHtml(ev.indeks || 'Surat') + '</span>'
+                        : '<span class="text-[10px] font-semibold text-brand-700">Aula</span>';
                     const timeHtml = ev.time
                         ? '<span><i class="fa-regular fa-clock mr-1"></i>' + escapeHtml(ev.time) + '</span>'
                         : '<span class="text-slate-400">—</span>';
-                    html += '<div class="p-2.5 bg-brand-50/70 border-l-4 border-brand-600 rounded-r-lg text-xs">'
+                    let linkHtml = '';
+                    if (isSurat && ev.link) {
+                        const label = ev.nomor_surat ? escapeHtml(ev.nomor_surat) : 'Lihat surat';
+                        linkHtml = '<a href="' + escapeHtml(ev.link) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline">'
+                            + '<i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> ' + label + '</a>';
+                    } else if (isSurat && ev.nomor_surat) {
+                        linkHtml = '<span class="inline-block mt-1.5 text-[11px] text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>' + escapeHtml(ev.nomor_surat) + '</span>';
+                    }
+                    html += '<div class="p-2.5 ' + borderCls + ' border-l-4 rounded-r-lg text-xs">'
                         + '<div class="font-bold text-slate-800">' + escapeHtml(ev.title) + '</div>'
                         + '<div class="text-slate-500 flex items-center justify-between mt-1 gap-2">'
                         + timeHtml
                         + '<span class="font-semibold text-slate-600 truncate">' + escapeHtml(ev.place || '') + '</span>'
-                        + badge + '</div></div>';
+                        + badge + '</div>'
+                        + linkHtml
+                        + '</div>';
                 });
             }
             box.innerHTML = html;
@@ -495,10 +540,12 @@
             const container = document.getElementById('calendarDays');
             if (!container) return;
             container.innerHTML = '';
+            const year = calViewYear;
+            const month = calViewMonth;
             const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
-            const today = now.getDate();
+            const todayY = now.getFullYear();
+            const todayM = now.getMonth();
+            const todayD = now.getDate();
             const label = document.getElementById('calendar-month-label');
             if (label) label.textContent = bulanIndo[month] + ' ' + year;
             const firstDay = new Date(year, month, 1);
@@ -508,8 +555,13 @@
             const eventDays = new Set(
                 calendarEvents.filter(e => e.date.startsWith(ymPrefix)).map(e => parseInt(e.date.split('-')[2], 10))
             );
-            if (selectedCalDate == null) {
-                selectedCalDate = ymPrefix + '-' + String(today).padStart(2,'0');
+            // Jika selected date di luar bulan yang ditampilkan, pilih hari 1 atau hari ini
+            if (!selectedCalDate || !selectedCalDate.startsWith(ymPrefix)) {
+                if (year === todayY && month === todayM) {
+                    selectedCalDate = ymPrefix + '-' + String(todayD).padStart(2,'0');
+                } else {
+                    selectedCalDate = ymPrefix + '-01';
+                }
             }
             for (let i = 0; i < startDayOffset; i++) {
                 const empty = document.createElement('span');
@@ -521,7 +573,7 @@
                 const dayEl = document.createElement('span');
                 dayEl.innerText = day;
                 dayEl.dataset.date = iso;
-                const isToday = day === today;
+                const isToday = (year === todayY && month === todayM && day === todayD);
                 const hasEvent = eventDays.has(day);
                 const isSelected = selectedCalDate === iso;
                 if (isSelected) dayEl.className = 'py-1 rounded-full bg-brand-600 text-white font-bold shadow-sm cursor-pointer';
@@ -536,6 +588,37 @@
                 container.appendChild(dayEl);
             }
             renderAgendaList(selectedCalDate);
+        }
+
+        function shiftCalendarMonth(delta) {
+            calViewMonth += delta;
+            if (calViewMonth < 0) { calViewMonth = 11; calViewYear -= 1; }
+            if (calViewMonth > 11) { calViewMonth = 0; calViewYear += 1; }
+            selectedCalDate = null;
+            renderCalendar();
+        }
+
+        function goCalendarToday() {
+            const now = new Date();
+            calViewYear = now.getFullYear();
+            calViewMonth = now.getMonth();
+            selectedCalDate = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            renderCalendar();
+        }
+
+        function updateDigitalClock() {
+            const timeEl = document.getElementById('digital-clock-time');
+            const dateEl = document.getElementById('digital-clock-date');
+            if (!timeEl) return;
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = hh + ':' + mm + ':' + ss;
+            if (dateEl) {
+                const hari = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'][now.getDay()];
+                dateEl.textContent = hari + ', ' + now.getDate() + ' ' + bulanShort[now.getMonth()];
+            }
         }
 
         async function refreshDashboardData() {
@@ -556,6 +639,8 @@
                             pengirim: item['Pengirim / Instansi'] || '',
                             perihal: item['Perihal'] || '',
                             indeks: item['Indeks'] || '',
+                            file_url: item['File URL'] || item['File Url'] || '',
+                            nomor_surat: item['Nomor Surat'] || '',
                             status_arsip: item['Status Arsip'] || 'aktif'
                         };
                     });
@@ -597,6 +682,18 @@
             calendarEvents = collectCalendarEvents(localSurat, loadAgendaAulaLocal());
             renderCalendar();
             refreshDashboardData();
+
+            // Navigasi bulan kalender
+            var btnPrev = document.getElementById('calPrevMonth');
+            var btnNext = document.getElementById('calNextMonth');
+            var btnToday = document.getElementById('calTodayBtn');
+            if (btnPrev) btnPrev.addEventListener('click', function() { shiftCalendarMonth(-1); });
+            if (btnNext) btnNext.addEventListener('click', function() { shiftCalendarMonth(1); });
+            if (btnToday) btnToday.addEventListener('click', goCalendarToday);
+
+            // Jam digital
+            updateDigitalClock();
+            setInterval(updateDigitalClock, 1000);
         };
 
         function handleLogout() {
