@@ -42,6 +42,47 @@
     .ld-header-kop .instansi { font-weight: 700; font-size: 13px; text-transform: uppercase; }
     .ld-header-kop .dinas { font-weight: 700; font-size: 12px; text-transform: uppercase; }
     .ld-header-kop .alamat { font-size: 10px; color: #475569; margin-top: 2px; }
+
+    /* Lembar Disposisi cetak (sama seperti disposisi.html) */
+    .disp-sheet {
+      width: 100%; max-width: 210mm; margin: 0 auto; background: #fff; color: #000;
+      box-sizing: border-box; padding: 8mm 10mm;
+      font-size: var(--sheet-font-size, 11px);
+      line-height: var(--sheet-line-height, 1.25);
+    }
+    .disp-sheet table { border-collapse: collapse; width: 100%; }
+    .disp-sheet table, .disp-sheet th, .disp-sheet td { border: 1px solid #000; }
+    .disp-sheet th, .disp-sheet td { padding: 4px 6px; font-size: var(--sheet-font-size, 11px); vertical-align: top; }
+    .disp-check-box {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border: 1px solid #000; flex-shrink: 0;
+      font-size: 10px; font-weight: bold; background: #fff;
+    }
+    .disp-check-box.on { background: #f1f5f9; }
+    @media print {
+      body * { visibility: hidden !important; }
+      #modalDisposisi, #modalDisposisi * { visibility: visible !important; }
+      #modalDisposisi {
+        position: fixed !important; inset: 0 !important; display: block !important;
+        background: #fff !important; z-index: 99999 !important; padding: 0 !important;
+        overflow: visible !important;
+      }
+      #modalDisposisi .no-print { display: none !important; }
+      #modalDisposisi .disp-print-root {
+        box-shadow: none !important; max-height: none !important; overflow: visible !important;
+        border-radius: 0 !important; width: 100% !important; max-width: none !important;
+      }
+      .disp-sheet { padding: 10mm; max-width: none; }
+    }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    @media print {
+      .print-only { display: inline !important; }
+      .print-only.hidden { display: inline !important; }
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 md:p-6">
@@ -192,108 +233,181 @@
     </div>
   </div>
 
-  <!-- MODAL DISPOSISI - format mirip disposisi.html -->
-  <div id="modalDisposisi" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[94vh] overflow-y-auto">
-      <div class="p-3 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-        <h2 class="text-base font-bold">Lembar Disposisi</h2>
-        <button type="button" onclick="closeModal('modalDisposisi')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <!-- MODAL DISPOSISI - format identik disposisi.html -->
+  <div id="modalDisposisi" class="modal fixed inset-0 bg-slate-700/60 z-50 items-center justify-center p-3 overflow-y-auto">
+    <div class="disp-print-root bg-white rounded-xl shadow-2xl w-full max-w-[210mm] max-h-[96vh] overflow-y-auto my-2">
+
+      <!-- Toolbar (no print) -->
+      <div class="no-print flex flex-wrap justify-between items-center gap-2 p-3 border-b bg-white sticky top-0 z-10">
+        <button type="button" onclick="closeModal('modalDisposisi')" class="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded text-xs font-semibold">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="toggleDispSetting()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold">
+            <i class="fa-solid fa-sliders mr-1"></i> Atur Halaman
+          </button>
+          <button type="button" onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-semibold">
+            <i class="fa-solid fa-print mr-1"></i> Cetak
+          </button>
+          <button type="button" onclick="submitDisposisi()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-semibold">
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan
+          </button>
+        </div>
       </div>
-      <div class="p-4">
-        <input type="hidden" id="disposisiRow">
 
-        <!-- Preview form seperti cetak -->
-        <div class="border-2 border-black text-[11px] text-black bg-white">
-          <!-- Kop -->
-          <div class="flex items-center border-b-2 border-black p-2">
-            <div class="flex-1 text-center px-2">
-              <p class="text-xs font-bold uppercase tracking-wide">Pemerintah Kabupaten Hulu Sungai Tengah</p>
-              <h1 class="text-sm font-extrabold uppercase tracking-wider">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</h1>
-              <p class="text-[9px] text-slate-800 leading-tight mt-0.5">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</p>
-              <p class="text-[9px] text-slate-800 leading-tight">Pos-el dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id</p>
-            </div>
+      <!-- Panel pengaturan -->
+      <div id="dispSettingPanel" class="no-print hidden border-b bg-amber-50 px-4 py-3">
+        <div class="grid grid-cols-2 gap-3 text-xs max-w-md">
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Ukuran Font</label>
+            <select id="dispFontSize" class="w-full border rounded p-1.5" onchange="applyDispSettings()">
+              <option value="10px">Kecil (10px)</option>
+              <option value="11px" selected>Normal (11px)</option>
+              <option value="12px">Sedang (12px)</option>
+            </select>
           </div>
+          <div>
+            <label class="block font-medium text-slate-600 mb-1">Spasi Baris</label>
+            <select id="dispLineHeight" class="w-full border rounded p-1.5" onchange="applyDispSettings()">
+              <option value="1.15">Rapat (1.15)</option>
+              <option value="1.25" selected>Normal (1.25)</option>
+              <option value="1.4">Renggang (1.4)</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-          <div class="border-b border-black bg-slate-100 text-center font-bold text-xs py-1 uppercase tracking-widest">LEMBAR DISPOSISI</div>
+      <input type="hidden" id="disposisiRow">
 
-          <table class="w-full border-collapse" style="border-collapse:collapse;width:100%;">
-            <tr>
-              <td class="border border-black p-1.5 align-top" style="width:55%">
-                <strong>Surat Dari</strong> &nbsp;: <span id="dispSuratDari">-</span>
-              </td>
-              <td class="border border-black p-1.5 align-top" style="width:45%">
-                <div class="flex items-center gap-1 mb-1">
-                  <strong class="shrink-0">Diterima Tgl</strong> &nbsp;:
-                  <input type="date" id="dispDiterimaTgl" class="border border-slate-300 rounded px-1 py-0.5 text-[11px] flex-1">
-                </div>
-                <div class="flex items-center gap-1 mb-1">
-                  <strong class="shrink-0">No. Agenda</strong> &nbsp;:
-                  <input type="text" id="dispNoAgenda" class="border border-slate-300 rounded px-1 py-0.5 text-[11px] flex-1" placeholder="">
-                </div>
-                <div>
-                  <strong>Sifat</strong> &nbsp;:
-                  <label class="inline-flex items-center gap-1 ml-1 cursor-pointer"><input type="radio" name="dispSifat" value="Sangat Segera" class="accent-blue-700"> Sangat Segera</label>
-                  <label class="inline-flex items-center gap-1 ml-2 cursor-pointer"><input type="radio" name="dispSifat" value="Segera" class="accent-blue-700"> Segera</label>
-                  <label class="inline-flex items-center gap-1 ml-2 cursor-pointer"><input type="radio" name="dispSifat" value="Rahasia" class="accent-blue-700"> Rahasia</label>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="border border-black p-1.5 align-top">
-                <strong>No. Surat</strong> &nbsp;: <span id="dispNoSurat" class="text-blue-700 font-semibold">-</span><br>
-                <strong>Tgl. Surat</strong> &nbsp;: <span id="dispTglSurat">-</span>
-              </td>
-              <td class="border border-black p-1.5"></td>
-            </tr>
-            <tr>
-              <td class="border border-black p-1.5" colspan="2">
-                <strong>Hal</strong> &nbsp;: <span id="dispHal">-</span>
-              </td>
-            </tr>
-            <tr>
-              <td class="border border-black p-1.5 align-top">
-                <strong>Diteruskan Kepada Sdr :</strong>
-                <div class="space-y-1 mt-1.5">
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="Sekretariat"> Sekretariat</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PPD"> PPD</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PUEMD"> PUEMD</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PMLKD"> PMLKD</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="Lainnya" id="cbKepadaLainnya"> Lainnya</label>
-                  <input type="text" id="dispKepadaLainnya" placeholder="Isi jika Lainnya..." class="mt-1 w-full border border-slate-300 rounded px-1 py-0.5 text-[11px] hidden">
-                </div>
-              </td>
-              <td class="border border-black p-1.5 align-top">
-                <strong>Dengan Hormat Harap :</strong>
-                <div class="space-y-1 mt-1.5">
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Tanggapan dan Saran"> Tanggapan dan Saran</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Proses Lebih Lanjut"> Proses Lebih Lanjut</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Koordinasi / Konfirmasikan"> Koordinasi / Konfirmasikan</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Untuk Diketahui"> Untuk Diketahui</label>
-                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Untuk Dilaksanakan"> Untuk Dilaksanakan</label>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="border border-black p-1.5 align-top" colspan="2" style="min-height:100px">
-                <strong>Catatan</strong> &nbsp;:
-                <textarea id="disposisiText" rows="3" placeholder="Catatan disposisi..." class="mt-1 w-full border border-slate-300 rounded p-1.5 text-[11px]"></textarea>
-                <div class="mt-4 flex justify-end">
-                  <div class="text-center w-56">
-                    <p class="font-semibold text-xs">Kepala Dinas</p>
-                    <br><br>
-                    <p class="font-bold underline text-xs">EDDY RAHMAWAN, S.STP, M.IP</p>
-                    <p class="text-[10px]">NIP 198709122006021002</p>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </table>
+      <!-- Lembar Disposisi (cetak) -->
+      <div class="disp-sheet">
+        <!-- Kop + Logo -->
+        <div class="flex items-center border-2 border-b-0 border-black p-2">
+          <div class="w-16 flex justify-center shrink-0">
+            <img src="logo-HST.jpg" alt="Logo HST" class="w-12 h-14 object-contain"
+                 data-fallbacks="https://lh3.googleusercontent.com/d/1KJ5C6xVmgLjeO012qqSqUJZVkl_S80mZ=s200|https://drive.google.com/thumbnail?id=1KJ5C6xVmgLjeO012qqSqUJZVkl_S80mZ&sz=w200|https://upload.wikimedia.org/wikipedia/commons/b/b2/Logo_Kabupaten_Hulu_Sungai_Tengah.png"
+                 onerror="(function(img){var f=(img.dataset.fallbacks||'').split('|').filter(Boolean); if(!f.length) return; img.src=f.shift(); img.dataset.fallbacks=f.join('|');})(this);">
+          </div>
+          <div class="flex-1 text-center px-2">
+            <p class="text-xs font-bold uppercase tracking-wide">Pemerintah Kabupaten Hulu Sungai Tengah</p>
+            <h1 class="text-sm font-extrabold uppercase tracking-wider">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</h1>
+            <p class="text-[9px] text-slate-800 leading-tight mt-0.5">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</p>
+            <p class="text-[9px] text-slate-800 leading-tight">Pos-el dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id</p>
+          </div>
         </div>
 
-        <div class="flex justify-end gap-3 mt-4">
-          <button type="button" onclick="closeModal('modalDisposisi')" class="px-4 py-2 border rounded-lg text-sm">Batal</button>
-          <button type="button" onclick="submitDisposisi()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Simpan Disposisi</button>
-        </div>
+        <div class="border border-black border-b-0 bg-slate-100 text-center font-bold text-xs py-1 uppercase tracking-widest">LEMBAR DISPOSISI</div>
+
+        <table>
+          <tr>
+            <td style="width:55%">
+              <strong>Surat Dari</strong> &nbsp;: <span id="dispSuratDari">-</span>
+            </td>
+            <td style="width:45%">
+              <div class="no-print mb-1">
+                <strong>Diterima Tgl</strong> &nbsp;:
+                <input type="date" id="dispDiterimaTgl" class="border border-slate-400 rounded px-1 py-0.5 text-[11px]">
+              </div>
+              <div class="print-only hidden"><strong>Diterima Tgl</strong> &nbsp;: <span id="dispDiterimaTglPrint">-</span></div>
+              <div class="no-print mb-1">
+                <strong>No. Agenda</strong> &nbsp;:
+                <input type="text" id="dispNoAgenda" class="border border-slate-400 rounded px-1 py-0.5 text-[11px] w-28">
+              </div>
+              <div class="print-only hidden"><strong>No. Agenda</strong> &nbsp;: <span id="dispNoAgendaPrint"></span></div>
+              <div>
+                <strong>Sifat</strong> &nbsp;:
+                <span class="inline-flex items-center gap-3 text-[10px] mt-0.5">
+                  <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="disp-sifat sr-only" value="Sangat Segera" onchange="toggleSifat(this)">
+                    <span class="disp-check-box" data-sifat="Sangat Segera">&nbsp;</span> Sangat Segera
+                  </label>
+                  <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="disp-sifat sr-only" value="Segera" onchange="toggleSifat(this)">
+                    <span class="disp-check-box" data-sifat="Segera">&nbsp;</span> Segera
+                  </label>
+                  <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="disp-sifat sr-only" value="Rahasia" onchange="toggleSifat(this)">
+                    <span class="disp-check-box" data-sifat="Rahasia">&nbsp;</span> Rahasia
+                  </label>
+                </span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <strong>No. Surat</strong> &nbsp;: <span id="dispNoSurat">-</span><br>
+              <strong>Tgl. Surat</strong> &nbsp;&nbsp;: <span id="dispTglSurat">-</span>
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <strong>Hal</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span id="dispHal">-</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="vertical-align:top">
+              <strong>Diteruskan Kepada Sdr :</strong>
+              <div class="space-y-1.5 mt-1.5 text-[11px]" id="dispKepadaList">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-kepada sr-only" value="Sekretariat" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="Sekretariat">&nbsp;</span> Sekretariat
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-kepada sr-only" value="PPD" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="PPD">&nbsp;</span> PPD
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-kepada sr-only" value="PUEMD" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="PUEMD">&nbsp;</span> PUEMD
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-kepada sr-only" value="PMLKD" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="PMLKD">&nbsp;</span> PMLKD
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-kepada sr-only" value="Lainnya" id="cbKepadaLainnya" onchange="syncCheckBox(this); document.getElementById('dispKepadaLainnya').classList.toggle('hidden', !this.checked);">
+                  <span class="disp-check-box" data-val="Lainnya">&nbsp;</span> Lainnya
+                </label>
+                <input type="text" id="dispKepadaLainnya" placeholder="Isi jika Lainnya..." class="no-print mt-1 w-full border rounded px-1 py-0.5 text-[11px] hidden">
+              </div>
+            </td>
+            <td style="vertical-align:top">
+              <strong>Dengan Hormat Harap :</strong>
+              <div class="space-y-1.5 mt-1.5 text-[11px]">
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-harap sr-only" value="Tanggapan dan Saran" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="Tanggapan dan Saran">&nbsp;</span> Tanggapan dan Saran
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-harap sr-only" value="Proses Lebih Lanjut" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="Proses Lebih Lanjut">&nbsp;</span> Proses Lebih Lanjut
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="disp-harap sr-only" value="Koordinasi / Konfirmasikan" onchange="syncCheckBox(this)">
+                  <span class="disp-check-box" data-val="Koordinasi / Konfirmasikan">&nbsp;</span> Koordinasi / Konfirmasikan
+                </label>
+                <div class="border-b border-dotted border-black mt-4 pt-1"></div>
+                <div class="border-b border-dotted border-black mt-3"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="height:110px; vertical-align:top">
+              <strong>Catatan</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:
+              <span class="print-only hidden" id="disposisiTextPrint"></span>
+              <textarea id="disposisiText" rows="3" placeholder="Catatan disposisi..." class="no-print mt-1 w-full border border-slate-400 rounded p-1.5 text-[11px]"></textarea>
+              <div class="mt-6 flex justify-end">
+                <div class="text-center w-64">
+                  <p class="font-semibold text-xs">Kepala Dinas</p>
+                  <br><br>
+                  <p class="font-bold underline text-xs">EDDY RAHMAWAN, S.STP, M.IP</p>
+                  <p class="text-[10px]">NIP 198709122006021002</p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
       </div>
     </div>
   </div>
@@ -303,14 +417,15 @@
     const PER_PAGE = 15;
     let klasifikasiList = [];
     let userRole = (localStorage.getItem('arsip_role') || localStorage.getItem('role') || localStorage.getItem('userRole') || 'superadmin').toLowerCase();
-    // normalisasi alias
-    if (userRole === 'super' || userRole === 'sa') userRole = 'superadmin';
+    // normalisasi alias role
+    if (['super', 'sa', 'utama', 'owner', 'root'].includes(userRole)) userRole = 'superadmin';
     if (userRole === 'administrator') userRole = 'admin';
     const roleEl = document.getElementById('userRole');
     if (roleEl) roleEl.textContent = userRole.toUpperCase();
-    const isAdminLike = (userRole === 'superadmin' || userRole === 'admin');
+    // superadmin & admin: bisa edit/upload/disposisi
+    // superadmin saja: hapus / trash
+    const canWrite = (userRole === 'superadmin' || userRole === 'admin');
     const canDelete = (userRole === 'superadmin');
-    const canWrite = isAdminLike; // edit, upload, disposisi
 
     function applyRoleUI() {
       document.querySelectorAll('#actionButtons button').forEach(btn => btn.style.display = '');
@@ -666,11 +781,51 @@
       loadData();
     }
 
+
+    function toggleDispSetting() {
+      document.getElementById('dispSettingPanel').classList.toggle('hidden');
+    }
+    function applyDispSettings() {
+      const fs = document.getElementById('dispFontSize').value;
+      const lh = document.getElementById('dispLineHeight').value;
+      document.documentElement.style.setProperty('--sheet-font-size', fs);
+      document.documentElement.style.setProperty('--sheet-line-height', lh);
+      localStorage.setItem('disposisi_font_size', fs);
+      localStorage.setItem('disposisi_line_height', lh);
+    }
+    function loadDispSettings() {
+      const fs = localStorage.getItem('disposisi_font_size');
+      const lh = localStorage.getItem('disposisi_line_height');
+      if (fs) { document.getElementById('dispFontSize').value = fs; document.documentElement.style.setProperty('--sheet-font-size', fs); }
+      if (lh) { document.getElementById('dispLineHeight').value = lh; document.documentElement.style.setProperty('--sheet-line-height', lh); }
+    }
+    function syncCheckBox(input) {
+      const box = input.parentElement.querySelector('.disp-check-box');
+      if (!box) return;
+      if (input.checked) {
+        box.classList.add('on');
+        box.innerHTML = '✓';
+      } else {
+        box.classList.remove('on');
+        box.innerHTML = '&nbsp;';
+      }
+    }
+    function toggleSifat(input) {
+      // radio-like: only one sifat
+      document.querySelectorAll('.disp-sifat').forEach(function(cb) {
+        if (cb !== input) { cb.checked = false; syncCheckBox(cb); }
+      });
+      syncCheckBox(input);
+    }
+    function syncAllCheckBoxes() {
+      document.querySelectorAll('.disp-kepada, .disp-harap, .disp-sifat').forEach(syncCheckBox);
+    }
+
+
     async function openDisposisi(row) {
       document.getElementById('disposisiRow').value = row;
-      document.querySelectorAll('.disp-kepada').forEach(cb => cb.checked = false);
-      document.querySelectorAll('.disp-harap').forEach(cb => cb.checked = false);
-      document.querySelectorAll('input[name="dispSifat"]').forEach(r => r.checked = false);
+      document.querySelectorAll('.disp-kepada, .disp-harap, .disp-sifat').forEach(cb => { cb.checked = false; });
+      loadDispSettings();
       document.getElementById('disposisiText').value = '';
       document.getElementById('dispNoAgenda').value = '';
       document.getElementById('dispDiterimaTgl').value = toDateInputValue(new Date());
@@ -703,9 +858,10 @@
                   if (cb) cb.checked = true;
                 });
                 if (disp.sifat) {
-                  const r = document.querySelector('input[name="dispSifat"][value="' + disp.sifat + '"]');
-                  if (r) r.checked = true;
+                  const r = document.querySelector('.disp-sifat[value="' + disp.sifat + '"]');
+                  if (r) { r.checked = true; }
                 }
+                syncAllCheckBoxes();
                 document.getElementById('disposisiText').value = disp.catatan || '';
                 document.getElementById('dispNoAgenda').value = disp.noAgenda || '';
                 if (disp.diterimaTgl) document.getElementById('dispDiterimaTgl').value = toDateInputValue(disp.diterimaTgl);
@@ -718,8 +874,10 @@
       if (lainCb) {
         lainCb.onchange = function () {
           document.getElementById('dispKepadaLainnya').classList.toggle('hidden', !this.checked);
+          syncCheckBox(this);
         };
       }
+      syncAllCheckBoxes();
       document.getElementById('modalDisposisi').classList.add('active');
     }
 
@@ -733,8 +891,17 @@
         if (lain) diteruskanKepada.push(lain);
       }
       const denganHormatHarap = Array.from(document.querySelectorAll('.disp-harap:checked')).map(c => c.value);
-      const sifatEl = document.querySelector('input[name="dispSifat"]:checked');
+      const sifatEl = document.querySelector('.disp-sifat:checked');
       const sifat = sifatEl ? sifatEl.value : '';
+      // sync print fields
+      const tglEl = document.getElementById('dispDiterimaTgl');
+      const agEl = document.getElementById('dispNoAgenda');
+      const tglP = document.getElementById('dispDiterimaTglPrint');
+      const agP = document.getElementById('dispNoAgendaPrint');
+      const catP = document.getElementById('disposisiTextPrint');
+      if (tglP) tglP.textContent = tglEl ? tglEl.value : '';
+      if (agP) agP.textContent = agEl ? agEl.value : '';
+      if (catP) catP.textContent = document.getElementById('disposisiText').value || '-';
       const catatan = document.getElementById('disposisiText').value.trim();
       const noAgenda = document.getElementById('dispNoAgenda').value.trim();
       const diterimaTgl = document.getElementById('dispDiterimaTgl').value;
@@ -794,6 +961,17 @@
       reader.readAsText(file);
       e.target.value = '';
     }
+
+    window.addEventListener('beforeprint', function() {
+      const tglEl = document.getElementById('dispDiterimaTgl');
+      const agEl = document.getElementById('dispNoAgenda');
+      const tglP = document.getElementById('dispDiterimaTglPrint');
+      const agP = document.getElementById('dispNoAgendaPrint');
+      const catP = document.getElementById('disposisiTextPrint');
+      if (tglP && tglEl) tglP.textContent = tglEl.value || '-';
+      if (agP && agEl) agP.textContent = agEl.value || '';
+      if (catP) catP.textContent = (document.getElementById('disposisiText') || {}).value || '-';
+    });
 
     applyRoleUI();
     loadKlasifikasi();
