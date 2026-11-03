@@ -26,20 +26,37 @@
         .header-title {
             background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
         }
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background 0.15s;
+        }
+        th.sortable:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        th.sortable .sort-icon {
+            opacity: 0.45;
+            margin-left: 4px;
+            font-size: 10px;
+        }
+        th.sortable.active .sort-icon {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Header -->
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-                    <i class="fa-solid fa-book-open text-xl"></i>
+                <div class="w-9 h-9 rounded-xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-book-open text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-slate-900 text-lg leading-tight">Buku Ekspedisi</h1>
-                    <p class="text-xs text-slate-500">Surat Masuk Tahun <span id="tahunLabel">2026</span></p>
+                    <h1 class="font-bold text-slate-900 text-base leading-tight">Buku Ekspedisi</h1>
+                    <p class="text-[11px] text-slate-500">Surat Masuk Tahun <span id="tahunLabel">2026</span></p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -52,19 +69,19 @@
     </header>
 
     <!-- Main Container -->
-    <main class="w-full px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex-1">
-        <section class="space-y-4">
+    <main class="w-full px-4 sm:px-6 lg:px-8 pt-4 pb-10 flex-1">
+        <section class="space-y-3">
 
             <!-- Title Banner -->
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="header-title text-white text-center py-3 px-4">
-                    <h2 class="text-lg font-bold tracking-wide">BUKU EKSPEDISI</h2>
-                    <p class="text-sm font-medium opacity-90">SURAT MASUK TAHUN <span id="tahunBanner">2026</span></p>
+                <div class="header-title text-white text-center py-2.5 px-4">
+                    <h2 class="text-base font-bold tracking-wide">BUKU EKSPEDISI</h2>
+                    <p class="text-xs font-medium opacity-90">SURAT MASUK TAHUN <span id="tahunBanner">2026</span></p>
                 </div>
             </div>
 
             <!-- Top Action Toolbar -->
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-2">
                     <div class="flex items-center gap-2 text-xs text-slate-600">
                         <i class="fa-solid fa-filter text-blue-600"></i>
@@ -77,7 +94,7 @@
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
+                <div class="flex flex-wrap items-center gap-2 border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100">
                     <div class="relative flex-1 sm:w-64">
                         <input type="text" id="searchTable" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Cari nomor, pengirim, perihal, berkas...">
                         <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
@@ -100,15 +117,33 @@
                     <table class="w-full text-left text-xs text-slate-600 border-collapse" style="min-width: 1200px;">
                         <thead class="bg-blue-800 text-white uppercase font-semibold text-[11px] border-b border-blue-900">
                             <tr>
-                                <th class="p-3 text-center align-middle" style="width: 50px;">NO</th>
-                                <th class="p-3 align-middle" style="width: 120px;">TANGGAL SURAT</th>
-                                <th class="p-3 align-middle" style="width: 180px;">NOMOR SURAT</th>
-                                <th class="p-3 align-middle" style="width: 160px;">PENGIRIM</th>
-                                <th class="p-3 align-middle" style="width: 280px;">PERIHAL</th>
-                                <th class="p-3 align-middle" style="width: 140px;">BERKAS</th>
-                                <th class="p-3 align-middle" style="width: 130px;">TANGGAL DITERUSKAN</th>
-                                <th class="p-3 text-center align-middle" style="width: 80px;">MEDIA</th>
-                                <th class="p-3 text-center align-middle" style="width: 110px;">BULAN DI BERKASKAN</th>
+                                <th class="p-3 text-center align-middle sortable" data-sort="no" style="width: 50px;">
+                                    NO <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="tanggal_surat" style="width: 130px;">
+                                    TANGGAL SURAT <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="nomor_surat" style="width: 180px;">
+                                    NOMOR SURAT <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="pengirim" style="width: 160px;">
+                                    PENGIRIM <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="perihal" style="width: 260px;">
+                                    PERIHAL <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="berkas" style="width: 140px;">
+                                    BERKAS <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="tanggal_diteruskan" style="width: 140px;">
+                                    TANGGAL DITERUSKAN <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 text-center align-middle sortable" data-sort="media" style="width: 80px;">
+                                    MEDIA <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 text-center align-middle sortable" data-sort="bulan_berkaskan" style="width: 120px;">
+                                    BULAN DI BERKASKAN <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="ekspedisiTableBody" class="divide-y divide-slate-100">
@@ -157,11 +192,19 @@
         const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
 
         let dataSurat = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
-        let dataEkspedisi = []; // data yang sudah dipetakan untuk tabel ekspedisi
+        let dataEkspedisi = [];
         let currentPage = 1;
         const itemsPerPage = 15;
 
+        // Sorting state
+        let sortKey = 'tanggal_diteruskan'; // default
+        let sortDir = 'desc'; // 'asc' | 'desc'
+
         const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        const bulanOrder = {
+            'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4, 'Mei': 5, 'Juni': 6,
+            'Juli': 7, 'Agustus': 8, 'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+        };
 
         function formatDateForInput(dateStr) {
             if (!dateStr) return '';
@@ -169,6 +212,14 @@
             const dmy = String(dateStr).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
             if (dmy) {
                 return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+            }
+            // Format Indonesia: "29 Oktober 2026"
+            const indoMatch = String(dateStr).match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+            if (indoMatch) {
+                const mIdx = bulanIndo.findIndex(b => b.toLowerCase() === indoMatch[2].toLowerCase());
+                if (mIdx >= 0) {
+                    return `${indoMatch[3]}-${String(mIdx + 1).padStart(2, '0')}-${indoMatch[1].padStart(2, '0')}`;
+                }
             }
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
@@ -188,7 +239,6 @@
                 const day = parts[2];
                 const monthIdx = parseInt(parts[1], 10) - 1;
                 const year = parts[0];
-                // Format seperti di foto: "31 Desember 2025"
                 if (monthIdx >= 0 && monthIdx < 12) {
                     return `${parseInt(day, 10)} ${bulanIndo[monthIdx]} ${year}`;
                 }
@@ -210,15 +260,6 @@
             return formatted.split('-')[0] || '';
         }
 
-        function sanitizeKodeKlasifikasi(val) {
-            if (val == null || val === '') return '';
-            const s = String(val).trim();
-            if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(s) || /^\d{4}-\d{2}-\d{2}T/.test(s)) {
-                return '';
-            }
-            return s;
-        }
-
         function makeStableId(item) {
             const raw = item && (item["ID"] || item.id);
             if (raw != null && String(raw).trim() !== '' && String(raw) !== 'undefined') {
@@ -236,18 +277,14 @@
             return 'surat-' + Date.now();
         }
 
-        // Petakan data surat masuk → format buku ekspedisi
         function mapToEkspedisi(item) {
             const tglSurat = item.tanggal_surat || item["Tanggal Surat"] || '';
             const tglTerima = item.tanggal_terima || item["Tanggal Diterima"] || item.tanggal_diteruskan || '';
-            // BERKAS: prioritaskan disposisi_kepada / berkas / jabatan
             const berkas = item.disposisi_kepada || item.berkas || item.jabatan_disposisi || item["Disposisi Kepada"] || item["Berkas"] || '-';
-            // MEDIA
             let media = item.media || item["Media"] || '';
             if (!media) {
                 media = (item.file_url || item.preview_image) ? 'File' : 'Kertas';
             }
-            // BULAN DI BERKASKAN: dari tanggal diteruskan / terima, fallback ke tanggal surat
             const tglBerkas = tglTerima || tglSurat;
             return {
                 id: item.id || makeStableId(item),
@@ -265,14 +302,54 @@
         }
 
         function rebuildEkspedisiData() {
-            // Ambil hanya data aktif (bukan sampah)
             const aktif = dataSurat.filter(i => (i.status_arsip || 'aktif') !== 'sampah');
             dataEkspedisi = aktif.map(mapToEkspedisi);
-            // Urutkan: terbaru dulu (berdasarkan tanggal diteruskan / surat)
-            dataEkspedisi.sort((a, b) => {
-                const da = formatDateForInput(a.tanggal_diteruskan || a.tanggal_surat) || '';
-                const db = formatDateForInput(b.tanggal_diteruskan || b.tanggal_surat) || '';
-                return db.localeCompare(da);
+        }
+
+        function compareValues(a, b, key) {
+            let va, vb;
+            if (key === 'tanggal_surat' || key === 'tanggal_diteruskan') {
+                va = formatDateForInput(a[key]) || '';
+                vb = formatDateForInput(b[key]) || '';
+            } else if (key === 'bulan_berkaskan') {
+                va = bulanOrder[a[key]] || 0;
+                vb = bulanOrder[b[key]] || 0;
+            } else if (key === 'no') {
+                // no dihitung saat render, jadi pakai tanggal_diteruskan sebagai proxy
+                va = formatDateForInput(a.tanggal_diteruskan || a.tanggal_surat) || '';
+                vb = formatDateForInput(b.tanggal_diteruskan || b.tanggal_surat) || '';
+            } else {
+                va = String(a[key] || '').toLowerCase();
+                vb = String(b[key] || '').toLowerCase();
+            }
+            if (va < vb) return -1;
+            if (va > vb) return 1;
+            return 0;
+        }
+
+        function applySort(arr) {
+            const sorted = [...arr];
+            sorted.sort((a, b) => {
+                const cmp = compareValues(a, b, sortKey);
+                return sortDir === 'asc' ? cmp : -cmp;
+            });
+            return sorted;
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                const icon = th.querySelector('.sort-icon');
+                const key = th.getAttribute('data-sort');
+                th.classList.remove('active');
+                if (icon) {
+                    icon.className = 'fa-solid sort-icon';
+                    if (key === sortKey) {
+                        th.classList.add('active');
+                        icon.classList.add(sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+                    } else {
+                        icon.classList.add('fa-sort');
+                    }
+                }
             });
         }
 
@@ -312,7 +389,7 @@
             const query = (filterQuery || document.getElementById('searchTable').value || '').toLowerCase();
             const tahunFilter = document.getElementById('filterTahun').value;
 
-            const filtered = dataEkspedisi.filter(item => {
+            let filtered = dataEkspedisi.filter(item => {
                 const matchTahun = (tahunFilter === 'all') || (item.tahun === tahunFilter);
                 const matchText = (
                     (item.nomor_surat || '').toLowerCase().includes(query) ||
@@ -323,6 +400,9 @@
                 );
                 return matchTahun && matchText;
             });
+
+            // Apply sort
+            filtered = applySort(filtered);
 
             const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -335,10 +415,11 @@
             document.getElementById('prevPageBtn').disabled = currentPage <= 1;
             document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
 
-            // Update label tahun
             const thn = tahunFilter === 'all' ? new Date().getFullYear() : tahunFilter;
             document.getElementById('tahunLabel').textContent = thn;
             document.getElementById('tahunBanner').textContent = thn;
+
+            updateSortIcons();
 
             if (paginatedItems.length === 0) {
                 emptyMsg.classList.remove('hidden');
@@ -348,8 +429,6 @@
                     const actualNo = startIdx + index + 1;
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 align-top';
-
-                    // Warna baris selang-seling seperti spreadsheet
                     if (index % 2 === 0) {
                         tr.classList.add('bg-green-50/40');
                     }
@@ -405,7 +484,6 @@
                     renderTable();
                     showAlert('Sinkron Berhasil', dataSurat.length + ' data surat masuk berhasil dimuat ke Buku Ekspedisi.', 'success');
                 } else {
-                    // Fallback ke localStorage
                     rebuildEkspedisiData();
                     renderTable();
                 }
@@ -464,28 +542,20 @@
 
                     showAlert(
                         'Konfirmasi Import',
-                        'Ditemukan ' + rows.length + ' data.\n\nData akan digabung / diperbarui ke daftar Buku Ekspedisi (sumber tetap dari Surat Masuk).',
+                        'Ditemukan ' + rows.length + ' data.\n\nData akan digabung ke daftar Buku Ekspedisi.',
                         'info',
                         function () {
-                            // Import hanya memperbarui tampilan lokal ekspedisi; sumber utama tetap surat masuk
-                            // Kita map ulang jika formatnya mirip surat masuk
                             const mapped = rows.map(r => {
                                 if (r.nomor_surat || r["Nomor Surat"]) {
                                     return mapToEkspedisi(r);
                                 }
-                                return r; // sudah format ekspedisi
+                                return r;
                             });
-                            // Merge by id
                             const existingIds = new Set(dataEkspedisi.map(d => d.id));
                             mapped.forEach(m => {
                                 if (!existingIds.has(m.id)) {
                                     dataEkspedisi.push(m);
                                 }
-                            });
-                            dataEkspedisi.sort((a, b) => {
-                                const da = formatDateForInput(a.tanggal_diteruskan || a.tanggal_surat) || '';
-                                const db = formatDateForInput(b.tanggal_diteruskan || b.tanggal_surat) || '';
-                                return db.localeCompare(da);
                             });
                             renderTable();
                             showAlert('Import Berhasil', rows.length + ' data diproses.', 'success');
@@ -532,11 +602,25 @@
             renderTable();
         });
 
+        // Sorting click handler
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort');
+                if (sortKey === key) {
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortKey = key;
+                    sortDir = (key === 'tanggal_surat' || key === 'tanggal_diteruskan' || key === 'no') ? 'desc' : 'asc';
+                }
+                currentPage = 1;
+                renderTable();
+            });
+        });
+
         window.onload = function () {
-            // Ambil data lokal dulu, lalu coba sync cloud
             rebuildEkspedisiData();
             renderTable();
-            // Auto sync ringan (tanpa alert)
+            // Auto sync ringan
             fetch(SURAT_MASUK_GAS_URL)
                 .then(r => r.json())
                 .then(res => {
