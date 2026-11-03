@@ -21,6 +21,10 @@
       box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     }
     .dropdown-item:hover { background-color: #f1f5f9; }
+    /* Lembar Disposisi style */
+    .disp-box { border: 1px solid #1e293b; }
+    .disp-header { background: #f1f5f9; border-bottom: 1px solid #1e293b; }
+    .disp-check { accent-color: #1e40af; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 md:p-6">
@@ -60,7 +64,7 @@
   <div class="mb-4">
     <div class="relative max-w-md">
       <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      <input type="text" id="searchInput" placeholder="Cari No. Nota, Uraian, Bidang..." 
+      <input type="text" id="searchInput" placeholder="Cari No. Nota, Uraian, Bidang..."
              class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
              oninput="filterTable()">
     </div>
@@ -117,7 +121,7 @@
         <!-- KODE KLASIFIKASI -->
         <div class="relative">
           <label class="block text-sm font-medium text-slate-700 mb-1">Kode Klasifikasi <span class="text-red-500">*</span></label>
-          <input type="text" id="kodeKlasifikasiSearch" placeholder="Ketik untuk mencari kode klasifikasi..." 
+          <input type="text" id="kodeKlasifikasiSearch" placeholder="Ketik untuk mencari kode klasifikasi..."
                  class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                  oninput="filterKlasifikasi()" autocomplete="off">
           <input type="hidden" id="kodeKlasifikasi" required>
@@ -156,10 +160,11 @@
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Lampiran (opsional)</label>
           <input type="file" id="lampiran" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full text-sm">
+          <p class="text-xs text-slate-500 mt-1">Jika upload gagal, simpan dulu tanpa lampiran lalu upload lewat tombol Upload di baris data.</p>
         </div>
         <div class="flex justify-end gap-3 pt-4">
           <button type="button" onclick="closeModal('modalForm')" class="px-5 py-2 rounded-lg border">Batal</button>
-          <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Simpan</button>
+          <button type="submit" id="btnSimpan" class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">Simpan</button>
         </div>
       </form>
     </div>
@@ -176,19 +181,95 @@
     </div>
   </div>
 
-  <!-- MODAL DISPOSISI -->
+  <!-- MODAL DISPOSISI (Lembar Disposisi) -->
   <div id="modalDisposisi" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-      <div class="p-6 border-b flex justify-between items-center">
-        <h2 class="text-xl font-bold">Disposisi</h2>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
+      <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+        <h2 class="text-lg font-bold">Lembar Disposisi</h2>
         <button onclick="closeModal('modalDisposisi')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
       </div>
-      <div class="p-6">
+      <div class="p-4">
         <input type="hidden" id="disposisiRow">
-        <textarea id="disposisiText" rows="4" placeholder="Isi disposisi..." class="w-full px-3 py-2 border rounded-lg"></textarea>
+
+        <!-- Header info dari data Nota Dinas -->
+        <div class="disp-box rounded-t-lg overflow-hidden text-sm mb-0">
+          <div class="disp-header px-3 py-2 text-center font-bold text-slate-800">
+            LEMBAR DISPOSISI
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 border-b border-slate-800">
+            <div class="p-2 border-r border-slate-800">
+              <div class="text-xs text-slate-500">Surat Dari</div>
+              <div id="dispSuratDari" class="font-medium">-</div>
+            </div>
+            <div class="p-2 space-y-1">
+              <div class="flex gap-2 items-center">
+                <span class="text-xs text-slate-500 w-28 shrink-0">Diterima Tgl</span>
+                <input type="date" id="dispDiterimaTgl" class="flex-1 px-2 py-1 border rounded text-sm">
+              </div>
+              <div class="flex gap-2 items-center">
+                <span class="text-xs text-slate-500 w-28 shrink-0">No. Agenda</span>
+                <input type="text" id="dispNoAgenda" class="flex-1 px-2 py-1 border rounded text-sm" placeholder="No. Agenda disposisi">
+              </div>
+              <div class="flex gap-2 items-start">
+                <span class="text-xs text-slate-500 w-28 shrink-0 pt-1">Sifat</span>
+                <div class="flex flex-wrap gap-3 text-sm">
+                  <label class="inline-flex items-center gap-1"><input type="radio" name="dispSifat" value="Sangat Segera" class="disp-check"> Sangat Segera</label>
+                  <label class="inline-flex items-center gap-1"><input type="radio" name="dispSifat" value="Segera" class="disp-check"> Segera</label>
+                  <label class="inline-flex items-center gap-1"><input type="radio" name="dispSifat" value="Rahasia" class="disp-check"> Rahasia</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 border-b border-slate-800">
+            <div class="p-2 border-r border-slate-800">
+              <div class="text-xs text-slate-500">No. Surat</div>
+              <div id="dispNoSurat" class="font-medium text-blue-700">-</div>
+            </div>
+            <div class="p-2">
+              <div class="text-xs text-slate-500">Tgl. Surat</div>
+              <div id="dispTglSurat" class="font-medium">-</div>
+            </div>
+          </div>
+          <div class="p-2 border-b border-slate-800">
+            <div class="text-xs text-slate-500">Hal</div>
+            <div id="dispHal" class="font-medium whitespace-pre-wrap">-</div>
+          </div>
+        </div>
+
+        <div class="disp-box border-t-0 grid grid-cols-1 md:grid-cols-2 text-sm">
+          <!-- Diteruskan Kepada -->
+          <div class="p-3 border-r border-slate-800">
+            <div class="font-semibold mb-2">Diteruskan Kepada Sdr :</div>
+            <div class="space-y-1.5" id="dispKepadaList">
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-kepada" value="Sekretariat"> Sekretariat</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-kepada" value="PPD"> PPD</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-kepada" value="PUEMD"> PUEMD</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-kepada" value="PMLKD"> PMLKD</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-kepada" value="Lainnya"> Lainnya</label>
+            </div>
+            <input type="text" id="dispKepadaLainnya" placeholder="Isi jika Lainnya..." class="mt-2 w-full px-2 py-1 border rounded text-sm hidden">
+          </div>
+          <!-- Dengan Hormat Harap -->
+          <div class="p-3">
+            <div class="font-semibold mb-2">Dengan Hormat Harap :</div>
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-harap" value="Tanggapan dan Saran"> Tanggapan dan Saran</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-harap" value="Proses Lebih Lanjut"> Proses Lebih Lanjut</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-harap" value="Koordinasi / Konfirmasikan"> Koordinasi / Konfirmasikan</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-harap" value="Untuk Diketahui"> Untuk Diketahui</label>
+              <label class="flex items-center gap-2"><input type="checkbox" class="disp-check disp-harap" value="Untuk Dilaksanakan"> Untuk Dilaksanakan</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="disp-box border-t-0 rounded-b-lg p-3 text-sm">
+          <div class="font-semibold mb-1">Catatan :</div>
+          <textarea id="disposisiText" rows="3" placeholder="Catatan disposisi..." class="w-full px-3 py-2 border rounded-lg"></textarea>
+        </div>
+
         <div class="flex justify-end gap-3 mt-4">
           <button onclick="closeModal('modalDisposisi')" class="px-4 py-2 border rounded-lg">Batal</button>
-          <button onclick="submitDisposisi()" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Simpan</button>
+          <button onclick="submitDisposisi()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">Simpan Disposisi</button>
         </div>
       </div>
     </div>
@@ -200,7 +281,6 @@
     const PER_PAGE = 15;
     let klasifikasiList = [];
 
-    // Ambil role dari localStorage
     let userRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
     document.getElementById('userRole').textContent = userRole.toUpperCase();
 
@@ -228,12 +308,45 @@
     }
 
     async function apiPost(body) {
-      body.role = userRole; // kirim role ke backend
+      body.role = userRole;
       const res = await fetch(GAS_BACKEND_URL, {
         method: 'POST',
         body: JSON.stringify(body)
       });
       return res.json();
+    }
+
+    // ========== DATE HELPERS ==========
+    function toDateInputValue(val) {
+      if (!val) return '';
+      // Sudah YYYY-MM-DD
+      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+        return val.substring(0, 10);
+      }
+      try {
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      } catch {
+        return '';
+      }
+    }
+
+    function formatDate(d) {
+      if (!d) return '-';
+      // Hindari "Invalid Date"
+      const s = toDateInputValue(d);
+      if (!s) return String(d);
+      try {
+        const [y, m, day] = s.split('-').map(Number);
+        const dt = new Date(y, m - 1, day);
+        return dt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch {
+        return s;
+      }
     }
 
     // ========== LOAD DATA ==========
@@ -266,7 +379,6 @@
       } catch (e) {
         klasifikasiList = [];
       }
-      // Rekomendasi di paling atas
       klasifikasiList.unshift({ kode: '400.10.2.2', uraian: 'Pemberdayaan Masyarakat Desa (Rekomendasi)' });
     }
 
@@ -282,7 +394,7 @@
       dropdown.innerHTML = filtered.length === 0
         ? '<div class="px-3 py-2 text-slate-400 text-sm">Tidak ditemukan</div>'
         : filtered.map(k => `
-            <div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi('${k.kode}', \`${k.uraian.replace(/`/g,'')}\`)">
+            <div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi('${k.kode}', \`${(k.uraian || '').replace(/`/g, '')}\`)">
               <span class="font-medium text-blue-700">${k.kode}</span> — ${k.uraian}
             </div>`).join('');
       dropdown.classList.remove('hidden');
@@ -301,7 +413,6 @@
       }
     });
 
-    // Format baru: KodeKlasifikasi/No.Agenda/Bidang-DPMD/Tahun
     function updateNoNotaPreview() {
       const no = document.getElementById('noAgenda').value;
       const kode = document.getElementById('kodeKlasifikasi').value;
@@ -326,7 +437,7 @@
       const pageData = filteredData.slice(start, end);
 
       document.getElementById('totalData').textContent = total;
-      document.getElementById('pageInfo').textContent = total === 0 ? '0' : `${start+1}–${Math.min(end, total)}`;
+      document.getElementById('pageInfo').textContent = total === 0 ? '0' : `${start + 1}–${Math.min(end, total)}`;
       renderPagination(totalPages);
 
       if (pageData.length === 0) {
@@ -358,13 +469,13 @@
         }
 
         return `<tr class="hover:bg-slate-50">
-          <td class="px-3 py-2.5 font-medium">${row['No.']||''}</td>
-          <td class="px-3 py-2.5 font-medium text-blue-700 text-xs">${row['NO. NOTA DINAS']||''}</td>
+          <td class="px-3 py-2.5 font-medium">${row['No.'] || ''}</td>
+          <td class="px-3 py-2.5 font-medium text-blue-700 text-xs">${row['NO. NOTA DINAS'] || ''}</td>
           <td class="px-3 py-2.5 whitespace-nowrap">${formatDate(row['TANGGAL'])}</td>
-          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['URAIAN']||''}</div></td>
-          <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${row['BIDANG']||''}</span></td>
-          <td class="px-3 py-2.5">${row['INSTANSI TUJUAN']||''}</td>
-          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['KETERANGAN']||''}</div></td>
+          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['URAIAN'] || ''}</div></td>
+          <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${row['BIDANG'] || ''}</span></td>
+          <td class="px-3 py-2.5">${row['INSTANSI TUJUAN'] || ''}</td>
+          <td class="px-3 py-2.5"><div class="uraian-3baris">${row['KETERANGAN'] || ''}</div></td>
           <td class="px-3 py-2.5">${lampiran}</td>
           <td class="px-3 py-2.5 text-center space-x-1 whitespace-nowrap">${aksi}</td>
         </tr>`;
@@ -374,13 +485,13 @@
     function renderPagination(totalPages) {
       const container = document.getElementById('paginationButtons');
       if (totalPages <= 1) { container.innerHTML = ''; return; }
-      let html = `<button onclick="goToPage(${currentPage-1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===1?'opacity-40 cursor-not-allowed':''}" ${currentPage===1?'disabled':''}><i class="fa-solid fa-chevron-left"></i></button>`;
-      let start = Math.max(1, currentPage-2), end = Math.min(totalPages, start+4);
-      if (end-start < 4) start = Math.max(1, end-4);
-      for (let i=start; i<=end; i++) {
-        html += `<button onclick="goToPage(${i})" class="px-3 py-1.5 rounded-lg border text-sm min-w-[36px] ${i===currentPage?'bg-blue-600 text-white border-blue-600':''}">${i}</button>`;
+      let html = `<button onclick="goToPage(${currentPage - 1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage === 1 ? 'opacity-40 cursor-not-allowed' : ''}" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
+      let start = Math.max(1, currentPage - 2), end = Math.min(totalPages, start + 4);
+      if (end - start < 4) start = Math.max(1, end - 4);
+      for (let i = start; i <= end; i++) {
+        html += `<button onclick="goToPage(${i})" class="px-3 py-1.5 rounded-lg border text-sm min-w-[36px] ${i === currentPage ? 'bg-blue-600 text-white border-blue-600' : ''}">${i}</button>`;
       }
-      html += `<button onclick="goToPage(${currentPage+1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage===totalPages?'opacity-40 cursor-not-allowed':''}" ${currentPage===totalPages?'disabled':''}><i class="fa-solid fa-chevron-right"></i></button>`;
+      html += `<button onclick="goToPage(${currentPage + 1})" class="px-3 py-1.5 rounded-lg border text-sm ${currentPage === totalPages ? 'opacity-40 cursor-not-allowed' : ''}" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
       container.innerHTML = html;
     }
 
@@ -388,20 +499,14 @@
     function filterTable() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       filteredData = !q ? [...currentData] : currentData.filter(r =>
-        (r['NO. NOTA DINAS']||'').toLowerCase().includes(q) ||
-        (r['URAIAN']||'').toLowerCase().includes(q) ||
-        (r['BIDANG']||'').toLowerCase().includes(q) ||
-        (r['INSTANSI TUJUAN']||'').toLowerCase().includes(q) ||
-        String(r['No.']||'').includes(q)
+        (r['NO. NOTA DINAS'] || '').toLowerCase().includes(q) ||
+        (r['URAIAN'] || '').toLowerCase().includes(q) ||
+        (r['BIDANG'] || '').toLowerCase().includes(q) ||
+        (r['INSTANSI TUJUAN'] || '').toLowerCase().includes(q) ||
+        String(r['No.'] || '').includes(q)
       );
       currentPage = 1;
       renderTable();
-    }
-
-    function formatDate(d) {
-      if (!d) return '-';
-      try { return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}); }
-      catch { return d; }
     }
 
     // ========== MODAL & FORM ==========
@@ -412,12 +517,17 @@
       document.getElementById('modalTitle').textContent = 'Tambah Nota Dinas';
       document.getElementById('kodeKlasifikasi').value = '';
       document.getElementById('kodeKlasifikasiSearch').value = '';
-      document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+      document.getElementById('tanggal').value = toDateInputValue(new Date());
+      document.getElementById('btnSimpan').disabled = false;
 
-      const res = await apiGet({ action: 'getnextno' });
-      if (res.status === 'success') {
-        document.getElementById('noAgenda').value = res.noAgenda;
-        updateNoNotaPreview();
+      try {
+        const res = await apiGet({ action: 'getnextno' });
+        if (res.status === 'success') {
+          document.getElementById('noAgenda').value = res.noAgenda;
+          updateNoNotaPreview();
+        }
+      } catch (e) {
+        document.getElementById('noAgenda').value = '1';
       }
     }
 
@@ -428,11 +538,15 @@
       const kode = document.getElementById('kodeKlasifikasi').value;
       if (!kode) return alert('Pilih Kode Klasifikasi terlebih dahulu');
 
+      const btn = document.getElementById('btnSimpan');
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+
       const row = document.getElementById('editRow').value;
       const formData = {
         action: row ? 'update' : 'add',
-        row: row ? parseInt(row) : null,
-        TANGGAL: document.getElementById('tanggal').value,
+        row: row ? parseInt(row, 10) : null,
+        TANGGAL: document.getElementById('tanggal').value, // sudah YYYY-MM-DD
         URAIAN: document.getElementById('uraian').value,
         BIDANG: document.getElementById('bidang').value,
         INSTANSI_TUJUAN: document.getElementById('instansi').value,
@@ -442,30 +556,58 @@
       };
 
       const fileInput = document.getElementById('lampiran');
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = async ev => {
-          const base64 = ev.target.result.split(',')[1];
-          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type });
-          if (up.status !== 'success') return alert(up.message || 'Gagal upload');
+      try {
+        if (fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          // Batasi ukuran ~4.5MB (base64 ~6MB limit GAS)
+          if (file.size > 4.5 * 1024 * 1024) {
+            alert('File terlalu besar (maks ~4.5 MB). Simpan dulu tanpa lampiran, lalu upload via tombol Upload di baris data.');
+            btn.disabled = false;
+            btn.textContent = 'Simpan';
+            return;
+          }
+          const base64 = await readFileAsBase64(file);
+          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type || 'application/octet-stream' });
+          if (up.status !== 'success') {
+            alert(up.message || 'Gagal upload. Data belum disimpan.\n\nTips: Simpan tanpa lampiran dulu, lalu gunakan tombol Upload di baris data.');
+            btn.disabled = false;
+            btn.textContent = 'Simpan';
+            return;
+          }
           formData.LAMPIRAN = up.url;
-          await submitForm(formData);
-        };
-        reader.readAsDataURL(file);
-      } else {
+        }
         await submitForm(formData);
+      } catch (err) {
+        alert('Error: ' + (err.message || err));
+        btn.disabled = false;
+        btn.textContent = 'Simpan';
       }
+    }
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const result = ev.target.result || '';
+          const parts = result.split(',');
+          resolve(parts.length > 1 ? parts[1] : parts[0]);
+        };
+        reader.onerror = () => reject(new Error('Gagal membaca file'));
+        reader.readAsDataURL(file);
+      });
     }
 
     async function submitForm(formData) {
       const res = await apiPost(formData);
+      const btn = document.getElementById('btnSimpan');
       if (res.status === 'success') {
         closeModal('modalForm');
         loadData();
         alert(formData.action === 'add' ? 'Data berhasil ditambahkan' : 'Data berhasil diupdate');
       } else {
         alert(res.message || 'Gagal menyimpan');
+        btn.disabled = false;
+        btn.textContent = 'Simpan';
       }
     }
 
@@ -473,17 +615,39 @@
       const res = await apiGet({ action: 'getbyid', row, trash: isTrashMode });
       if (res.status !== 'success') return alert(res.message);
       const d = res.data;
+
+      let dispHtml = '-';
+      if (d['DISPOSISI']) {
+        try {
+          const disp = typeof d['DISPOSISI'] === 'string' ? JSON.parse(d['DISPOSISI']) : d['DISPOSISI'];
+          if (disp && typeof disp === 'object') {
+            dispHtml = `
+              <div class="text-xs space-y-1 mt-1 p-2 bg-slate-50 rounded border">
+                <div><b>Diteruskan kepada:</b> ${(disp.diteruskanKepada || []).join(', ') || '-'}</div>
+                <div><b>Harap:</b> ${(disp.denganHormatHarap || []).join(', ') || '-'}</div>
+                <div><b>Sifat:</b> ${disp.sifat || '-'}</div>
+                <div><b>Catatan:</b> ${disp.catatan || '-'}</div>
+              </div>`;
+          } else {
+            dispHtml = String(d['DISPOSISI']);
+          }
+        } catch {
+          dispHtml = String(d['DISPOSISI']);
+        }
+      }
+
       document.getElementById('viewContent').innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><span class="text-slate-500 text-xs">No. Agenda</span><p class="font-medium">${d['No.']}</p></div>
           <div><span class="text-slate-500 text-xs">No. Nota Dinas</span><p class="font-medium text-blue-700">${d['NO. NOTA DINAS']}</p></div>
-          <div><span class="text-slate-500 text-xs">Kode Klasifikasi</span><p class="font-medium">${d['KODE_KLASIFIKASI']||'-'}</p></div>
+          <div><span class="text-slate-500 text-xs">Kode Klasifikasi</span><p class="font-medium">${d['KODE_KLASIFIKASI'] || '-'}</p></div>
           <div><span class="text-slate-500 text-xs">Tanggal</span><p class="font-medium">${formatDate(d['TANGGAL'])}</p></div>
           <div><span class="text-slate-500 text-xs">Bidang</span><p class="font-medium">${d['BIDANG']}</p></div>
-          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Uraian</span><p class="font-medium whitespace-pre-wrap">${d['URAIAN']||'-'}</p></div>
-          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Instansi Tujuan</span><p class="font-medium">${d['INSTANSI TUJUAN']||'-'}</p></div>
-          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Keterangan</span><p class="font-medium whitespace-pre-wrap">${d['KETERANGAN']||'-'}</p></div>
-          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Lampiran</span><p>${d['LAMPIRAN']?`<a href="${d['LAMPIRAN']}" target="_blank" class="text-blue-600">Buka Lampiran</a>`:'-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Uraian</span><p class="font-medium whitespace-pre-wrap">${d['URAIAN'] || '-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Instansi Tujuan</span><p class="font-medium">${d['INSTANSI TUJUAN'] || '-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Keterangan</span><p class="font-medium whitespace-pre-wrap">${d['KETERANGAN'] || '-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Lampiran</span><p>${d['LAMPIRAN'] ? `<a href="${d['LAMPIRAN']}" target="_blank" class="text-blue-600">Buka Lampiran</a>` : '-'}</p></div>
+          <div class="md:col-span-2"><span class="text-slate-500 text-xs">Disposisi</span>${dispHtml}</div>
         </div>`;
       document.getElementById('modalView').classList.add('active');
     }
@@ -492,18 +656,24 @@
       const res = await apiGet({ action: 'getbyid', row });
       if (res.status !== 'success') return alert(res.message);
       const d = res.data;
+
       document.getElementById('modalTitle').textContent = 'Edit Nota Dinas';
       document.getElementById('editRow').value = row;
-      document.getElementById('noAgenda').value = d['No.'];
-      document.getElementById('noNota').value = d['NO. NOTA DINAS'];
+      document.getElementById('noAgenda').value = d['No.'] || '';
+      document.getElementById('noNota').value = d['NO. NOTA DINAS'] || '';
       document.getElementById('kodeKlasifikasi').value = d['KODE_KLASIFIKASI'] || '';
       document.getElementById('kodeKlasifikasiSearch').value = d['KODE_KLASIFIKASI'] || '';
-      document.getElementById('tanggal').value = d['TANGGAL'] ? new Date(d['TANGGAL']).toISOString().split('T')[0] : '';
+      // Fix: parsing tanggal yang aman
+      document.getElementById('tanggal').value = toDateInputValue(d['TANGGAL']);
       document.getElementById('uraian').value = d['URAIAN'] || '';
       document.getElementById('bidang').value = d['BIDANG'] || '';
       document.getElementById('instansi').value = d['INSTANSI TUJUAN'] || '';
       document.getElementById('keterangan').value = d['KETERANGAN'] || '';
+      document.getElementById('lampiran').value = '';
+      document.getElementById('btnSimpan').disabled = false;
+      document.getElementById('btnSimpan').textContent = 'Simpan';
       document.getElementById('modalForm').classList.add('active');
+      updateNoNotaPreview();
     }
 
     async function hapus(row) {
@@ -533,37 +703,141 @@
       loadData();
     }
 
-    function openDisposisi(row) {
+    // ========== DISPOSISI (Lembar Disposisi) ==========
+    async function openDisposisi(row) {
       document.getElementById('disposisiRow').value = row;
+
+      // Reset form
+      document.querySelectorAll('.disp-kepada').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.disp-harap').forEach(cb => cb.checked = false);
+      document.querySelectorAll('input[name="dispSifat"]').forEach(r => r.checked = false);
       document.getElementById('disposisiText').value = '';
+      document.getElementById('dispNoAgenda').value = '';
+      document.getElementById('dispDiterimaTgl').value = toDateInputValue(new Date());
+      document.getElementById('dispKepadaLainnya').classList.add('hidden');
+      document.getElementById('dispKepadaLainnya').value = '';
+
+      // Ambil data baris untuk mengisi header
+      try {
+        const res = await apiGet({ action: 'getbyid', row });
+        if (res.status === 'success') {
+          const d = res.data;
+          document.getElementById('dispSuratDari').textContent = d['INSTANSI TUJUAN'] || '-';
+          document.getElementById('dispNoSurat').textContent = d['NO. NOTA DINAS'] || '-';
+          document.getElementById('dispTglSurat').textContent = formatDate(d['TANGGAL']);
+          document.getElementById('dispHal').textContent = d['URAIAN'] || '-';
+
+          // Load disposisi sebelumnya jika ada
+          if (d['DISPOSISI']) {
+            try {
+              const disp = typeof d['DISPOSISI'] === 'string' ? JSON.parse(d['DISPOSISI']) : d['DISPOSISI'];
+              if (disp && typeof disp === 'object') {
+                (disp.diteruskanKepada || []).forEach(v => {
+                  const cb = Array.from(document.querySelectorAll('.disp-kepada')).find(c => c.value === v);
+                  if (cb) cb.checked = true;
+                  else if (v && v !== 'Lainnya') {
+                    document.getElementById('dispKepadaLainnya').value = v;
+                    document.getElementById('dispKepadaLainnya').classList.remove('hidden');
+                    const lain = Array.from(document.querySelectorAll('.disp-kepada')).find(c => c.value === 'Lainnya');
+                    if (lain) lain.checked = true;
+                  }
+                });
+                (disp.denganHormatHarap || []).forEach(v => {
+                  const cb = Array.from(document.querySelectorAll('.disp-harap')).find(c => c.value === v);
+                  if (cb) cb.checked = true;
+                });
+                if (disp.sifat) {
+                  const r = document.querySelector(`input[name="dispSifat"][value="${disp.sifat}"]`);
+                  if (r) r.checked = true;
+                }
+                document.getElementById('disposisiText').value = disp.catatan || '';
+                document.getElementById('dispNoAgenda').value = disp.noAgenda || '';
+                if (disp.diterimaTgl) document.getElementById('dispDiterimaTgl').value = toDateInputValue(disp.diterimaTgl);
+              } else {
+                document.getElementById('disposisiText').value = String(d['DISPOSISI']);
+              }
+            } catch {
+              document.getElementById('disposisiText').value = String(d['DISPOSISI']);
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+
+      // Toggle input lainnya
+      const lainCb = Array.from(document.querySelectorAll('.disp-kepada')).find(c => c.value === 'Lainnya');
+      if (lainCb) {
+        lainCb.onchange = function () {
+          document.getElementById('dispKepadaLainnya').classList.toggle('hidden', !this.checked);
+        };
+      }
+
       document.getElementById('modalDisposisi').classList.add('active');
     }
+
     async function submitDisposisi() {
-      const text = document.getElementById('disposisiText').value;
-      if (!text.trim()) return alert('Isi disposisi dulu');
-      const res = await apiPost({ action: 'disposisi', row: parseInt(document.getElementById('disposisiRow').value), text });
+      const row = parseInt(document.getElementById('disposisiRow').value, 10);
+      if (!row) return alert('Row tidak valid');
+
+      const diteruskanKepada = Array.from(document.querySelectorAll('.disp-kepada:checked')).map(c => c.value);
+      const lain = document.getElementById('dispKepadaLainnya').value.trim();
+      if (diteruskanKepada.includes('Lainnya') && lain) {
+        const idx = diteruskanKepada.indexOf('Lainnya');
+        diteruskanKepada.splice(idx, 1, lain);
+      }
+
+      const denganHormatHarap = Array.from(document.querySelectorAll('.disp-harap:checked')).map(c => c.value);
+      const sifatEl = document.querySelector('input[name="dispSifat"]:checked');
+      const sifat = sifatEl ? sifatEl.value : '';
+      const catatan = document.getElementById('disposisiText').value.trim();
+      const noAgenda = document.getElementById('dispNoAgenda').value.trim();
+      const diterimaTgl = document.getElementById('dispDiterimaTgl').value;
+
+      if (diteruskanKepada.length === 0 && denganHormatHarap.length === 0 && !catatan) {
+        return alert('Isi minimal salah satu: diteruskan kepada, harap, atau catatan.');
+      }
+
+      const res = await apiPost({
+        action: 'disposisi',
+        row,
+        diteruskanKepada,
+        denganHormatHarap,
+        sifat,
+        catatan,
+        noAgenda,
+        diterimaTgl
+      });
+
       if (res.status === 'success') {
         closeModal('modalDisposisi');
         loadData();
         alert('Disposisi tersimpan');
-      } else alert(res.message);
+      } else {
+        alert(res.message || 'Gagal simpan disposisi');
+      }
     }
 
     function uploadLampiranPrompt(row) {
       const input = document.createElement('input');
-      input.type = 'file'; input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-      input.onchange = async function() {
-        const file = this.files[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async ev => {
-          const base64 = ev.target.result.split(',')[1];
-          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type });
-          if (up.status !== 'success') return alert(up.message);
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+      input.onchange = async function () {
+        const file = this.files[0];
+        if (!file) return;
+        if (file.size > 4.5 * 1024 * 1024) {
+          return alert('File terlalu besar (maks ~4.5 MB)');
+        }
+        try {
+          const base64 = await readFileAsBase64(file);
+          const up = await apiPost({ action: 'upload', base64, fileName: file.name, mimeType: file.type || 'application/octet-stream' });
+          if (up.status !== 'success') return alert(up.message || 'Gagal upload');
           const res = await apiPost({ action: 'updatelampiran', row, url: up.url });
-          if (res.status === 'success') { loadData(); alert('Lampiran berhasil diupload'); }
-          else alert(res.message);
-        };
-        reader.readAsDataURL(file);
+          if (res.status === 'success') {
+            loadData();
+            alert('Lampiran berhasil diupload');
+          } else alert(res.message);
+        } catch (err) {
+          alert('Error: ' + (err.message || err));
+        }
       };
       input.click();
     }
@@ -574,12 +848,13 @@
       const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `nota-dinas-${new Date().toISOString().slice(0,10)}.json`;
+      a.download = `nota-dinas-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
     }
 
     async function handleImport(e) {
-      const file = e.target.files[0]; if (!file) return;
+      const file = e.target.files[0];
+      if (!file) return;
       const reader = new FileReader();
       reader.onload = async ev => {
         try {
@@ -589,7 +864,9 @@
             alert(`Berhasil import ${res.count} data`);
             loadData();
           } else alert(res.message);
-        } catch { alert('File JSON tidak valid'); }
+        } catch {
+          alert('File JSON tidak valid');
+        }
       };
       reader.readAsText(file);
       e.target.value = '';
