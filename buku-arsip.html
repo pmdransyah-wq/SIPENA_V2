@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Arsip - Surat Masuk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-cell-clamp {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            line-height: 1.4;
+            max-height: 4.2em;
+        }
+        .header-title {
+            background: linear-gradient(90deg, #166534 0%, #22c55e 100%);
+        }
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background 0.15s;
+        }
+        th.sortable:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        th.sortable .sort-icon {
+            opacity: 0.45;
+            margin-left: 4px;
+            font-size: 10px;
+        }
+        th.sortable.active .sort-icon {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-green-700 flex items-center justify-center text-white shadow-md shadow-green-500/20">
+                    <i class="fa-solid fa-box-archive text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-base leading-tight">Buku Arsip</h1>
+                    <p class="text-[11px] text-slate-500">Surat Masuk Tahun <span id="tahunLabel">2026</span></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btnSyncCloud" class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 transition">
+                    <i class="fa-solid fa-rotate" id="syncIcon"></i>
+                    <span>Sinkron Data</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full px-4 sm:px-6 lg:px-8 pt-4 pb-10 flex-1">
+        <section class="space-y-3">
+
+            <!-- Title Banner -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="header-title text-white text-center py-2.5 px-4">
+                    <h2 class="text-base font-bold tracking-wide">BUKU ARSIP</h2>
+                    <p class="text-xs font-medium opacity-90">SURAT MASUK TAHUN <span id="tahunBanner">2026</span></p>
+                </div>
+            </div>
+
+            <!-- Top Action Toolbar -->
+            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex items-center gap-2 text-xs text-slate-600">
+                        <i class="fa-solid fa-filter text-green-600"></i>
+                        <span>Filter Tahun:</span>
+                        <select id="filterTahun" class="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-green-500 focus:outline-none">
+                            <option value="2026">2026</option>
+                            <option value="2025">2025</option>
+                            <option value="all">Semua</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 border-t lg:border-t-0 pt-2 lg:pt-0 border-slate-100">
+                    <div class="relative flex-1 sm:w-64">
+                        <input type="text" id="searchTable" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs focus:ring-2 focus:ring-green-500 focus:outline-none" placeholder="Cari nomor, pengirim, perihal, kode, berkas...">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                    </div>
+                    <button id="btnExportData" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-medium text-xs flex items-center gap-1.5 transition" title="Export data ke file JSON">
+                        <i class="fa-solid fa-file-export"></i>
+                        <span>Export</span>
+                    </button>
+                    <button id="btnImportData" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg font-medium text-xs flex items-center gap-1.5 transition" title="Import data dari file JSON">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span>Import</span>
+                    </button>
+                    <input type="file" id="importFileInput" accept=".json,application/json" class="hidden">
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600 border-collapse" style="min-width: 1100px;">
+                        <thead class="bg-green-800 text-white uppercase font-semibold text-[11px] border-b border-green-900">
+                            <tr>
+                                <th class="p-3 text-center align-middle sortable" data-sort="no" style="width: 50px;">
+                                    NO <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="tanggal_diterima" style="width: 130px;">
+                                    TANGGAL DITERIMA <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="kode_perbaikan" style="width: 120px;">
+                                    KODE PERBAIKAN <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="nomor_surat" style="width: 180px;">
+                                    NOMOR SURAT <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="pengirim" style="width: 150px;">
+                                    PENGIRIM <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="perihal" style="width: 280px;">
+                                    PERIHAL <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 align-middle sortable" data-sort="berkas" style="width: 140px;">
+                                    BERKAS <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                                <th class="p-3 text-center align-middle sortable" data-sort="bulan_berkaskan" style="width: 120px;">
+                                    BULAN DI BERKASKAN <i class="fa-solid fa-sort sort-icon"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="arsipTableBody" class="divide-y divide-slate-100">
+                            <!-- Rows generated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="p-3 border-t border-slate-200 flex items-center justify-between bg-slate-50 text-xs">
+                    <span id="paginationInfo" class="text-slate-500">Menampilkan 0 - 0 dari 0 data</span>
+                    <div class="flex items-center gap-1">
+                        <button id="prevPageBtn" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40 transition">Sebelumnya</button>
+                        <span id="pageIndicator" class="px-2 font-medium">1 / 1</span>
+                        <button id="nextPageBtn" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 disabled:opacity-40 transition">Berikutnya</button>
+                    </div>
+                </div>
+
+                <div id="emptyTableMessage" class="hidden p-8 text-center text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-2 text-slate-300"></i>
+                    <p class="text-xs font-medium">Belum ada data buku arsip.</p>
+                    <p class="text-[11px] mt-1">Data diambil dari Surat Masuk. Klik Sinkron Data atau pastikan data surat masuk sudah tersedia.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Notification -->
+    <div id="customModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-5 transform transition-all">
+            <div class="flex items-center gap-3 mb-3">
+                <div id="modalIcon" class="w-9 h-9 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-info"></i>
+                </div>
+                <h3 id="modalTitle" class="font-bold text-slate-800 text-base">Notifikasi</h3>
+            </div>
+            <p id="modalMessage" class="text-xs text-slate-600 leading-relaxed mb-5">Pesan notifikasi.</p>
+            <div class="flex justify-end gap-2" id="modalActions">
+                <button id="modalBtnOk" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sumber data sama dengan surat-masuk (localStorage + cloud)
+        const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
+
+        let dataSurat = JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]');
+        let dataArsip = [];
+        let currentPage = 1;
+        const itemsPerPage = 15;
+
+        // Sorting state
+        let sortKey = 'tanggal_diterima';
+        let sortDir = 'desc';
+
+        const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        const bulanOrder = {
+            'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4, 'Mei': 5, 'Juni': 6,
+            'Juli': 7, 'Agustus': 8, 'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+        };
+
+        function formatDateForInput(dateStr) {
+            if (!dateStr) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+            const dmy = String(dateStr).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (dmy) {
+                return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+            }
+            const indoMatch = String(dateStr).match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+            if (indoMatch) {
+                const mIdx = bulanIndo.findIndex(b => b.toLowerCase() === indoMatch[2].toLowerCase());
+                if (mIdx >= 0) {
+                    return `${indoMatch[3]}-${String(mIdx + 1).padStart(2, '0')}-${indoMatch[1].padStart(2, '0')}`;
+                }
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            return '';
+        }
+
+        function formatDateForDisplay(dateStr) {
+            if (!dateStr) return '-';
+            const formattedInput = formatDateForInput(dateStr);
+            if (formattedInput) {
+                const parts = formattedInput.split('-');
+                const day = parts[2];
+                const monthIdx = parseInt(parts[1], 10) - 1;
+                const year = parts[0];
+                if (monthIdx >= 0 && monthIdx < 12) {
+                    return `${parseInt(day, 10)} ${bulanIndo[monthIdx]} ${year}`;
+                }
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function getBulanDariTanggal(dateStr) {
+            const formatted = formatDateForInput(dateStr);
+            if (!formatted) return '-';
+            const monthIdx = parseInt(formatted.split('-')[1], 10) - 1;
+            return (monthIdx >= 0 && monthIdx < 12) ? bulanIndo[monthIdx] : '-';
+        }
+
+        function getTahunDariTanggal(dateStr) {
+            const formatted = formatDateForInput(dateStr);
+            if (!formatted) return '';
+            return formatted.split('-')[0] || '';
+        }
+
+        function sanitizeKode(val) {
+            if (val == null || val === '') return '';
+            const s = String(val).trim();
+            if (/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s/i.test(s) || /^\d{4}-\d{2}-\d{2}T/.test(s)) {
+                return '';
+            }
+            return s;
+        }
+
+        function makeStableId(item) {
+            const raw = item && (item["ID"] || item.id);
+            if (raw != null && String(raw).trim() !== '' && String(raw) !== 'undefined') {
+                return String(raw).trim();
+            }
+            const no = String((item && (item["Nomor Surat"] || item.nomor_surat)) || '').trim();
+            const tgl = String((item && (item["Tanggal Surat"] || item.tanggal_surat)) || '').trim();
+            const peng = String((item && (item["Pengirim / Instansi"] || item.pengirim)) || '').trim();
+            const key = (no + '|' + tgl + '|' + peng).toLowerCase().replace(/\s+/g, ' ');
+            if (key.replace(/\|/g, '').trim()) {
+                let h = 0;
+                for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i) | 0;
+                return 'surat-' + Math.abs(h);
+            }
+            return 'surat-' + Date.now();
+        }
+
+        function mapToArsip(item) {
+            const tglTerima = item.tanggal_terima || item["Tanggal Diterima"] || item.tanggal_surat || item["Tanggal Surat"] || '';
+            const kode = sanitizeKode(
+                item.kode_klasifikasi || item["Kode Klasifikasi"] || item.kode_perbaikan || item.indeks || item["Indeks"] || ''
+            );
+            const berkas = item.disposisi_kepada || item.berkas || item.jabatan_disposisi || item["Disposisi Kepada"] || item["Berkas"] || '-';
+            return {
+                id: item.id || makeStableId(item),
+                tanggal_diterima: formatDateForInput(tglTerima) || tglTerima,
+                kode_perbaikan: kode || '-',
+                nomor_surat: item.nomor_surat || item["Nomor Surat"] || '',
+                pengirim: item.pengirim || item["Pengirim / Instansi"] || '',
+                perihal: item.perihal || item["Perihal"] || '',
+                berkas: berkas,
+                bulan_berkaskan: getBulanDariTanggal(tglTerima),
+                tahun: getTahunDariTanggal(tglTerima) || '2026',
+                status_arsip: item.status_arsip || 'aktif'
+            };
+        }
+
+        function rebuildArsipData() {
+            const aktif = dataSurat.filter(i => (i.status_arsip || 'aktif') !== 'sampah');
+            dataArsip = aktif.map(mapToArsip);
+        }
+
+        function compareValues(a, b, key) {
+            let va, vb;
+            if (key === 'tanggal_diterima') {
+                va = formatDateForInput(a[key]) || '';
+                vb = formatDateForInput(b[key]) || '';
+            } else if (key === 'bulan_berkaskan') {
+                va = bulanOrder[a[key]] || 0;
+                vb = bulanOrder[b[key]] || 0;
+            } else if (key === 'no') {
+                va = formatDateForInput(a.tanggal_diterima) || '';
+                vb = formatDateForInput(b.tanggal_diterima) || '';
+            } else {
+                va = String(a[key] || '').toLowerCase();
+                vb = String(b[key] || '').toLowerCase();
+            }
+            if (va < vb) return -1;
+            if (va > vb) return 1;
+            return 0;
+        }
+
+        function applySort(arr) {
+            const sorted = [...arr];
+            sorted.sort((a, b) => {
+                const cmp = compareValues(a, b, sortKey);
+                return sortDir === 'asc' ? cmp : -cmp;
+            });
+            return sorted;
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                const icon = th.querySelector('.sort-icon');
+                const key = th.getAttribute('data-sort');
+                th.classList.remove('active');
+                if (icon) {
+                    icon.className = 'fa-solid sort-icon';
+                    if (key === sortKey) {
+                        th.classList.add('active');
+                        icon.classList.add(sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+                    } else {
+                        icon.classList.add('fa-sort');
+                    }
+                }
+            });
+        }
+
+        function showAlert(title, message, iconType = 'info', onConfirm = null) {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            const actionsEl = document.getElementById('modalActions');
+
+            if (onConfirm) {
+                actionsEl.innerHTML = `
+                    <button id="modalBtnCancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium text-xs transition">Batal</button>
+                    <button id="modalBtnConfirm" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">Ya, Lanjutkan</button>
+                `;
+                document.getElementById('modalBtnCancel').onclick = () => modal.classList.add('hidden');
+                document.getElementById('modalBtnConfirm').onclick = () => {
+                    modal.classList.add('hidden');
+                    onConfirm();
+                };
+            } else {
+                actionsEl.innerHTML = `<button id="modalBtnOk" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-xs transition">OK</button>`;
+                document.getElementById('modalBtnOk').onclick = () => modal.classList.add('hidden');
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function renderTable(filterQuery = '') {
+            const tbody = document.getElementById('arsipTableBody');
+            const emptyMsg = document.getElementById('emptyTableMessage');
+            tbody.innerHTML = '';
+
+            const query = (filterQuery || document.getElementById('searchTable').value || '').toLowerCase();
+            const tahunFilter = document.getElementById('filterTahun').value;
+
+            let filtered = dataArsip.filter(item => {
+                const matchTahun = (tahunFilter === 'all') || (item.tahun === tahunFilter);
+                const matchText = (
+                    (item.nomor_surat || '').toLowerCase().includes(query) ||
+                    (item.pengirim || '').toLowerCase().includes(query) ||
+                    (item.perihal || '').toLowerCase().includes(query) ||
+                    (item.berkas || '').toLowerCase().includes(query) ||
+                    (item.kode_perbaikan || '').toLowerCase().includes(query)
+                );
+                return matchTahun && matchText;
+            });
+
+            filtered = applySort(filtered);
+
+            const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const paginatedItems = filtered.slice(startIdx, startIdx + itemsPerPage);
+
+            document.getElementById('paginationInfo').textContent =
+                `Menampilkan ${filtered.length ? startIdx + 1 : 0} - ${Math.min(startIdx + itemsPerPage, filtered.length)} dari ${filtered.length} data`;
+            document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages}`;
+            document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+            document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+            const thn = tahunFilter === 'all' ? new Date().getFullYear() : tahunFilter;
+            document.getElementById('tahunLabel').textContent = thn;
+            document.getElementById('tahunBanner').textContent = thn;
+
+            updateSortIcons();
+
+            if (paginatedItems.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            } else {
+                emptyMsg.classList.add('hidden');
+                paginatedItems.forEach((item, index) => {
+                    const actualNo = startIdx + index + 1;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 align-top';
+                    if (index % 2 === 0) {
+                        tr.classList.add('bg-green-50/50');
+                    }
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-center font-medium text-slate-500 align-top">${actualNo}</td>
+                        <td class="p-3 align-top text-slate-700 whitespace-nowrap">${formatDateForDisplay(item.tanggal_diterima)}</td>
+                        <td class="p-3 align-top font-medium text-slate-800 whitespace-nowrap">${escapeHtml(item.kode_perbaikan)}</td>
+                        <td class="p-3 align-top font-semibold text-slate-800"><div class="table-cell-clamp">${escapeHtml(item.nomor_surat)}</div></td>
+                        <td class="p-3 align-top text-slate-700"><div class="table-cell-clamp">${escapeHtml(item.pengirim)}</div></td>
+                        <td class="p-3 align-top text-slate-700"><div class="table-cell-clamp">${escapeHtml(item.perihal)}</div></td>
+                        <td class="p-3 align-top"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-green-50 text-green-800 border border-green-100">${escapeHtml(item.berkas)}</span></td>
+                        <td class="p-3 text-center align-top text-slate-600 font-medium">${escapeHtml(item.bulan_berkaskan)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        async function fetchCloudData() {
+            const syncIcon = document.getElementById('syncIcon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+            try {
+                const response = await fetch(SURAT_MASUK_GAS_URL);
+                const res = await response.json();
+                if (res.status === 'success' && Array.isArray(res.data)) {
+                    dataSurat = res.data.map(item => {
+                        const id = makeStableId(item);
+                        return {
+                            id: id,
+                            nomor_surat: item["Nomor Surat"] || '',
+                            tanggal_surat: formatDateForInput(item["Tanggal Surat"]) || item["Tanggal Surat"] || '',
+                            tanggal_terima: formatDateForInput(item["Tanggal Diterima"]) || item["Tanggal Diterima"] || '',
+                            pengirim: item["Pengirim / Instansi"] || '',
+                            perihal: item["Perihal"] || '',
+                            isi_singkat: item["Isi Ringkasan"] || '',
+                            berkas: item["Berkas"] || '',
+                            media: item["Media"] || '',
+                            kode_klasifikasi: sanitizeKode(item["Kode Klasifikasi"]),
+                            indeks: item["Indeks"] || '',
+                            disposisi_kepada: item["Disposisi Kepada"] || '',
+                            jabatan_disposisi: item["Jabatan Disposisi"] || '',
+                            file_url: item["File URL"] || '',
+                            status_arsip: item["Status Arsip"] || 'aktif'
+                        };
+                    }).reverse();
+                    localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
+                    rebuildArsipData();
+                    renderTable();
+                    showAlert('Sinkron Berhasil', dataSurat.length + ' data surat masuk berhasil dimuat ke Buku Arsip.', 'success');
+                } else {
+                    rebuildArsipData();
+                    renderTable();
+                }
+            } catch (err) {
+                console.warn('Gagal memuat dari cloud:', err);
+                rebuildArsipData();
+                renderTable();
+                showAlert('Info', 'Menggunakan data lokal. Pastikan koneksi internet aktif untuk sinkron cloud.', 'info');
+            } finally {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+            }
+        }
+
+        function exportData() {
+            try {
+                const payload = {
+                    exported_at: new Date().toISOString(),
+                    type: 'buku_arsip',
+                    count: dataArsip.length,
+                    data: dataArsip
+                };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+                a.href = url;
+                a.download = 'buku-arsip-export-' + stamp + '.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showAlert('Export Berhasil', dataArsip.length + ' data berhasil diekspor ke file JSON.', 'success');
+            } catch (err) {
+                showAlert('Export Gagal', String(err), 'error');
+            }
+        }
+
+        function importData(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let rows = [];
+                    if (Array.isArray(parsed)) {
+                        rows = parsed;
+                    } else if (parsed && Array.isArray(parsed.data)) {
+                        rows = parsed.data;
+                    } else {
+                        throw new Error('Format file tidak dikenali. Gunakan hasil Export JSON.');
+                    }
+                    if (!rows.length) {
+                        showAlert('Import', 'File tidak berisi data.', 'warning');
+                        return;
+                    }
+
+                    showAlert(
+                        'Konfirmasi Import',
+                        'Ditemukan ' + rows.length + ' data.\n\nData akan digabung ke daftar Buku Arsip.',
+                        'info',
+                        function () {
+                            const mapped = rows.map(r => {
+                                if (r.nomor_surat || r["Nomor Surat"]) {
+                                    return mapToArsip(r);
+                                }
+                                return r;
+                            });
+                            const existingIds = new Set(dataArsip.map(d => d.id));
+                            mapped.forEach(m => {
+                                if (!existingIds.has(m.id)) {
+                                    dataArsip.push(m);
+                                }
+                            });
+                            renderTable();
+                            showAlert('Import Berhasil', rows.length + ' data diproses.', 'success');
+                        }
+                    );
+                } catch (err) {
+                    showAlert('Import Gagal', String(err.message || err), 'error');
+                }
+            };
+            reader.onerror = function () {
+                showAlert('Import Gagal', 'Tidak dapat membaca file.', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        // Event listeners
+        document.getElementById('searchTable').addEventListener('input', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        document.getElementById('filterTahun').addEventListener('change', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        document.getElementById('btnSyncCloud').addEventListener('click', fetchCloudData);
+        document.getElementById('btnExportData').addEventListener('click', exportData);
+        document.getElementById('btnImportData').addEventListener('click', () => {
+            document.getElementById('importFileInput').click();
+        });
+        document.getElementById('importFileInput').addEventListener('change', function (e) {
+            const f = e.target.files && e.target.files[0];
+            if (f) importData(f);
+            e.target.value = '';
+        });
+
+        document.getElementById('prevPageBtn').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
+            }
+        });
+        document.getElementById('nextPageBtn').addEventListener('click', () => {
+            currentPage++;
+            renderTable();
+        });
+
+        // Sorting click handler
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.getAttribute('data-sort');
+                if (sortKey === key) {
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortKey = key;
+                    sortDir = (key === 'tanggal_diterima' || key === 'no') ? 'desc' : 'asc';
+                }
+                currentPage = 1;
+                renderTable();
+            });
+        });
+
+        window.onload = function () {
+            rebuildArsipData();
+            renderTable();
+            // Auto sync ringan
+            fetch(SURAT_MASUK_GAS_URL)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success' && Array.isArray(res.data)) {
+                        dataSurat = res.data.map(item => {
+                            const id = makeStableId(item);
+                            return {
+                                id: id,
+                                nomor_surat: item["Nomor Surat"] || '',
+                                tanggal_surat: formatDateForInput(item["Tanggal Surat"]) || item["Tanggal Surat"] || '',
+                                tanggal_terima: formatDateForInput(item["Tanggal Diterima"]) || item["Tanggal Diterima"] || '',
+                                pengirim: item["Pengirim / Instansi"] || '',
+                                perihal: item["Perihal"] || '',
+                                berkas: item["Berkas"] || '',
+                                kode_klasifikasi: sanitizeKode(item["Kode Klasifikasi"]),
+                                indeks: item["Indeks"] || '',
+                                disposisi_kepada: item["Disposisi Kepada"] || '',
+                                jabatan_disposisi: item["Jabatan Disposisi"] || '',
+                                file_url: item["File URL"] || '',
+                                status_arsip: item["Status Arsip"] || 'aktif'
+                            };
+                        }).reverse();
+                        localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
+                        rebuildArsipData();
+                        renderTable();
+                    }
+                })
+                .catch(() => {});
+        };
+    </script>
+</body>
+</html>
