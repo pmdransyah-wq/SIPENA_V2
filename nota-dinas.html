@@ -54,7 +54,7 @@
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
     <div>
       <h1 class="text-2xl font-bold text-slate-800">Nota Dinas</h1>
-      <p class="text-sm text-slate-500">Manajemen data Nota Dinas • Role: <span id="userRole" class="font-semibold text-blue-600">superadmin</span></p>
+      <p class="text-sm text-slate-500">Manajemen data Nota Dinas • Role: <span id="userRole" class="font-semibold text-blue-600">SUPERADMIN</span></p>
     </div>
     <div class="flex flex-wrap gap-2" id="actionButtons">
       <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
@@ -192,97 +192,104 @@
     </div>
   </div>
 
-  <!-- MODAL DISPOSISI -->
+  <!-- MODAL DISPOSISI - format mirip disposisi.html -->
   <div id="modalDisposisi" class="modal fixed inset-0 bg-black/50 z-50 items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[94vh] overflow-y-auto">
       <div class="p-3 border-b flex justify-between items-center sticky top-0 bg-white z-10">
         <h2 class="text-base font-bold">Lembar Disposisi</h2>
-        <button onclick="closeModal('modalDisposisi')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button type="button" onclick="closeModal('modalDisposisi')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="p-4">
         <input type="hidden" id="disposisiRow">
-        <div class="ld-wrap rounded-sm overflow-hidden">
-          <div class="ld-header-kop">
-            <div class="instansi">PEMERINTAH KABUPATEN HULU SUNGAI TENGAH</div>
-            <div class="dinas">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div>
-            <div class="alamat">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</div>
-          </div>
-          <div class="ld-title">LEMBAR DISPOSISI</div>
-          <div class="ld-row ld-row-2">
-            <div class="ld-cell ld-cell-border-r">
-              <div class="ld-label">Surat Dari</div>
-              <div class="ld-value" id="dispSuratDari">-</div>
+
+        <!-- Preview form seperti cetak -->
+        <div class="border-2 border-black text-[11px] text-black bg-white">
+          <!-- Kop -->
+          <div class="flex items-center border-b-2 border-black p-2">
+            <div class="flex-1 text-center px-2">
+              <p class="text-xs font-bold uppercase tracking-wide">Pemerintah Kabupaten Hulu Sungai Tengah</p>
+              <h1 class="text-sm font-extrabold uppercase tracking-wider">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</h1>
+              <p class="text-[9px] text-slate-800 leading-tight mt-0.5">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</p>
+              <p class="text-[9px] text-slate-800 leading-tight">Pos-el dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id</p>
             </div>
-            <div class="ld-cell space-y-2">
-              <div class="flex items-center gap-2">
-                <span class="ld-label w-24 shrink-0 mb-0">Diterima Tgl</span>
-                <input type="date" id="dispDiterimaTgl" class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm">
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="ld-label w-24 shrink-0 mb-0">No. Agenda</span>
-                <input type="text" id="dispNoAgenda" class="flex-1 px-2 py-1 border border-slate-300 rounded text-sm" placeholder="No. Agenda disposisi">
-              </div>
-              <div class="flex items-start gap-2">
-                <span class="ld-label w-24 shrink-0 mb-0 pt-0.5">Sifat</span>
-                <div class="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                  <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="dispSifat" value="Sangat Segera" class="ld-check"> Sangat Segera</label>
-                  <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="dispSifat" value="Segera" class="ld-check"> Segera</label>
-                  <label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="radio" name="dispSifat" value="Rahasia" class="ld-check"> Rahasia</label>
+          </div>
+
+          <div class="border-b border-black bg-slate-100 text-center font-bold text-xs py-1 uppercase tracking-widest">LEMBAR DISPOSISI</div>
+
+          <table class="w-full border-collapse" style="border-collapse:collapse;width:100%;">
+            <tr>
+              <td class="border border-black p-1.5 align-top" style="width:55%">
+                <strong>Surat Dari</strong> &nbsp;: <span id="dispSuratDari">-</span>
+              </td>
+              <td class="border border-black p-1.5 align-top" style="width:45%">
+                <div class="flex items-center gap-1 mb-1">
+                  <strong class="shrink-0">Diterima Tgl</strong> &nbsp;:
+                  <input type="date" id="dispDiterimaTgl" class="border border-slate-300 rounded px-1 py-0.5 text-[11px] flex-1">
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="ld-row ld-row-2">
-            <div class="ld-cell ld-cell-border-r">
-              <div class="ld-label">No. Surat</div>
-              <div class="ld-value text-blue-700" id="dispNoSurat">-</div>
-            </div>
-            <div class="ld-cell">
-              <div class="ld-label">Tgl. Surat</div>
-              <div class="ld-value" id="dispTglSurat">-</div>
-            </div>
-          </div>
-          <div class="ld-row">
-            <div class="ld-cell">
-              <div class="ld-label">Hal</div>
-              <div class="ld-value whitespace-pre-wrap" id="dispHal">-</div>
-            </div>
-          </div>
-          <div class="ld-row ld-row-2">
-            <div class="ld-cell ld-cell-border-r">
-              <div class="ld-section-title">Diteruskan Kepada Sdr :</div>
-              <div class="space-y-1.5">
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-kepada" value="Sekretariat"> Sekretariat</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-kepada" value="PPD"> PPD</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-kepada" value="PUEMD"> PUEMD</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-kepada" value="PMLKD"> PMLKD</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-kepada" value="Lainnya" id="cbKepadaLainnya"> Lainnya</label>
-              </div>
-              <input type="text" id="dispKepadaLainnya" placeholder="Isi jika Lainnya..." class="mt-2 w-full px-2 py-1 border border-slate-300 rounded text-sm hidden">
-            </div>
-            <div class="ld-cell">
-              <div class="ld-section-title">Dengan Hormat Harap :</div>
-              <div class="space-y-1.5">
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-harap" value="Tanggapan dan Saran"> Tanggapan dan Saran</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-harap" value="Proses Lebih Lanjut"> Proses Lebih Lanjut</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-harap" value="Koordinasi / Konfirmasikan"> Koordinasi / Konfirmasikan</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-harap" value="Untuk Diketahui"> Untuk Diketahui</label>
-                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="ld-check disp-harap" value="Untuk Dilaksanakan"> Untuk Dilaksanakan</label>
-              </div>
-            </div>
-          </div>
-          <div class="ld-row" style="border-bottom: none;">
-            <div class="ld-cell">
-              <div class="ld-section-title">Catatan :</div>
-              <textarea id="disposisiText" rows="3" placeholder="Catatan disposisi..." class="w-full px-3 py-2 border border-slate-300 rounded text-sm"></textarea>
-              <div class="mt-4 text-right text-xs text-slate-500">
-                <div class="font-semibold text-slate-700">Kepala Dinas</div>
-                <div class="mt-6 font-semibold text-slate-800">EDDY RAHMAWAN, S.STP, M.IP</div>
-                <div>NIP 198709122006021002</div>
-              </div>
-            </div>
-          </div>
+                <div class="flex items-center gap-1 mb-1">
+                  <strong class="shrink-0">No. Agenda</strong> &nbsp;:
+                  <input type="text" id="dispNoAgenda" class="border border-slate-300 rounded px-1 py-0.5 text-[11px] flex-1" placeholder="">
+                </div>
+                <div>
+                  <strong>Sifat</strong> &nbsp;:
+                  <label class="inline-flex items-center gap-1 ml-1 cursor-pointer"><input type="radio" name="dispSifat" value="Sangat Segera" class="accent-blue-700"> Sangat Segera</label>
+                  <label class="inline-flex items-center gap-1 ml-2 cursor-pointer"><input type="radio" name="dispSifat" value="Segera" class="accent-blue-700"> Segera</label>
+                  <label class="inline-flex items-center gap-1 ml-2 cursor-pointer"><input type="radio" name="dispSifat" value="Rahasia" class="accent-blue-700"> Rahasia</label>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black p-1.5 align-top">
+                <strong>No. Surat</strong> &nbsp;: <span id="dispNoSurat" class="text-blue-700 font-semibold">-</span><br>
+                <strong>Tgl. Surat</strong> &nbsp;: <span id="dispTglSurat">-</span>
+              </td>
+              <td class="border border-black p-1.5"></td>
+            </tr>
+            <tr>
+              <td class="border border-black p-1.5" colspan="2">
+                <strong>Hal</strong> &nbsp;: <span id="dispHal">-</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black p-1.5 align-top">
+                <strong>Diteruskan Kepada Sdr :</strong>
+                <div class="space-y-1 mt-1.5">
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="Sekretariat"> Sekretariat</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PPD"> PPD</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PUEMD"> PUEMD</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="PMLKD"> PMLKD</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-kepada accent-blue-700" value="Lainnya" id="cbKepadaLainnya"> Lainnya</label>
+                  <input type="text" id="dispKepadaLainnya" placeholder="Isi jika Lainnya..." class="mt-1 w-full border border-slate-300 rounded px-1 py-0.5 text-[11px] hidden">
+                </div>
+              </td>
+              <td class="border border-black p-1.5 align-top">
+                <strong>Dengan Hormat Harap :</strong>
+                <div class="space-y-1 mt-1.5">
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Tanggapan dan Saran"> Tanggapan dan Saran</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Proses Lebih Lanjut"> Proses Lebih Lanjut</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Koordinasi / Konfirmasikan"> Koordinasi / Konfirmasikan</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Untuk Diketahui"> Untuk Diketahui</label>
+                  <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="disp-harap accent-blue-700" value="Untuk Dilaksanakan"> Untuk Dilaksanakan</label>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="border border-black p-1.5 align-top" colspan="2" style="min-height:100px">
+                <strong>Catatan</strong> &nbsp;:
+                <textarea id="disposisiText" rows="3" placeholder="Catatan disposisi..." class="mt-1 w-full border border-slate-300 rounded p-1.5 text-[11px]"></textarea>
+                <div class="mt-4 flex justify-end">
+                  <div class="text-center w-56">
+                    <p class="font-semibold text-xs">Kepala Dinas</p>
+                    <br><br>
+                    <p class="font-bold underline text-xs">EDDY RAHMAWAN, S.STP, M.IP</p>
+                    <p class="text-[10px]">NIP 198709122006021002</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
         </div>
+
         <div class="flex justify-end gap-3 mt-4">
           <button type="button" onclick="closeModal('modalDisposisi')" class="px-4 py-2 border rounded-lg text-sm">Batal</button>
           <button type="button" onclick="submitDisposisi()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Simpan Disposisi</button>
@@ -295,9 +302,15 @@
     let currentData = [], filteredData = [], isTrashMode = false, currentPage = 1;
     const PER_PAGE = 15;
     let klasifikasiList = [];
-    let userRole = (localStorage.getItem('arsip_role') || localStorage.getItem('role') || 'superadmin').toLowerCase();
+    let userRole = (localStorage.getItem('arsip_role') || localStorage.getItem('role') || localStorage.getItem('userRole') || 'superadmin').toLowerCase();
+    // normalisasi alias
+    if (userRole === 'super' || userRole === 'sa') userRole = 'superadmin';
+    if (userRole === 'administrator') userRole = 'admin';
     const roleEl = document.getElementById('userRole');
     if (roleEl) roleEl.textContent = userRole.toUpperCase();
+    const isAdminLike = (userRole === 'superadmin' || userRole === 'admin');
+    const canDelete = (userRole === 'superadmin');
+    const canWrite = isAdminLike; // edit, upload, disposisi
 
     function applyRoleUI() {
       document.querySelectorAll('#actionButtons button').forEach(btn => btn.style.display = '');
@@ -390,7 +403,10 @@
       const filtered = klasifikasiList.filter(k => k.kode.toLowerCase().includes(q) || k.uraian.toLowerCase().includes(q)).slice(0, 15);
       dropdown.innerHTML = filtered.length === 0
         ? '<div class="px-3 py-2 text-slate-400 text-sm">Tidak ditemukan</div>'
-        : filtered.map(k => '<div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi(\\'' + k.kode + '\\', \\`' + (k.uraian || '').replace(/`/g, '') + '\\`)"><span class="font-medium text-blue-700">' + k.kode + '</span> — ' + k.uraian + '</div>').join('');
+        : filtered.map(function(k) {
+            var uraianSafe = String(k.uraian || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            return '<div class="dropdown-item px-3 py-2 cursor-pointer text-sm" onclick="pilihKlasifikasi(\'' + k.kode + '\', \'' + uraianSafe + '\')"><span class="font-medium text-blue-700">' + k.kode + '</span> — ' + k.uraian + '</div>';
+          }).join('');
       dropdown.classList.remove('hidden');
     }
     function pilihKlasifikasi(kode, uraian) {
@@ -432,12 +448,12 @@
           ? '<a href="' + row['LAMPIRAN'] + '" target="_blank" class="text-blue-600 hover:underline text-xs"><i class="fa-solid fa-paperclip"></i> Lihat</a>'
           : '-';
         let aksi = '<button onclick="viewData(' + row._row + ')" class="action-btn bg-sky-100 text-sky-700" title="View"><i class="fa-solid fa-eye"></i></button>';
-        if (userRole !== 'user' && userRole !== 'umum') {
+        if (canWrite) {
           aksi += '<button onclick="editData(' + row._row + ')" class="action-btn bg-amber-100 text-amber-700" title="Edit"><i class="fa-solid fa-pen"></i></button>'
             + '<button onclick="uploadLampiranPrompt(' + row._row + ')" class="action-btn bg-emerald-100 text-emerald-700" title="Upload"><i class="fa-solid fa-upload"></i></button>'
             + '<button onclick="openDisposisi(' + row._row + ')" class="action-btn bg-purple-100 text-purple-700" title="Disposisi"><i class="fa-solid fa-share"></i></button>';
         }
-        if (userRole === 'superadmin') {
+        if (canDelete) {
           if (isTrashMode) {
             aksi += '<button onclick="restore(' + row._row + ')" class="action-btn bg-green-100 text-green-700" title="Restore"><i class="fa-solid fa-rotate-left"></i></button>'
               + '<button onclick="permanentDel(' + row._row + ')" class="action-btn bg-red-100 text-red-700" title="Hapus Permanen"><i class="fa-solid fa-trash"></i></button>';
