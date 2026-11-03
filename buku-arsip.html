@@ -284,9 +284,10 @@
 
         function mapToArsip(item) {
             const tglTerima = item.tanggal_terima || item["Tanggal Diterima"] || item.tanggal_surat || item["Tanggal Surat"] || '';
-            const kode = sanitizeKode(
-                item.kode_klasifikasi || item["Kode Klasifikasi"] || item.kode_perbaikan || item.indeks || item["Indeks"] || ''
-            );
+            // KODE PERBAIKAN = hanya dari Kode Klasifikasi. Jika kosong → "-"
+            // Jangan ambil dari Indeks (Undangan, Pemberitahuan, dll)
+            const kodeRaw = item.kode_klasifikasi || item["Kode Klasifikasi"] || item.kode_perbaikan || '';
+            const kode = sanitizeKode(kodeRaw);
             const berkas = item.disposisi_kepada || item.berkas || item.jabatan_disposisi || item["Disposisi Kepada"] || item["Berkas"] || '-';
             return {
                 id: item.id || makeStableId(item),
