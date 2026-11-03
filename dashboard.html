@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sistem E-Arsip</title>
+    <title>Dashboard - sipena.v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -38,7 +38,7 @@
                     <i class="fa-solid fa-box-archive"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-white text-base leading-tight">E-ARSIP</h1>
+                    <h1 class="font-bold text-white text-base leading-tight">sipena</h1>
                     <p class="text-xs text-brand-400 font-medium" id="display-instansi-name">Memuat...</p>
                 </div>
             </a>
@@ -203,7 +203,7 @@
                 <!-- Welcome Banner -->
                 <div class="bg-gradient-to-r from-brand-700 to-indigo-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
                     <div class="relative z-10 max-w-xl">
-                        <h2 class="text-2xl font-bold mb-1">Selamat Datang di Sistem E-Arsip</h2>
+                        <h2 class="text-2xl font-bold mb-1">Selamat Datang di sipena.v2</h2>
                         <p class="text-brand-100 text-xs sm:text-sm">Data statistik ini dikhususkan untuk instansi: <span class="font-bold underline" id="welcome-instansi-text">Memuat...</span></p>
                     </div>
                     <i class="fa-solid fa-chart-line absolute -right-4 -bottom-6 text-white/10 text-9xl pointer-events-none"></i>
@@ -261,7 +261,7 @@
                     <div class="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="font-bold text-slate-800 text-base" id="chart-title">Statistik Sistem E-Arsip</h3>
+                                <h3 class="font-bold text-slate-800 text-base" id="chart-title">Statistik sipena.v2</h3>
                                 <p class="text-xs text-slate-500">Volumetri entri berkas per bulan dalam tahun ini</p>
                             </div>
                             <select class="text-xs border border-slate-300 rounded-lg px-2.5 py-1 bg-slate-50 focus:outline-none">
@@ -340,7 +340,7 @@
             }
 
             const chartTitle = document.getElementById('chart-title');
-            if (chartTitle) chartTitle.innerText = 'Statistik Sistem E-Arsip (' + currentInstansi + ')';
+            if (chartTitle) chartTitle.innerText = 'Statistik Sistem sipena.v2 (' + currentInstansi + ')';
 
             renderChart();
             renderCalendar();
