@@ -1679,6 +1679,19 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+
+        /* ========== EMBED MODE (di dalam dashboard iframe) ========== */
+        body.embed-mode header {
+            position: sticky;
+            top: 0;
+        }
+        body.embed-mode .hero {
+            min-height: 42vh;
+            padding-top: 4rem;
+        }
+        body.embed-mode #loader {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -2590,6 +2603,15 @@
            INIT
            ============================================ */
         window.addEventListener('load', async () => {
+            // Deteksi jika dibuka di dalam iframe dashboard
+            try {
+                if (window.self !== window.top) {
+                    document.body.classList.add('embed-mode');
+                }
+            } catch (e) {
+                document.body.classList.add('embed-mode');
+            }
+
             applyRoleUI();
 
             // Loader hilang maksimal 2 detik
