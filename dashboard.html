@@ -535,7 +535,11 @@
                         source: 'aula',
                         link: '',
                         nomor_surat: '',
-                        indeks: ''
+                        indeks: '',
+                        disposisi_kepada: '',
+                        jabatan_disposisi: '',
+                        isi_disposisi: '',
+                        file_url: ''
                     });
                 });
             });
@@ -559,7 +563,11 @@
                     source: 'surat',
                     link: link,
                     nomor_surat: String(nomor),
-                    indeks: indeks
+                    indeks: indeks,
+                    disposisi_kepada: String(s.disposisi_kepada || s['Disposisi Kepada'] || ''),
+                    jabatan_disposisi: String(s.jabatan_disposisi || s['Jabatan Disposisi'] || ''),
+                    isi_disposisi: String(s.isi_disposisi || s['Isi Disposisi'] || ''),
+                    file_url: String(fileUrl || '')
                 });
             });
             events.sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -600,6 +608,26 @@
             return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
+        function toggleAgendaDetail(btn) {
+            const detail = btn.nextElementSibling;
+            if (!detail) return;
+            const isHidden = detail.classList.contains('hidden');
+            const icon = btn.querySelector('.fa-chevron-right');
+            document.querySelectorAll('.agenda-detail').forEach(function(el) {
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.agenda-title-btn').forEach(function(el) {
+                el.classList.remove('bg-slate-100');
+                const ic = el.querySelector('.fa-chevron-right');
+                if (ic) ic.classList.remove('rotate-90');
+            });
+            if (isHidden) {
+                detail.classList.remove('hidden');
+                btn.classList.add('bg-slate-100');
+                if (icon) icon.classList.add('rotate-90');
+            }
+        }
+
         function renderAgendaList(isoDate) {
             const box = document.getElementById('calendar-agenda-list');
             if (!box) return;
@@ -618,30 +646,52 @@
             if (!items.length) {
                 html += '<p class="text-xs text-slate-400">Tidak ada agenda pada tanggal ini.</p>';
             } else {
-                items.forEach(ev => {
+                items.forEach(function(ev) {
                     const isSurat = ev.source === 'surat';
-                    const borderCls = isSurat ? 'border-amber-500 bg-amber-50/70' : 'border-brand-600 bg-brand-50/70';
+                    const borderCls = isSurat ? 'border-amber-500' : 'border-brand-600';
                     const badge = isSurat
-                        ? '<span class="text-[10px] font-semibold text-amber-700 uppercase">' + escapeHtml(ev.indeks || 'Surat') + '</span>'
-                        : '<span class="text-[10px] font-semibold text-brand-700">Aula</span>';
-                    const timeHtml = ev.time
-                        ? '<span><i class="fa-regular fa-clock mr-1"></i>' + escapeHtml(ev.time) + '</span>'
-                        : '<span class="text-slate-400">—</span>';
-                    let linkHtml = '';
-                    if (isSurat && ev.link) {
-                        const label = ev.nomor_surat ? escapeHtml(ev.nomor_surat) : 'Lihat surat';
-                        linkHtml = '<a href="' + escapeHtml(ev.link) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline">'
-                            + '<i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> ' + label + '</a>';
-                    } else if (isSurat && ev.nomor_surat) {
-                        linkHtml = '<span class="inline-block mt-1.5 text-[11px] text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>' + escapeHtml(ev.nomor_surat) + '</span>';
+                        ? '<span class="text-[9px] font-semibold text-amber-700 uppercase bg-amber-50 px-1.5 py-0.5 rounded">' + escapeHtml(ev.indeks || 'Surat') + '</span>'
+                        : '<span class="text-[9px] font-semibold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded">Aula</span>';
+
+                    let detailHtml = '';
+                    if (isSurat) {
+                        let kepadaText = ev.disposisi_kepada || '—';
+                        if (ev.jabatan_disposisi) {
+                            kepadaText = (ev.disposisi_kepada || '—') + (ev.disposisi_kepada ? ' (' + ev.jabatan_disposisi + ')' : ev.jabatan_disposisi);
+                        }
+                        const isi = ev.isi_disposisi || '—';
+                        detailHtml += '<div class="text-[11px] text-slate-600 space-y-1.5 mt-1">';
+                        detailHtml += '<div><span class="font-semibold text-slate-700">Disposisi kepada:</span> ' + escapeHtml(kepadaText) + '</div>';
+                        detailHtml += '<div><span class="font-semibold text-slate-700">Isi disposisi:</span> ' + escapeHtml(isi) + '</div>';
+                        if (ev.file_url || (ev.link && String(ev.link).indexOf('http') === 0)) {
+                            const lampiranUrl = ev.file_url || ev.link;
+                            detailHtml += '<div><a href="' + escapeHtml(lampiranUrl) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline font-medium">'
+                                + '<i class="fa-solid fa-paperclip text-[10px]"></i> Link lampiran</a></div>';
+                        } else if (ev.nomor_surat) {
+                            detailHtml += '<div class="text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>' + escapeHtml(ev.nomor_surat) + '</div>';
+                        }
+                        if (ev.place) {
+                            detailHtml += '<div class="text-slate-500 pt-0.5 border-t border-slate-100 mt-1.5"><i class="fa-solid fa-building mr-1 text-[9px]"></i>' + escapeHtml(ev.place) + '</div>';
+                        }
+                        detailHtml += '</div>';
+                    } else {
+                        detailHtml += '<div class="text-[11px] text-slate-600 space-y-1 mt-1">';
+                        if (ev.time) detailHtml += '<div><i class="fa-regular fa-clock mr-1"></i>' + escapeHtml(ev.time) + '</div>';
+                        if (ev.place) detailHtml += '<div><i class="fa-solid fa-location-dot mr-1"></i>' + escapeHtml(ev.place) + '</div>';
+                        detailHtml += '</div>';
                     }
-                    html += '<div class="p-2.5 ' + borderCls + ' border-l-4 rounded-r-lg text-xs">'
-                        + '<div class="font-bold text-slate-800">' + escapeHtml(ev.title) + '</div>'
-                        + '<div class="text-slate-500 flex items-center justify-between mt-1 gap-2">'
-                        + timeHtml
-                        + '<span class="font-semibold text-slate-600 truncate">' + escapeHtml(ev.place || '') + '</span>'
-                        + badge + '</div>'
-                        + linkHtml
+
+                    html += '<div class="border-l-4 ' + borderCls + ' rounded-r-lg overflow-hidden">'
+                        + '<button type="button" class="agenda-title-btn w-full text-left px-2.5 py-2 flex items-start gap-2 hover:bg-slate-50 transition text-xs group" onclick="toggleAgendaDetail(this)">'
+                        + '<i class="fa-solid fa-chevron-right text-[9px] text-slate-400 mt-1 group-hover:text-slate-600 transition-transform"></i>'
+                        + '<div class="flex-1 min-w-0">'
+                        + '<div class="font-semibold text-slate-800 leading-snug">' + escapeHtml(ev.title) + '</div>'
+                        + '<div class="mt-0.5">' + badge + '</div>'
+                        + '</div>'
+                        + '</button>'
+                        + '<div class="agenda-detail hidden px-2.5 pb-2.5 pt-0 bg-slate-50/80 border-t border-slate-100">'
+                        + detailHtml
+                        + '</div>'
                         + '</div>';
                 });
             }
@@ -757,9 +807,11 @@
                             pengirim: item['Pengirim / Instansi'] || '',
                             perihal: item['Perihal'] || '',
                             indeks: item['Indeks'] || '',
-                            file_url: item['File URL'] || item['File Url'] || '',
-                            nomor_surat: item['Nomor Surat'] || '',
-                            status_arsip: item['Status Arsip'] || 'aktif'
+                            file_url: item['File URL'] || item['File Url'] || item['File url'] || '',
+                            status_arsip: item['Status Arsip'] || 'aktif',
+                            disposisi_kepada: item['Disposisi Kepada'] || '',
+                            jabatan_disposisi: item['Jabatan Disposisi'] || '',
+                            isi_disposisi: item['Isi Disposisi'] || ''
                         };
                     });
                     localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
