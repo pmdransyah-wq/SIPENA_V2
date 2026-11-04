@@ -1398,6 +1398,24 @@
             transition: var(--transition);
         }
 
+        .form-group input[type="file"] {
+            padding: 0.65rem 1rem;
+            cursor: pointer;
+        }
+
+        .form-group input[type="file"]::file-selector-button {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
+            border: none;
+            border-radius: 6px;
+            padding: 0.45rem 0.9rem;
+            font-family: var(--font);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-right: 0.8rem;
+        }
+
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
@@ -1911,12 +1929,14 @@
                         <input type="text" id="formLocation" placeholder="Contoh: Aula Kantor Desa" required>
                     </div>
                     <div class="form-group">
-                        <label>URL Foto <span>*</span></label>
-                        <input type="url" id="formSrc" placeholder="https://... atau link Google Drive" required>
+                        <label>Upload Foto <span>*</span></label>
+                        <input type="file" id="formFile" accept="image/jpeg,image/png,image/webp,image/gif" required>
                         <div class="form-hint">
-                            Upload foto ke <a href="https://drive.google.com/drive/folders/11VPxsnq015_1F8GhVTqpshV4cqaejjGa" target="_blank" style="color:var(--gold)">folder Drive ini</a>.
-                            Klik kanan file → <strong>Bagikan</strong> → akses <strong>Siapa saja yang memiliki link</strong> → salin link.
-                            Contoh format yang benar: <code style="color:var(--gold)">https://drive.google.com/file/d/ID_FILE/view</code>
+                            Pilih foto langsung dari perangkat Anda (JPG, PNG, WEBP, max 5 MB).
+                            Foto akan otomatis diunggah ke Google Drive dan ditampilkan di galeri.
+                        </div>
+                        <div id="formPreview" style="display:none;margin-top:0.8rem;">
+                            <img id="formPreviewImg" src="" alt="Preview" style="max-width:100%;max-height:180px;border-radius:10px;border:1px solid var(--glass-border);object-fit:contain;background:#111;">
                         </div>
                     </div>
                     <div class="form-actions">
@@ -2165,31 +2185,50 @@
         }
 
 
-        /* Konversi link Google Drive menjadi URL gambar langsung */
+        /* Konversi link Google Drive menjadi URL gambar yang bisa ditampilkan
+           Catatan: format uc?export=view sudah tidak reliable sejak 2024.
+           Gunakan thumbnail?id=...&sz=w1000 (masih bekerja). */
         function normalizeImageUrl(url) {
             if (!url) return '';
             url = String(url).trim();
 
-            // Sudah format uc?export=view
-            if (url.indexOf('drive.google.com/uc?') !== -1) return url;
+            // Sudah format thumbnail → biarkan
+            if (url.indexOf('drive.google.com/thumbnail?') !== -1) return url;
+
+            // Sudah googleusercontent → biarkan
+            if (url.indexOf('googleusercontent.com') !== -1) return url;
+
+            // Ekstrak FILE_ID dari berbagai format link Drive
+            let fileId = null;
 
             // https://drive.google.com/file/d/FILE_ID/view?...
             let m = url.match(/drive\.google\.com\/file\/d\/([^\/\?&]+)/);
-            if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+            if (m) fileId = m[1];
 
             // https://drive.google.com/open?id=FILE_ID
-            m = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-            if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
-
-            // https://drive.google.com/uc?id=FILE_ID (tanpa export)
-            m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
-            if (m && url.indexOf('drive.google.com') !== -1) {
-                return 'https://drive.google.com/uc?export=view&id=' + m[1];
+            if (!fileId) {
+                m = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+                if (m) fileId = m[1];
             }
 
-            // Google user content already direct
-            if (url.indexOf('googleusercontent.com') !== -1) return url;
+            // https://drive.google.com/uc?id=FILE_ID  atau  uc?export=view&id=FILE_ID
+            if (!fileId) {
+                m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+                if (m && url.indexOf('drive.google.com') !== -1) fileId = m[1];
+            }
 
+            // https://drive.google.com/thumbnail?id=FILE_ID...
+            if (!fileId) {
+                m = url.match(/thumbnail\?id=([a-zA-Z0-9_-]{10,})/);
+                if (m) fileId = m[1];
+            }
+
+            if (fileId) {
+                // Format thumbnail paling stabil untuk <img src>
+                return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1200';
+            }
+
+            // Bukan link Drive → kembalikan apa adanya
             return url;
         }
 
@@ -2259,8 +2298,10 @@
                 return { success: false, offline: true, message: 'APPS_SCRIPT_URL belum diisi. Data disimpan lokal saja.' };
             }
             try {
+                // Upload foto butuh waktu lebih lama → timeout 45 detik untuk action 'add'
+                const timeoutMs = (action === 'add') ? 45000 : 10000;
                 const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), 8000);
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
                 const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
                     method: 'POST',
                     redirect: 'follow',
@@ -2366,19 +2407,75 @@
         }
 
         /* ============================================
-           ADD DATA
+           ADD DATA (Upload Foto Langsung)
            ============================================ */
+        const formFile = document.getElementById('formFile');
+        const formPreview = document.getElementById('formPreview');
+        const formPreviewImg = document.getElementById('formPreviewImg');
+
+        // Preview foto saat dipilih
+        formFile.addEventListener('change', () => {
+            const file = formFile.files[0];
+            if (!file) {
+                formPreview.style.display = 'none';
+                formPreviewImg.src = '';
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                addError.textContent = 'Ukuran foto maksimal 5 MB.';
+                addError.classList.add('show');
+                formFile.value = '';
+                formPreview.style.display = 'none';
+                return;
+            }
+            addError.classList.remove('show');
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                formPreviewImg.src = ev.target.result;
+                formPreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+
         btnAddData.addEventListener('click', () => {
             addError.classList.remove('show');
             addSuccess.classList.remove('show');
             addForm.reset();
+            formPreview.style.display = 'none';
+            formPreviewImg.src = '';
             openModal('addModal');
         });
+
+        // Baca file jadi base64 (tanpa prefix data:...)
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result || '';
+                    const base64 = String(result).split(',')[1] || '';
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Gagal membaca file'));
+                reader.readAsDataURL(file);
+            });
+        }
 
         addForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'superadmin')) {
                 addError.textContent = 'Anda tidak memiliki izin menambah data.';
+                addError.classList.add('show');
+                return;
+            }
+
+            const file = formFile.files[0];
+            if (!file) {
+                addError.textContent = 'Pilih foto terlebih dahulu.';
+                addError.classList.add('show');
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                addError.textContent = 'Ukuran foto maksimal 5 MB.';
                 addError.classList.add('show');
                 return;
             }
@@ -2391,35 +2488,52 @@
                 year: isoDate.slice(0, 4),
                 category: document.getElementById('formCategory').value,
                 location: document.getElementById('formLocation').value.trim(),
-                src: normalizeImageUrl(document.getElementById('formSrc').value.trim())
+                src: '' // akan diisi setelah upload ke Drive
             };
 
             btnSubmitAdd.disabled = true;
-            btnSubmitAdd.innerHTML = '<span class="loading-spinner"></span> Menyimpan...';
+            btnSubmitAdd.innerHTML = '<span class="loading-spinner"></span> Mengunggah...';
             addError.classList.remove('show');
             addSuccess.classList.remove('show');
 
-            const result = await saveToSheet(newPhoto);
+            try {
+                const base64 = await readFileAsBase64(file);
+                const result = await apiCall('add', {
+                    photo: newPhoto,
+                    imageBase64: base64,
+                    mimeType: file.type || 'image/jpeg',
+                    fileName: file.name || ('foto-' + Date.now() + '.jpg')
+                });
 
-            // Selalu simpan ke data lokal agar langsung tampil
-            photoData.unshift(newPhoto);
-            filterPhotos();
-
-            if (result.offline) {
-                addSuccess.textContent = 'Data ditambahkan secara lokal. Hubungkan Google Apps Script agar tersimpan ke Spreadsheet.';
-                addSuccess.classList.add('show');
-            } else if (result.success) {
-                addSuccess.textContent = 'Data berhasil disimpan ke Spreadsheet!';
-                addSuccess.classList.add('show');
-            } else {
-                addError.textContent = (result.message || 'Gagal simpan ke server.') + ' Data tetap ditampilkan lokal.';
+                if (result.success && result.src) {
+                    newPhoto.src = result.src;
+                    if (result.id) newPhoto.id = result.id;
+                    photoData.unshift(newPhoto);
+                    filterPhotos();
+                    addSuccess.textContent = 'Foto berhasil diunggah dan disimpan!';
+                    addSuccess.classList.add('show');
+                    addForm.reset();
+                    formPreview.style.display = 'none';
+                    formPreviewImg.src = '';
+                    setTimeout(() => closeModal('addModal'), 1500);
+                } else if (result.offline) {
+                    // Fallback: tampilkan preview lokal saja (tidak tersimpan permanen)
+                    newPhoto.src = formPreviewImg.src || '';
+                    photoData.unshift(newPhoto);
+                    filterPhotos();
+                    addError.textContent = 'APPS_SCRIPT_URL belum terhubung. Foto hanya tampil sementara di perangkat ini.';
+                    addError.classList.add('show');
+                } else {
+                    addError.textContent = result.message || 'Gagal mengunggah foto. Coba lagi.';
+                    addError.classList.add('show');
+                }
+            } catch (err) {
+                addError.textContent = 'Gagal memproses foto: ' + (err.message || err);
                 addError.classList.add('show');
             }
 
             btnSubmitAdd.disabled = false;
             btnSubmitAdd.innerHTML = '<i class="fas fa-save"></i> Simpan Data';
-            addForm.reset();
-            setTimeout(() => closeModal('addModal'), 1500);
         });
 
         /* ============================================
