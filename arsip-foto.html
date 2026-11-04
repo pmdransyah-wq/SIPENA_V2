@@ -1914,7 +1914,9 @@
                         <label>URL Foto <span>*</span></label>
                         <input type="url" id="formSrc" placeholder="https://... atau link Google Drive" required>
                         <div class="form-hint">
-                            Upload foto ke <a href="https://drive.google.com/drive/folders/11VPxsnq015_1F8GhVTqpshV4cqaejjGa" target="_blank" style="color:var(--gold)">folder Drive ini</a>, lalu tempel link gambar di sini.
+                            Upload foto ke <a href="https://drive.google.com/drive/folders/11VPxsnq015_1F8GhVTqpshV4cqaejjGa" target="_blank" style="color:var(--gold)">folder Drive ini</a>.
+                            Klik kanan file → <strong>Bagikan</strong> → akses <strong>Siapa saja yang memiliki link</strong> → salin link.
+                            Contoh format yang benar: <code style="color:var(--gold)">https://drive.google.com/file/d/ID_FILE/view</code>
                         </div>
                     </div>
                     <div class="form-actions">
@@ -2162,6 +2164,35 @@
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
+
+        /* Konversi link Google Drive menjadi URL gambar langsung */
+        function normalizeImageUrl(url) {
+            if (!url) return '';
+            url = String(url).trim();
+
+            // Sudah format uc?export=view
+            if (url.indexOf('drive.google.com/uc?') !== -1) return url;
+
+            // https://drive.google.com/file/d/FILE_ID/view?...
+            let m = url.match(/drive\.google\.com\/file\/d\/([^\/\?&]+)/);
+            if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+
+            // https://drive.google.com/open?id=FILE_ID
+            m = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+            if (m) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+
+            // https://drive.google.com/uc?id=FILE_ID (tanpa export)
+            m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+            if (m && url.indexOf('drive.google.com') !== -1) {
+                return 'https://drive.google.com/uc?export=view&id=' + m[1];
+            }
+
+            // Google user content already direct
+            if (url.indexOf('googleusercontent.com') !== -1) return url;
+
+            return url;
+        }
+
         function openModal(id) {
             document.getElementById(id).classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -2256,7 +2287,7 @@
                 if (result.success && Array.isArray(result.data) && result.data.length) {
                     photoData = result.data.map((row, i) => ({
                         id: row.id || (i + 1),
-                        src: row.src || row.url || '',
+                        src: normalizeImageUrl(row.src || row.url || ''),
                         title: row.title || '',
                         date: row.date || '',
                         year: row.year || (row.date ? String(row.date).slice(0, 4) : ''),
@@ -2272,7 +2303,7 @@
             if (result.success && Array.isArray(result.data) && result.data.length) {
                 photoData = result.data.map((row, i) => ({
                     id: row.id || (i + 1),
-                    src: row.src || row.url || '',
+                    src: normalizeImageUrl(row.src || row.url || ''),
                     title: row.title || '',
                     date: row.date || '',
                     year: row.year || (row.date ? String(row.date).slice(0, 4) : ''),
@@ -2309,7 +2340,7 @@
                 item.style.transitionDelay = `${(index % 8) * 0.05}s`;
                 item.innerHTML = `
                     <button class="gallery-delete" data-id="${photo.id}" title="Hapus"><i class="fas fa-trash"></i></button>
-                    <img src="${photo.src}" alt="${photo.title}" loading="lazy">
+                    <img src="${photo.src}" alt="${photo.title}" loading="lazy" onerror="this.onerror=null;this.src='https://via.placeholder.com/600x400/1C1C1C/D4AF37?text=Foto+Tidak+Tersedia';">
                     <div class="gallery-badge">${photo.category}</div>
                     <div class="gallery-overlay">
                         <div class="gallery-meta">
@@ -2360,7 +2391,7 @@
                 year: isoDate.slice(0, 4),
                 category: document.getElementById('formCategory').value,
                 location: document.getElementById('formLocation').value.trim(),
-                src: document.getElementById('formSrc').value.trim()
+                src: normalizeImageUrl(document.getElementById('formSrc').value.trim())
             };
 
             btnSubmitAdd.disabled = true;
