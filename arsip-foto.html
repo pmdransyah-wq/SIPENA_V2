@@ -1812,7 +1812,7 @@
         }
     </style>
 </head>
-<body>
+<body class="light-mode">
     <!-- Loading Screen -->
     <div id="loader">
         <div class="loader-icon"><i class="fas fa-camera-retro"></i></div>
@@ -1837,7 +1837,7 @@
                         <span class="user-role" id="userRoleLabel">USER</span>
                     </div>
                     <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
-                        <i class="fas fa-sun"></i>
+                        <i class="fas fa-moon"></i>
                     </button>
                 </div>
             </nav>
@@ -1873,22 +1873,22 @@
             <div class="stats-grid">
                 <div class="stat-card glass reveal">
                     <div class="stat-icon"><i class="fas fa-camera"></i></div>
-                    <div class="stat-number" data-target="1247">0</div>
+                    <div class="stat-number" id="statTotalFoto" data-target="0">0</div>
                     <div class="stat-label">Total Foto</div>
                 </div>
                 <div class="stat-card glass reveal">
                     <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
-                    <div class="stat-number" data-target="186">0</div>
+                    <div class="stat-number" id="statTotalKegiatan" data-target="0">0</div>
                     <div class="stat-label">Total Kegiatan</div>
                 </div>
                 <div class="stat-card glass reveal">
                     <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
-                    <div class="stat-number" data-target="5">0</div>
+                    <div class="stat-number" id="statTotalTahun" data-target="0">0</div>
                     <div class="stat-label">Total Tahun Arsip</div>
                 </div>
                 <div class="stat-card glass reveal">
                     <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                    <div class="stat-number" data-target="2026">0</div>
+                    <div class="stat-number" id="statArsipTerbaru" data-target="0">0</div>
                     <div class="stat-label">Arsip Terbaru</div>
                 </div>
             </div>
@@ -1936,37 +1936,37 @@
                 <div class="category-card glass reveal" data-category="Pemerintahan">
                     <div class="category-icon"><i class="fas fa-landmark"></i></div>
                     <div class="category-name">Pemerintahan</div>
-                    <div class="category-count">48 Kegiatan</div>
+                    <div class="category-count" data-count-for="Pemerintahan">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Peta">
                     <div class="category-icon"><i class="fas fa-map"></i></div>
                     <div class="category-name">Peta</div>
-                    <div class="category-count">22 Kegiatan</div>
+                    <div class="category-count" data-count-for="Peta">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Pelatihan">
                     <div class="category-icon"><i class="fas fa-chalkboard-teacher"></i></div>
                     <div class="category-name">Pelatihan</div>
-                    <div class="category-count">35 Kegiatan</div>
+                    <div class="category-count" data-count-for="Pelatihan">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Sosialisasi">
                     <div class="category-icon"><i class="fas fa-bullhorn"></i></div>
                     <div class="category-name">Sosialisasi</div>
-                    <div class="category-count">29 Kegiatan</div>
+                    <div class="category-count" data-count-for="Sosialisasi">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Kegiatan Desa">
                     <div class="category-icon"><i class="fas fa-home"></i></div>
                     <div class="category-name">Kegiatan Desa</div>
-                    <div class="category-count">31 Kegiatan</div>
+                    <div class="category-count" data-count-for="Kegiatan Desa">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Dokumentasi Lapangan">
                     <div class="category-icon"><i class="fas fa-map-marked-alt"></i></div>
                     <div class="category-name">Dokumentasi Lapangan</div>
-                    <div class="category-count">14 Kegiatan</div>
+                    <div class="category-count" data-count-for="Dokumentasi Lapangan">0 Kegiatan</div>
                 </div>
                 <div class="category-card glass reveal" data-category="Arsip Bersejarah">
                     <div class="category-icon"><i class="fas fa-scroll"></i></div>
                     <div class="category-name">Arsip Bersejarah</div>
-                    <div class="category-count">7 Kegiatan</div>
+                    <div class="category-count" data-count-for="Arsip Bersejarah">0 Kegiatan</div>
                 </div>
             </div>
         </div>
@@ -2619,6 +2619,7 @@
                     if (result.id) newPhoto.id = result.id;
                     photoData.unshift(newPhoto);
                     filterPhotos();
+                    updateStatsFromData();
                     addSuccess.textContent = 'Foto berhasil diunggah dan disimpan!';
                     addSuccess.classList.add('show');
                     addForm.reset();
@@ -2630,6 +2631,7 @@
                     newPhoto.src = formPreviewImg.src || '';
                     photoData.unshift(newPhoto);
                     filterPhotos();
+                    updateStatsFromData();
                     addError.textContent = 'APPS_SCRIPT_URL belum terhubung. Foto hanya tampil sementara di perangkat ini.';
                     addError.classList.add('show');
                 } else {
@@ -2658,6 +2660,7 @@
             const result = await deleteFromSheet(id);
             photoData = photoData.filter(p => String(p.id) !== String(id));
             filterPhotos();
+            updateStatsFromData();
 
             if (result.offline) {
                 alert('Data dihapus secara lokal. Hubungkan Apps Script agar terhapus dari Spreadsheet.');
@@ -2863,16 +2866,74 @@
         });
 
         /* ============================================
-           COUNTER ANIMATION
+           STATS & REKAP (sinkron dengan photoData)
            ============================================ */
+        function updateStatsFromData() {
+            const totalFoto = photoData.length;
+            const uniqueTitles = new Set(
+                photoData.map(p => (p.title || '').trim().toLowerCase()).filter(Boolean)
+            );
+            const totalKegiatan = uniqueTitles.size || totalFoto;
+            const years = photoData
+                .map(p => String(p.year || '').trim())
+                .filter(y => /^\d{4}$/.test(y));
+            const uniqueYears = [...new Set(years)].sort();
+            const totalTahun = uniqueYears.length;
+            const arsipTerbaru = uniqueYears.length
+                ? Math.max(...uniqueYears.map(Number))
+                : new Date().getFullYear();
+
+            const setStat = (id, value) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.dataset.target = String(value);
+                el.textContent = Number(value).toLocaleString('id-ID');
+            };
+
+            setStat('statTotalFoto', totalFoto);
+            setStat('statTotalKegiatan', totalKegiatan);
+            setStat('statTotalTahun', totalTahun);
+            setStat('statArsipTerbaru', arsipTerbaru);
+
+            // Jumlah per kategori
+            const catCount = {};
+            photoData.forEach(p => {
+                const cat = (p.category || '').trim();
+                if (!cat) return;
+                catCount[cat] = (catCount[cat] || 0) + 1;
+            });
+            document.querySelectorAll('.category-count[data-count-for]').forEach(el => {
+                const cat = el.getAttribute('data-count-for');
+                const n = catCount[cat] || 0;
+                el.textContent = n + ' Kegiatan';
+            });
+
+            // Filter tahun dinamis dari data
+            if (yearFilter) {
+                const current = yearFilter.value;
+                yearFilter.innerHTML = '<option value="">Semua Tahun</option>';
+                uniqueYears.slice().reverse().forEach(y => {
+                    const opt = document.createElement('option');
+                    opt.value = y;
+                    opt.textContent = y;
+                    yearFilter.appendChild(opt);
+                });
+                if (current && uniqueYears.includes(current)) yearFilter.value = current;
+            }
+        }
+
         function animateCounters() {
             const counters = document.querySelectorAll('.stat-number');
             counters.forEach(counter => {
-                const target = parseInt(counter.dataset.target);
-                const duration = 2000;
+                const target = parseInt(counter.dataset.target) || 0;
+                if (target === 0) {
+                    counter.textContent = '0';
+                    return;
+                }
+                const duration = 1200;
                 const step = target / (duration / 16);
                 let current = 0;
-                
+
                 const update = () => {
                     current += step;
                     if (current < target) {
@@ -2939,10 +3000,9 @@
         });
 
         /* ============================================
-           THEME TOGGLE
+           THEME TOGGLE (default: mode siang)
            ============================================ */
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('light-mode');
+        function applyThemeIcon() {
             const icon = themeToggle.querySelector('i');
             if (document.body.classList.contains('light-mode')) {
                 icon.classList.remove('fa-sun');
@@ -2951,6 +3011,24 @@
                 icon.classList.remove('fa-moon');
                 icon.classList.add('fa-sun');
             }
+        }
+
+        // Default siang; hormati pilihan user jika pernah disimpan
+        const savedTheme = localStorage.getItem('arsip_theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.remove('light-mode');
+        } else {
+            document.body.classList.add('light-mode');
+        }
+        applyThemeIcon();
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem(
+                'arsip_theme',
+                document.body.classList.contains('light-mode') ? 'light' : 'dark'
+            );
+            applyThemeIcon();
         });
 
         /* ============================================
@@ -2988,12 +3066,25 @@
 
             // Render data lokal dulu agar UI cepat tampil
             renderGallery(photoData);
+            updateStatsFromData();
             observeReveals();
 
-            // Lalu sinkron dari Spreadsheet (non-blocking untuk tampilan awal)
+            // Lalu sinkron dari Spreadsheet
             try {
                 await loadFromSheet();
                 filterPhotos();
+                updateStatsFromData();
+                // animasi ulang angka rekap setelah data real masuk
+                window.countersAnimated = false;
+                document.querySelectorAll('.stat-card').forEach(c => delete c.dataset.counted);
+                const firstStat = document.querySelector('.stat-card');
+                if (firstStat) {
+                    const rect = firstStat.getBoundingClientRect();
+                    if (rect.top < window.innerHeight && rect.bottom > 0) {
+                        window.countersAnimated = true;
+                        animateCounters();
+                    }
+                }
             } catch (e) {
                 console.warn('Sinkron spreadsheet gagal:', e);
             }
