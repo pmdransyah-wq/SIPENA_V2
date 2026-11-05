@@ -810,7 +810,7 @@
         }
 
         .lightbox-content {
-            max-width: 900px;
+            max-width: 1100px;
             width: 100%;
             position: relative;
             transform: scale(0.9);
@@ -826,14 +826,76 @@
             overflow: hidden;
             border: 2px solid var(--gold);
             box-shadow: 0 0 60px rgba(212, 175, 55, 0.2);
+            position: relative;
+            background: #0a0a0a;
+            min-height: 200px;
+            max-height: 72vh;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .lightbox-img-wrapper.is-dragging {
+            cursor: grabbing;
         }
 
         .lightbox-img-wrapper img {
             width: 100%;
-            max-height: 70vh;
+            max-height: 72vh;
             object-fit: contain;
             display: block;
-            background: var(--darker-gray);
+            background: transparent;
+            transform-origin: center center;
+            transition: transform 0.15s ease-out;
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        .lightbox-toolbar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            gap: 0.45rem;
+            z-index: 12;
+        }
+
+        .lightbox-tool-btn {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(212, 175, 55, 0.45);
+            border-radius: 10px;
+            background: rgba(15, 15, 15, 0.85);
+            color: var(--gold);
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            backdrop-filter: blur(8px);
+        }
+
+        .lightbox-tool-btn:hover {
+            background: var(--gold);
+            color: var(--black);
+            border-color: var(--gold);
+        }
+
+        .lightbox-zoom-label {
+            min-width: 52px;
+            height: 40px;
+            border-radius: 10px;
+            background: rgba(15, 15, 15, 0.85);
+            border: 1px solid rgba(212, 175, 55, 0.35);
+            color: var(--gold);
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            font-family: var(--font);
         }
 
         .lightbox-info {
@@ -845,11 +907,43 @@
             margin-top: 1rem;
         }
 
+        .lightbox-info-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.6rem;
+        }
+
         .lightbox-info h3 {
             font-size: 1.2rem;
             font-weight: 600;
             color: var(--gold);
-            margin-bottom: 0.6rem;
+            margin: 0;
+            flex: 1;
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.55rem 1rem;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
+            border: none;
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
         }
 
         .lightbox-details {
@@ -886,13 +980,19 @@
             align-items: center;
             justify-content: center;
             transition: var(--transition);
-            z-index: 10;
+            z-index: 15;
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
         }
 
         .lightbox-close:hover {
             transform: rotate(90deg) scale(1.1);
             background: var(--gold-light);
+        }
+
+        @media (max-width: 640px) {
+            .lightbox-content { max-width: 100%; }
+            .lightbox-info-top { flex-direction: column; align-items: stretch; }
+            .btn-download { justify-content: center; }
         }
 
         /* ============================================
@@ -1953,12 +2053,23 @@
     <!-- Lightbox -->
     <div class="lightbox" id="lightbox">
         <div class="lightbox-content">
-            <button class="lightbox-close" id="lightboxClose"><i class="fas fa-times"></i></button>
-            <div class="lightbox-img-wrapper">
+            <button class="lightbox-close" id="lightboxClose" title="Tutup"><i class="fas fa-times"></i></button>
+            <div class="lightbox-img-wrapper" id="lightboxImgWrapper">
+                <div class="lightbox-toolbar">
+                    <button type="button" class="lightbox-tool-btn" id="zoomInBtn" title="Perbesar"><i class="fas fa-search-plus"></i></button>
+                    <button type="button" class="lightbox-tool-btn" id="zoomOutBtn" title="Perkecil"><i class="fas fa-search-minus"></i></button>
+                    <button type="button" class="lightbox-tool-btn" id="zoomResetBtn" title="Reset zoom"><i class="fas fa-compress"></i></button>
+                    <div class="lightbox-zoom-label" id="zoomLabel">100%</div>
+                </div>
                 <img src="" alt="" id="lightboxImg">
             </div>
             <div class="lightbox-info">
-                <h3 id="lightboxTitle"></h3>
+                <div class="lightbox-info-top">
+                    <h3 id="lightboxTitle"></h3>
+                    <a class="btn-download" id="lightboxDownload" href="#" target="_blank" rel="noopener" download>
+                        <i class="fas fa-download"></i> Unduh
+                    </a>
+                </div>
                 <div class="lightbox-details">
                     <span><i class="fas fa-calendar-alt"></i> <span id="lightboxDate"></span></span>
                     <span><i class="fas fa-map-marker-alt"></i> <span id="lightboxLocation"></span></span>
@@ -2133,7 +2244,7 @@
            4. Salin URL Web App ke APPS_SCRIPT_URL di bawah
            ============================================ */
         const CONFIG = {
-            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbxjr4J3ul8KDBKMWfpfgupLvpOOoEw3R2qHxDOOxnlv4ycOt-2AmLVo2S43a4PAEOQt/exec',
+            APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbw32xfbl5obr_glgo-aAOPw7OnWIk3wZ2L8CrAupoGAsjnzUQdqmYzs6TeiJvPapcp4/exec',
             SHEET_ID: '1pW-tomYQWIC3ESDbSDPKe5FlEZWojGgQ-VbUvVv3YDg',
             DRIVE_FOLDER_ID: '11VPxsnq015_1F8GhVTqpshV4cqaejjGa'
         };
@@ -2185,50 +2296,48 @@
         }
 
 
-        /* Konversi link Google Drive menjadi URL gambar yang bisa ditampilkan
-           Catatan: format uc?export=view sudah tidak reliable sejak 2024.
-           Gunakan thumbnail?id=...&sz=w1000 (masih bekerja). */
+        /* Ekstrak FILE_ID dari berbagai format link Google Drive */
+        function extractDriveFileId(url) {
+            if (!url) return null;
+            url = String(url);
+            let m = url.match(/drive\.google\.com\/file\/d\/([^\/\?&]+)/);
+            if (m) return m[1];
+            m = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+            if (m) return m[1];
+            m = url.match(/thumbnail\?id=([a-zA-Z0-9_-]{10,})/);
+            if (m) return m[1];
+            m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+            if (m && url.indexOf('drive.google.com') !== -1) return m[1];
+            m = url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]{10,})/);
+            if (m) return m[1];
+            return null;
+        }
+
+        /* URL tampilan galeri (ukuran sedang, cepat load) */
         function normalizeImageUrl(url) {
             if (!url) return '';
             url = String(url).trim();
+            if (url.indexOf('googleusercontent.com') !== -1 && url.indexOf('drive.google.com') === -1) return url;
+            const fileId = extractDriveFileId(url);
+            if (fileId) return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
+            return url;
+        }
 
-            // Sudah format thumbnail → biarkan
-            if (url.indexOf('drive.google.com/thumbnail?') !== -1) return url;
+        /* URL resolusi tinggi untuk lightbox (supaya zoom tidak pecah) */
+        function getHighResUrl(url) {
+            if (!url) return '';
+            const fileId = extractDriveFileId(url);
+            if (fileId) return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w4000';
+            // fallback: naikkan parameter size jika ada
+            return String(url)
+                .replace(/[?&]sz=w\d+/i, '')
+                .replace(/[?&]w=\d+/i, '') + (String(url).indexOf('?') !== -1 ? '&' : '?') + 'sz=w4000';
+        }
 
-            // Sudah googleusercontent → biarkan
-            if (url.indexOf('googleusercontent.com') !== -1) return url;
-
-            // Ekstrak FILE_ID dari berbagai format link Drive
-            let fileId = null;
-
-            // https://drive.google.com/file/d/FILE_ID/view?...
-            let m = url.match(/drive\.google\.com\/file\/d\/([^\/\?&]+)/);
-            if (m) fileId = m[1];
-
-            // https://drive.google.com/open?id=FILE_ID
-            if (!fileId) {
-                m = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-                if (m) fileId = m[1];
-            }
-
-            // https://drive.google.com/uc?id=FILE_ID  atau  uc?export=view&id=FILE_ID
-            if (!fileId) {
-                m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
-                if (m && url.indexOf('drive.google.com') !== -1) fileId = m[1];
-            }
-
-            // https://drive.google.com/thumbnail?id=FILE_ID...
-            if (!fileId) {
-                m = url.match(/thumbnail\?id=([a-zA-Z0-9_-]{10,})/);
-                if (m) fileId = m[1];
-            }
-
-            if (fileId) {
-                // Format thumbnail paling stabil untuk <img src>
-                return 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1200';
-            }
-
-            // Bukan link Drive → kembalikan apa adanya
+        /* URL unduh file asli dari Drive */
+        function getDownloadUrl(url) {
+            const fileId = extractDriveFileId(url);
+            if (fileId) return 'https://drive.google.com/uc?export=download&id=' + fileId;
             return url;
         }
 
@@ -2612,15 +2721,71 @@
         });
 
         /* ============================================
-           LIGHTBOX
+           LIGHTBOX — zoom, pan, unduh
            ============================================ */
+        const lightboxImgWrapper = document.getElementById('lightboxImgWrapper');
+        const lightboxDownload = document.getElementById('lightboxDownload');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const zoomResetBtn = document.getElementById('zoomResetBtn');
+        const zoomLabel = document.getElementById('zoomLabel');
+
+        let lbZoom = 1;
+        let lbPanX = 0;
+        let lbPanY = 0;
+        let lbDragging = false;
+        let lbStartX = 0;
+        let lbStartY = 0;
+        let lbStartPanX = 0;
+        let lbStartPanY = 0;
+        const LB_MIN_ZOOM = 1;
+        const LB_MAX_ZOOM = 5;
+
+        function applyLightboxTransform() {
+            lightboxImg.style.transform = `translate(${lbPanX}px, ${lbPanY}px) scale(${lbZoom})`;
+            zoomLabel.textContent = Math.round(lbZoom * 100) + '%';
+        }
+
+        function resetLightboxZoom() {
+            lbZoom = 1;
+            lbPanX = 0;
+            lbPanY = 0;
+            applyLightboxTransform();
+        }
+
+        function setLightboxZoom(next) {
+            lbZoom = Math.min(LB_MAX_ZOOM, Math.max(LB_MIN_ZOOM, next));
+            if (lbZoom === 1) {
+                lbPanX = 0;
+                lbPanY = 0;
+            }
+            applyLightboxTransform();
+        }
+
         function openLightbox(photo) {
-            lightboxImg.src = photo.src.replace('w=600', 'w=1200');
+            const hiRes = getHighResUrl(photo.src);
+            const dlUrl = getDownloadUrl(photo.src);
+
+            // tampilkan dulu versi sedang, lalu ganti ke hi-res
+            lightboxImg.src = normalizeImageUrl(photo.src) || hiRes;
+            lightboxImg.onload = () => {
+                if (lightboxImg.src !== hiRes) lightboxImg.src = hiRes;
+            };
             lightboxImg.alt = photo.title;
             lightboxTitle.textContent = photo.title;
             lightboxDate.textContent = photo.date;
             lightboxLocation.textContent = photo.location;
             lightboxCategory.textContent = photo.category;
+
+            lightboxDownload.href = dlUrl;
+            lightboxDownload.setAttribute('download', (photo.title || 'arsip-foto').replace(/[\\/:*?"<>|]/g, '_') + '.jpg');
+            lightboxDownload.onclick = (e) => {
+                // buka di tab baru agar unduhan Drive tetap jalan
+                e.preventDefault();
+                window.open(dlUrl, '_blank', 'noopener');
+            };
+
+            resetLightboxZoom();
             lightbox.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -2628,14 +2793,73 @@
         function closeLightbox() {
             lightbox.classList.remove('active');
             document.body.style.overflow = '';
+            resetLightboxZoom();
+            lightboxImg.onload = null;
         }
+
+        zoomInBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLightboxZoom(lbZoom + 0.35);
+        });
+        zoomOutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setLightboxZoom(lbZoom - 0.35);
+        });
+        zoomResetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetLightboxZoom();
+        });
+
+        // Scroll wheel zoom
+        lightboxImgWrapper.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.2 : -0.2;
+            setLightboxZoom(lbZoom + delta);
+        }, { passive: false });
+
+        // Drag / pan saat zoom > 1
+        lightboxImgWrapper.addEventListener('pointerdown', (e) => {
+            if (lbZoom <= 1) return;
+            lbDragging = true;
+            lbStartX = e.clientX;
+            lbStartY = e.clientY;
+            lbStartPanX = lbPanX;
+            lbStartPanY = lbPanY;
+            lightboxImgWrapper.classList.add('is-dragging');
+            lightboxImgWrapper.setPointerCapture(e.pointerId);
+        });
+        lightboxImgWrapper.addEventListener('pointermove', (e) => {
+            if (!lbDragging) return;
+            lbPanX = lbStartPanX + (e.clientX - lbStartX);
+            lbPanY = lbStartPanY + (e.clientY - lbStartY);
+            applyLightboxTransform();
+        });
+        lightboxImgWrapper.addEventListener('pointerup', () => {
+            lbDragging = false;
+            lightboxImgWrapper.classList.remove('is-dragging');
+        });
+        lightboxImgWrapper.addEventListener('pointercancel', () => {
+            lbDragging = false;
+            lightboxImgWrapper.classList.remove('is-dragging');
+        });
+
+        // Double-click toggle zoom
+        lightboxImgWrapper.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            if (lbZoom > 1) resetLightboxZoom();
+            else setLightboxZoom(2.5);
+        });
 
         lightboxClose.addEventListener('click', closeLightbox);
         lightbox.addEventListener('click', (e) => {
             if (e.target === lightbox) closeLightbox();
         });
         document.addEventListener('keydown', (e) => {
+            if (!lightbox.classList.contains('active')) return;
             if (e.key === 'Escape') closeLightbox();
+            if (e.key === '+' || e.key === '=') setLightboxZoom(lbZoom + 0.35);
+            if (e.key === '-') setLightboxZoom(lbZoom - 0.35);
+            if (e.key === '0') resetLightboxZoom();
         });
 
         /* ============================================
