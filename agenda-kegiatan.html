@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda Kegiatan - sipena.v2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd',
+                            500: '#0284c7', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .cal-day {
+            transition: all 0.15s ease;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            min-height: 48px;
+        }
+        .cal-day:hover:not(.empty) { background: #fee2e2; transform: scale(1.05); }
+        .cal-day.today {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            color: white !important;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+        }
+        .cal-day.selected {
+            outline: 3px solid #0284c7;
+            outline-offset: 1px;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .cal-day.holiday, .cal-day.sunday { color: #dc2626; font-weight: 700; }
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background: #0284c7;
+            border-radius: 50%;
+        }
+        .cal-day.today.has-event::after { background: #fff; }
+        .cal-day.empty { cursor: default; }
+        .agenda-card {
+            transition: all 0.2s ease;
+        }
+        .agenda-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen">
+
+    <!-- Top Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="dashboard.html" class="flex items-center gap-2 text-slate-600 hover:text-brand-600 transition">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span class="text-sm font-medium hidden sm:inline">Kembali</span>
+                </a>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-700 flex items-center justify-center text-white shadow">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-slate-800 text-base leading-tight">Agenda Kegiatan</h1>
+                        <p class="text-[11px] text-slate-500" id="header-instansi">sipena.v2</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-2 bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-700 font-mono text-sm" id="digital-clock">
+                    <i class="fa-regular fa-clock text-emerald-500/80 text-xs"></i>
+                    <span id="clock-time">--:--:--</span>
+                </div>
+                <button onclick="refreshAllData()" class="text-slate-500 hover:text-brand-600 p-2 rounded-lg hover:bg-brand-50 transition" title="Muat ulang data">
+                    <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>
+                </button>
+                <button onclick="openAddAgendaModal()" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">Tambah Agenda</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- Stats Ringkas -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-blue-50 text-brand-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-medium text-slate-500 uppercase">Total Agenda</p>
+                    <p class="text-xl font-bold text-slate-800" id="stat-total">-</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-medium text-slate-500 uppercase">Agenda Aula</p>
+                    <p class="text-xl font-bold text-slate-800" id="stat-aula">-</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-medium text-slate-500 uppercase">Undangan / Pemberitahuan</p>
+                    <p class="text-xl font-bold text-slate-800" id="stat-surat">-</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div>
+                    <p class="text-[11px] font-medium text-slate-500 uppercase">Bulan Ini</p>
+                    <p class="text-xl font-bold text-slate-800" id="stat-bulan">-</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+
+            <!-- KALENDER -->
+            <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-gradient-to-r from-red-600 to-rose-700 px-5 py-4 flex items-center justify-between text-white">
+                    <button type="button" id="calPrevMonth" class="w-10 h-10 rounded-xl hover:bg-white/20 flex items-center justify-center transition" title="Bulan sebelumnya">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="text-center">
+                        <div class="text-[10px] font-semibold uppercase tracking-widest opacity-90">Kalender Kegiatan</div>
+                        <div class="text-lg font-bold leading-tight" id="calendar-month-label">-</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="calTodayBtn" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition">
+                            Hari ini
+                        </button>
+                        <button type="button" id="calNextMonth" class="w-10 h-10 rounded-xl hover:bg-white/20 flex items-center justify-center transition" title="Bulan berikutnya">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-7 text-center text-xs font-bold text-slate-400 border-b border-slate-100 py-2.5 px-2">
+                    <span class="text-red-500">Min</span>
+                    <span>Sen</span>
+                    <span>Sel</span>
+                    <span>Rab</span>
+                    <span>Kam</span>
+                    <span>Jum</span>
+                    <span>Sab</span>
+                </div>
+
+                <div id="calendarDays" class="grid grid-cols-7 gap-1.5 p-3"></div>
+
+                <div class="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-4 text-xs text-slate-500">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Libur / Minggu</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span> Ada Agenda</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-red-600"></span> Hari ini</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded outline outline-2 outline-brand-600"></span> Dipilih</span>
+                </div>
+            </div>
+
+            <!-- DAFTAR AGENDA -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col max-h-[620px]">
+                    <div class="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-brand-50 to-white">
+                        <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-brand-600"></i>
+                            <span id="agenda-list-title">Agenda Hari Ini</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5" id="agenda-list-sub">Pilih tanggal di kalender</p>
+                    </div>
+                    <div id="agenda-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div class="text-center py-10 text-slate-400">
+                            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p class="text-sm">Memuat agenda...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-5 py-3 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-500"></i>
+                            Agenda Mendatang (7 hari)
+                        </h3>
+                    </div>
+                    <div id="upcoming-list" class="p-3 space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-xs text-slate-400 text-center py-4">Memuat...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Semua Agenda Bulan -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-table-list text-brand-600"></i>
+                    Daftar Agenda Bulan Ini
+                </h2>
+                <div class="flex items-center gap-2">
+                    <select id="filter-source" class="text-xs border border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="all">Semua Sumber</option>
+                        <option value="aula">Hanya Agenda Aula</option>
+                        <option value="surat">Hanya Undangan/Pemberitahuan</option>
+                    </select>
+                </div>
+            </div>
+            <div id="month-agenda-list" class="divide-y divide-slate-100">
+                <div class="p-8 text-center text-slate-400 text-sm">Memuat data...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center py-6 text-xs text-slate-400">
+        sipena.v2 &mdash; Sistem Informasi Pengelolaan Arsip
+    </footer>
+
+    <!-- Floating Action Button (mobile) -->
+    <button onclick="openAddAgendaModal()" class="fixed bottom-6 right-6 z-30 w-14 h-14 rounded-full bg-gradient-to-br from-brand-600 to-indigo-700 text-white shadow-lg shadow-brand-600/30 flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition lg:hidden" title="Tambah Agenda">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- ========== MODAL TAMBAH AGENDA ========== -->
+    <div id="modal-add-agenda" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeAddAgendaModal()"></div>
+        <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center p-0 sm:p-4">
+            <div class="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[92vh] overflow-hidden flex flex-col fade-in">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-brand-50 to-white shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow">
+                            <i class="fa-solid fa-calendar-plus"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-800">Tambah Agenda Baru</h3>
+                            <p class="text-[11px] text-slate-500">Isi detail kegiatan yang akan dijadwalkan</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeAddAgendaModal()" class="w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <form id="form-add-agenda" class="flex-1 overflow-y-auto p-5 space-y-4" onsubmit="return submitAddAgenda(event)">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                            Judul / Nama Kegiatan <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="f-judul" name="judul" required maxlength="200"
+                            placeholder="Contoh: Rapat Koordinasi Bulanan"
+                            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                                Tanggal Mulai <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" id="f-tgl-mulai" name="tglMulai" required
+                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                                Tanggal Selesai
+                            </label>
+                            <input type="date" id="f-tgl-selesai" name="tglSelesai"
+                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Waktu Mulai</label>
+                            <input type="time" id="f-waktu-mulai" name="waktuMulai"
+                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Waktu Selesai</label>
+                            <input type="time" id="f-waktu-selesai" name="waktuSelesai"
+                                class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tempat / Lokasi</label>
+                        <input type="text" id="f-tempat" name="tempat" maxlength="150"
+                            placeholder="Contoh: Aula Utama / Ruang Rapat Lantai 2"
+                            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Pelaksana / Penanggung Jawab</label>
+                        <input type="text" id="f-pelaksana" name="pelaksana" maxlength="120"
+                            placeholder="Contoh: Bagian Umum"
+                            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan (opsional)</label>
+                        <textarea id="f-keterangan" name="keterangan" rows="2" maxlength="500"
+                            placeholder="Catatan tambahan mengenai kegiatan..."
+                            class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition resize-none"></textarea>
+                    </div>
+
+                    <div class="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5 text-[11px] text-slate-500 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-brand-500 mt-0.5"></i>
+                        <span>Agenda yang ditambahkan akan tersimpan di perangkat ini dan muncul di kalender dashboard serta halaman Agenda Kegiatan.</span>
+                    </div>
+                </form>
+
+                <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0 bg-slate-50/80">
+                    <button type="button" onclick="closeAddAgendaModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200 transition">
+                        Batal
+                    </button>
+                    <button type="submit" form="form-add-agenda" id="btn-save-agenda"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-check"></i>
+                        Simpan Agenda
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifikasi -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden">
+        <div class="bg-slate-900 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400" id="toast-icon"></i>
+            <span id="toast-msg">Berhasil disimpan</span>
+        </div>
+    </div>
+
+    <script>
+        // ========== KONFIGURASI & DATA SUMBER (sama dengan dashboard) ==========
+        const SURAT_MASUK_GAS_URL = "https://script.google.com/macros/s/AKfycbxD6w59QpPpRX2repxD9VmdChlxthXSppAxntP1b6ifpYRjTUqZHLRphQpoFvD-stzs2w/exec";
+        const AGENDA_AULA_GAS_URL = "https://script.google.com/macros/s/AKfycbz6UYIGVMYDWHx0JH2g836ABWLcNzCZof1DZX71Dad8Z-57ER4mLCZug20b7wJyywkUBg/exec";
+
+        const bulanIndo = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+        const bulanShort = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        const hariIndo = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+        const HOLIDAYS = {
+            '2025-01-01':'Tahun Baru','2025-01-27':'Isra Miraj','2025-01-29':'Tahun Baru Imlek',
+            '2025-03-29':'Hari Suci Nyepi','2025-03-31':'Idul Fitri','2025-04-01':'Idul Fitri',
+            '2025-04-18':'Wafat Isa Almasih','2025-05-01':'Hari Buruh','2025-05-12':'Hari Raya Waisak',
+            '2025-05-29':'Kenaikan Isa Almasih','2025-06-01':'Hari Lahir Pancasila','2025-06-06':'Idul Adha',
+            '2025-06-27':'Tahun Baru Islam','2025-08-17':'Hari Kemerdekaan RI','2025-09-05':'Maulid Nabi',
+            '2025-12-25':'Hari Natal',
+            '2026-01-01':'Tahun Baru','2026-01-16':'Isra Miraj','2026-02-17':'Tahun Baru Imlek',
+            '2026-03-19':'Hari Suci Nyepi','2026-03-20':'Idul Fitri','2026-03-21':'Idul Fitri',
+            '2026-04-03':'Wafat Isa Almasih','2026-05-01':'Hari Buruh','2026-05-14':'Kenaikan Isa Almasih',
+            '2026-05-27':'Hari Raya Waisak','2026-05-28':'Idul Adha','2026-06-01':'Hari Lahir Pancasila',
+            '2026-06-16':'Tahun Baru Islam','2026-08-17':'Hari Kemerdekaan RI','2026-08-25':'Maulid Nabi',
+            '2026-12-25':'Hari Natal',
+            '2027-01-01':'Tahun Baru','2027-02-06':'Tahun Baru Imlek','2027-03-10':'Hari Suci Nyepi',
+            '2027-05-01':'Hari Buruh','2027-06-01':'Hari Lahir Pancasila','2027-08-17':'Hari Kemerdekaan RI',
+            '2027-12-25':'Hari Natal'
+        };
+
+        let calendarEvents = [];
+        let selectedCalDate = null;
+        const _nowInit = new Date();
+        let calViewYear = _nowInit.getFullYear();
+        let calViewMonth = _nowInit.getMonth();
+
+        // ========== UTILITAS ==========
+        function formatDateISO(dateStr) {
+            if (!dateStr) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+            const dmy = String(dateStr).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (dmy) return dmy[3] + '-' + dmy[2].padStart(2,'0') + '-' + dmy[1].padStart(2,'0');
+            const indo = String(dateStr).match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+            if (indo) {
+                const mIdx = bulanIndo.findIndex(b => b.toLowerCase() === indo[2].toLowerCase());
+                if (mIdx >= 0) return indo[3] + '-' + String(mIdx+1).padStart(2,'0') + '-' + indo[1].padStart(2,'0');
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+            return '';
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function isAktif(item) {
+            const st = (item.status_arsip || item.status || 'aktif').toString().toLowerCase();
+            return st !== 'sampah' && st !== 'trash' && st !== 'deleted';
+        }
+
+        function eachDateInRange(startIso, endIso, fn) {
+            const s = formatDateISO(startIso);
+            const e = formatDateISO(endIso || startIso) || s;
+            if (!s) return;
+            const start = new Date(s + 'T00:00:00');
+            const end = new Date(e + 'T00:00:00');
+            if (isNaN(start.getTime())) return;
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                fn(key);
+            }
+        }
+
+        // ========== LOAD DATA ==========
+        function loadSuratMasukLocal() {
+            try { return JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]'); }
+            catch (e) { return []; }
+        }
+
+        function loadAgendaAulaLocal() {
+            const keys = ['gemini_agenda_aula_db','agenda_aula_db','arsip_agenda_aula','agenda_fasilitasi_aula','gemini_fasilitasi_aula_db','agendaAulaData'];
+            for (const k of keys) {
+                try {
+                    const raw = localStorage.getItem(k);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    const rows = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.data) ? parsed.data : null);
+                    if (rows && rows.length) return rows;
+                } catch (e) {}
+            }
+            return [];
+        }
+
+        async function fetchAgendaAulaCloud() {
+            try {
+                const url = AGENDA_AULA_GAS_URL + (AGENDA_AULA_GAS_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=list';
+                const response = await fetch(url);
+                const json = await response.json();
+                let rows = [];
+                if (json && json.success && Array.isArray(json.data)) rows = json.data;
+                else if (json && json.status === 'success' && Array.isArray(json.data)) rows = json.data;
+                else if (Array.isArray(json)) rows = json;
+                else if (json && Array.isArray(json.data)) rows = json.data;
+                if (rows.length) {
+                    try { localStorage.setItem('gemini_agenda_aula_db', JSON.stringify(rows)); } catch (e) {}
+                }
+                return rows;
+            } catch (e) {
+                console.warn('Gagal fetch agenda aula:', e);
+                return loadAgendaAulaLocal();
+            }
+        }
+
+        function collectCalendarEvents(dataSurat, dataAula) {
+            const events = [];
+            (dataAula || []).forEach(function(a) {
+                const start = a.tglMulai || a.tanggal || a.tanggal_kegiatan || a.tgl || a.date || a['Tanggal'] || a['Tanggal Mulai'] || '';
+                const end = a.tglSelesai || a.tanggal_selesai || a['Tanggal Selesai'] || start;
+                const title = a.perihal || a.judul || a.nama_kegiatan || a.kegiatan || a['Perihal'] || 'Kegiatan Aula';
+                const timeStart = a.waktuMulai || a.waktu || a.jam || '';
+                const timeEnd = a.waktuSelesai || '';
+                const time = timeStart ? (timeEnd ? (timeStart + ' - ' + timeEnd) : timeStart) : '';
+                const place = a.pelaksana || a.tempat || a.lokasi || 'Aula';
+                eachDateInRange(start, end, function(dateKey) {
+                    events.push({
+                        date: dateKey,
+                        title: String(title),
+                        time: String(time),
+                        place: String(place),
+                        source: 'aula',
+                        link: '',
+                        nomor_surat: '',
+                        indeks: '',
+                        disposisi_kepada: '',
+                        jabatan_disposisi: '',
+                        isi_disposisi: '',
+                        file_url: ''
+                    });
+                });
+            });
+            (dataSurat || []).filter(isAktif).forEach(function(s) {
+                const indeks = String(s.indeks || s['Indeks'] || '').toLowerCase().trim();
+                if (!indeks) return;
+                if (!(indeks.indexOf('undangan') >= 0 || indeks.indexOf('pemberitahuan') >= 0)) return;
+                const tgl = formatDateISO(s.tanggal_kegiatan || s['Tanggal Kegiatan'] || s.tanggal_surat || s['Tanggal Surat'] || s.tanggal_terima || s['Tanggal Diterima'] || '');
+                if (!tgl) return;
+                const title = s.perihal || s['Perihal'] || s.isi_singkat || indeks;
+                const nomor = s.nomor_surat || s['Nomor Surat'] || '';
+                const fileUrl = s.file_url || s['File URL'] || s.fileUrl || '';
+                let link = fileUrl || '';
+                if (!link && nomor) link = 'surat-masuk.html?q=' + encodeURIComponent(nomor);
+                events.push({
+                    date: tgl,
+                    title: String(title),
+                    time: '',
+                    place: s.pengirim || s['Pengirim / Instansi'] || '',
+                    source: 'surat',
+                    link: link,
+                    nomor_surat: String(nomor),
+                    indeks: indeks,
+                    disposisi_kepada: String(s.disposisi_kepada || s['Disposisi Kepada'] || ''),
+                    jabatan_disposisi: String(s.jabatan_disposisi || s['Jabatan Disposisi'] || ''),
+                    isi_disposisi: String(s.isi_disposisi || s['Isi Disposisi'] || ''),
+                    file_url: String(fileUrl || '')
+                });
+            });
+            events.sort(function(a, b) { return a.date.localeCompare(b.date); });
+            return events;
+        }
+
+        // ========== RENDER KALENDER ==========
+        function renderCalendar() {
+            const container = document.getElementById('calendarDays');
+            if (!container) return;
+            container.innerHTML = '';
+            const year = calViewYear;
+            const month = calViewMonth;
+            const now = new Date();
+            const todayY = now.getFullYear();
+            const todayM = now.getMonth();
+            const todayD = now.getDate();
+            const todayStr = todayY + '-' + String(todayM + 1).padStart(2, '0') + '-' + String(todayD).padStart(2, '0');
+
+            const label = document.getElementById('calendar-month-label');
+            if (label) label.textContent = bulanIndo[month] + ' ' + year;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const ymPrefix = year + '-' + String(month + 1).padStart(2, '0');
+
+            const eventDays = {};
+            calendarEvents.forEach(function(e) {
+                if (e.date && e.date.indexOf(ymPrefix) === 0) {
+                    eventDays[parseInt(e.date.split('-')[2], 10)] = true;
+                }
+            });
+
+            if (!selectedCalDate || selectedCalDate.indexOf(ymPrefix) !== 0) {
+                if (year === todayY && month === todayM) {
+                    selectedCalDate = todayStr;
+                } else {
+                    selectedCalDate = ymPrefix + '-01';
+                }
+            }
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'cal-day empty';
+                container.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const iso = ymPrefix + '-' + String(day).padStart(2, '0');
+                const dayEl = document.createElement('div');
+                dayEl.textContent = day;
+                dayEl.dataset.date = iso;
+                const dow = new Date(year, month, day).getDay();
+                let cls = 'cal-day';
+                if (dow === 0) cls += ' sunday';
+                if (HOLIDAYS[iso]) {
+                    cls += ' holiday';
+                    dayEl.title = HOLIDAYS[iso];
+                }
+                if (iso === todayStr) cls += ' today';
+                if (eventDays[day]) cls += ' has-event';
+                if (selectedCalDate === iso) cls += ' selected';
+                dayEl.className = cls;
+                dayEl.addEventListener('click', function() {
+                    selectedCalDate = iso;
+                    renderCalendar();
+                    renderAgendaList(iso);
+                    renderMonthList();
+                });
+                dayEl.addEventListener('dblclick', function() {
+                    selectedCalDate = iso;
+                    openAddAgendaModal(iso);
+                });
+                dayEl.title = (dayEl.title ? dayEl.title + ' · ' : '') + 'Klik 2x untuk tambah agenda';
+                container.appendChild(dayEl);
+            }
+            renderAgendaList(selectedCalDate);
+        }
+
+        function shiftCalendarMonth(delta) {
+            calViewMonth += delta;
+            if (calViewMonth < 0) { calViewMonth = 11; calViewYear -= 1; }
+            if (calViewMonth > 11) { calViewMonth = 0; calViewYear += 1; }
+            selectedCalDate = null;
+            renderCalendar();
+            renderMonthList();
+        }
+
+        function goCalendarToday() {
+            const now = new Date();
+            calViewYear = now.getFullYear();
+            calViewMonth = now.getMonth();
+            selectedCalDate = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            renderCalendar();
+            renderMonthList();
+        }
+
+        // ========== RENDER DAFTAR AGENDA ==========
+        function renderAgendaList(isoDate) {
+            const box = document.getElementById('agenda-list');
+            const titleEl = document.getElementById('agenda-list-title');
+            const subEl = document.getElementById('agenda-list-sub');
+            if (!box) return;
+
+            const items = calendarEvents.filter(e => e.date === isoDate);
+            const now = new Date();
+            const todayIso = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+            let headerLabel = 'Agenda Hari Ini';
+            let subLabel = hariIndo[now.getDay()] + ', ' + now.getDate() + ' ' + bulanIndo[now.getMonth()] + ' ' + now.getFullYear();
+            if (isoDate !== todayIso) {
+                const p = isoDate.split('-');
+                const d = new Date(isoDate + 'T00:00:00');
+                headerLabel = 'Agenda ' + parseInt(p[2],10) + ' ' + bulanIndo[parseInt(p[1],10)-1];
+                subLabel = hariIndo[d.getDay()] + ', ' + parseInt(p[2],10) + ' ' + bulanIndo[parseInt(p[1],10)-1] + ' ' + p[0];
+            }
+            if (titleEl) titleEl.textContent = headerLabel;
+            if (subEl) subEl.textContent = subLabel;
+
+            let html = '';
+            if (HOLIDAYS[isoDate]) {
+                html += `<div class="rounded-xl bg-red-50 border border-red-100 px-4 py-3 flex items-center gap-3 fade-in">
+                    <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                        <i class="fa-solid fa-calendar-day"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-red-600 uppercase">Hari Libur</p>
+                        <p class="font-bold text-red-800">${escapeHtml(HOLIDAYS[isoDate])}</p>
+                    </div>
+                </div>`;
+            }
+
+            if (!items.length) {
+                html += `<div class="text-center py-10 text-slate-400 fade-in">
+                    <i class="fa-regular fa-calendar-xmark text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm">Tidak ada agenda pada tanggal ini.</p>
+                </div>`;
+            } else {
+                items.forEach(function(ev, idx) {
+                    const isSurat = ev.source === 'surat';
+                    const borderCls = isSurat ? 'border-amber-400' : 'border-brand-500';
+                    const bgIcon = isSurat ? 'bg-amber-50 text-amber-600' : 'bg-brand-50 text-brand-600';
+                    const badge = isSurat
+                        ? `<span class="text-[10px] font-semibold text-amber-700 uppercase bg-amber-50 px-2 py-0.5 rounded-full">${escapeHtml(ev.indeks || 'Surat')}</span>`
+                        : `<span class="text-[10px] font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">Aula</span>`;
+
+                    let detail = '';
+                    if (ev.time) detail += `<div class="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5"><i class="fa-regular fa-clock w-3.5"></i>${escapeHtml(ev.time)}</div>`;
+                    if (ev.place) detail += `<div class="flex items-center gap-1.5 text-xs text-slate-500 mt-1"><i class="fa-solid fa-location-dot w-3.5"></i>${escapeHtml(ev.place)}</div>`;
+                    if (isSurat && (ev.disposisi_kepada || ev.isi_disposisi)) {
+                        let kepada = ev.disposisi_kepada || '—';
+                        if (ev.jabatan_disposisi) kepada += ' (' + ev.jabatan_disposisi + ')';
+                        detail += `<div class="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
+                            <div><span class="font-semibold">Disposisi:</span> ${escapeHtml(kepada)}</div>
+                            ${ev.isi_disposisi ? `<div><span class="font-semibold">Isi:</span> ${escapeHtml(ev.isi_disposisi)}</div>` : ''}
+                        </div>`;
+                    }
+                    if (ev.file_url || (ev.link && String(ev.link).indexOf('http') === 0)) {
+                        const url = ev.file_url || ev.link;
+                        detail += `<div class="mt-2"><a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                            <i class="fa-solid fa-paperclip"></i> Lihat lampiran
+                        </a></div>`;
+                    } else if (ev.nomor_surat) {
+                        detail += `<div class="mt-1.5 text-[11px] text-slate-500"><i class="fa-regular fa-file-lines mr-1"></i>${escapeHtml(ev.nomor_surat)}</div>`;
+                    }
+
+                    html += `<div class="agenda-card border-l-4 ${borderCls} bg-white rounded-xl border border-slate-100 p-4 shadow-sm fade-in" style="animation-delay:${idx*40}ms">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl ${bgIcon} flex items-center justify-center shrink-0">
+                                <i class="fa-solid ${isSurat ? 'fa-envelope-open-text' : 'fa-building'}"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-slate-800 leading-snug">${escapeHtml(ev.title)}</div>
+                                <div class="mt-1">${badge}</div>
+                                ${detail}
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            box.innerHTML = html;
+        }
+
+        function renderUpcoming() {
+            const box = document.getElementById('upcoming-list');
+            if (!box) return;
+            const now = new Date();
+            const todayIso = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+            const end = new Date(now);
+            end.setDate(end.getDate() + 7);
+            const endIso = end.getFullYear() + '-' + String(end.getMonth()+1).padStart(2,'0') + '-' + String(end.getDate()).padStart(2,'0');
+
+            const upcoming = calendarEvents.filter(e => e.date >= todayIso && e.date <= endIso)
+                .sort((a,b) => a.date.localeCompare(b.date));
+
+            if (!upcoming.length) {
+                box.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Tidak ada agenda dalam 7 hari ke depan.</p>';
+                return;
+            }
+
+            let html = '';
+            const seen = new Set();
+            upcoming.slice(0, 8).forEach(ev => {
+                const key = ev.date + '|' + ev.title;
+                if (seen.has(key)) return;
+                seen.add(key);
+                const p = ev.date.split('-');
+                const isSurat = ev.source === 'surat';
+                html += `<div class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-50 transition">
+                    <div class="text-center shrink-0 w-10">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase">${bulanShort[parseInt(p[1],10)-1]}</div>
+                        <div class="text-lg font-bold ${isSurat ? 'text-amber-600' : 'text-brand-600'} leading-none">${parseInt(p[2],10)}</div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(ev.title)}</p>
+                        <p class="text-[10px] text-slate-500">${isSurat ? 'Undangan/Pemberitahuan' : 'Agenda Aula'}${ev.time ? ' · ' + escapeHtml(ev.time) : ''}</p>
+                    </div>
+                </div>`;
+            });
+            box.innerHTML = html || '<p class="text-xs text-slate-400 text-center py-4">Tidak ada agenda.</p>';
+        }
+
+        function renderMonthList() {
+            const box = document.getElementById('month-agenda-list');
+            if (!box) return;
+            const filter = (document.getElementById('filter-source') || {}).value || 'all';
+            const ymPrefix = calViewYear + '-' + String(calViewMonth + 1).padStart(2, '0');
+
+            let items = calendarEvents.filter(e => e.date && e.date.indexOf(ymPrefix) === 0);
+            if (filter === 'aula') items = items.filter(e => e.source === 'aula');
+            if (filter === 'surat') items = items.filter(e => e.source === 'surat');
+
+            const grouped = {};
+            items.forEach(ev => {
+                if (!grouped[ev.date]) grouped[ev.date] = [];
+                grouped[ev.date].push(ev);
+            });
+            const dates = Object.keys(grouped).sort();
+
+            if (!dates.length) {
+                box.innerHTML = `<div class="p-10 text-center text-slate-400">
+                    <i class="fa-regular fa-folder-open text-3xl mb-2 opacity-40"></i>
+                    <p class="text-sm">Tidak ada agenda di bulan ${bulanIndo[calViewMonth]} ${calViewYear}.</p>
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            dates.forEach(date => {
+                const p = date.split('-');
+                const d = new Date(date + 'T00:00:00');
+                const isToday = date === (new Date().toISOString().slice(0,10));
+                const isHoliday = !!HOLIDAYS[date];
+                html += `<div class="px-5 py-3 ${isToday ? 'bg-brand-50/50' : ''}">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm font-bold ${isHoliday || d.getDay()===0 ? 'text-red-600' : 'text-slate-700'}">
+                            ${hariIndo[d.getDay()]}, ${parseInt(p[2],10)} ${bulanIndo[parseInt(p[1],10)-1]} ${p[0]}
+                        </span>
+                        ${isToday ? '<span class="text-[10px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full">HARI INI</span>' : ''}
+                        ${isHoliday ? `<span class="text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">${escapeHtml(HOLIDAYS[date])}</span>` : ''}
+                    </div>
+                    <div class="space-y-2 ml-1">`;
+                grouped[date].forEach(ev => {
+                    const isSurat = ev.source === 'surat';
+                    html += `<div class="flex items-start gap-3 py-1.5">
+                        <div class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${isSurat ? 'bg-amber-500' : 'bg-brand-500'}"></div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800">${escapeHtml(ev.title)}</p>
+                            <p class="text-[11px] text-slate-500">
+                                ${isSurat ? 'Undangan / Pemberitahuan' : 'Agenda Aula'}
+                                ${ev.time ? ' · ' + escapeHtml(ev.time) : ''}
+                                ${ev.place ? ' · ' + escapeHtml(ev.place) : ''}
+                            </p>
+                        </div>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            });
+            box.innerHTML = html;
+        }
+
+        function updateStats() {
+            const total = calendarEvents.length;
+            const aula = calendarEvents.filter(e => e.source === 'aula').length;
+            const surat = calendarEvents.filter(e => e.source === 'surat').length;
+            const ymPrefix = calViewYear + '-' + String(calViewMonth + 1).padStart(2, '0');
+            const bulan = calendarEvents.filter(e => e.date && e.date.indexOf(ymPrefix) === 0).length;
+
+            const elT = document.getElementById('stat-total');
+            const elA = document.getElementById('stat-aula');
+            const elS = document.getElementById('stat-surat');
+            const elB = document.getElementById('stat-bulan');
+            if (elT) elT.textContent = total.toLocaleString('id-ID');
+            if (elA) elA.textContent = aula.toLocaleString('id-ID');
+            if (elS) elS.textContent = surat.toLocaleString('id-ID');
+            if (elB) elB.textContent = bulan.toLocaleString('id-ID');
+        }
+
+        // ========== REFRESH DATA ==========
+        async function refreshAllData() {
+            const icon = document.getElementById('refresh-icon');
+            if (icon) icon.classList.add('fa-spin');
+
+            let dataSurat = loadSuratMasukLocal();
+            try {
+                const response = await fetch(SURAT_MASUK_GAS_URL);
+                const res = await response.json();
+                if (res.status === 'success' && Array.isArray(res.data)) {
+                    dataSurat = res.data.map(function(item, idx) {
+                        return {
+                            id: item.ID || item.id || ('surat-' + idx),
+                            nomor_surat: item['Nomor Surat'] || '',
+                            tanggal_surat: item['Tanggal Surat'] || '',
+                            tanggal_terima: item['Tanggal Diterima'] || '',
+                            tanggal_kegiatan: item['Tanggal Kegiatan'] || '',
+                            pengirim: item['Pengirim / Instansi'] || '',
+                            perihal: item['Perihal'] || '',
+                            indeks: item['Indeks'] || '',
+                            file_url: item['File URL'] || item['File Url'] || item['File url'] || '',
+                            status_arsip: item['Status Arsip'] || 'aktif',
+                            disposisi_kepada: item['Disposisi Kepada'] || '',
+                            jabatan_disposisi: item['Jabatan Disposisi'] || '',
+                            isi_disposisi: item['Isi Disposisi'] || ''
+                        };
+                    });
+                    localStorage.setItem('gemini_surat_masuk_db', JSON.stringify(dataSurat));
+                }
+            } catch (e) {
+                console.warn('Sync surat masuk gagal, pakai lokal:', e);
+            }
+
+            let dataAula = loadAgendaAulaLocal();
+            try {
+                const cloudAula = await fetchAgendaAulaCloud();
+                if (cloudAula && cloudAula.length) dataAula = cloudAula;
+            } catch (e) {}
+
+            calendarEvents = collectCalendarEvents(dataSurat, dataAula);
+            renderCalendar();
+            renderUpcoming();
+            renderMonthList();
+            updateStats();
+
+            if (icon) setTimeout(() => icon.classList.remove('fa-spin'), 400);
+        }
+
+        function updateDigitalClock() {
+            const el = document.getElementById('clock-time');
+            if (!el) return;
+            const now = new Date();
+            el.textContent = String(now.getHours()).padStart(2,'0') + ':' +
+                             String(now.getMinutes()).padStart(2,'0') + ':' +
+                             String(now.getSeconds()).padStart(2,'0');
+        }
+
+        // ========== MODAL TAMBAH AGENDA ==========
+        function openAddAgendaModal(prefillDate) {
+            const modal = document.getElementById('modal-add-agenda');
+            if (!modal) return;
+            const form = document.getElementById('form-add-agenda');
+            if (form) form.reset();
+            const tglMulai = document.getElementById('f-tgl-mulai');
+            const tglSelesai = document.getElementById('f-tgl-selesai');
+            const defaultDate = prefillDate || selectedCalDate || (() => {
+                const n = new Date();
+                return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+            })();
+            if (tglMulai) tglMulai.value = defaultDate;
+            if (tglSelesai) tglSelesai.value = defaultDate;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('f-judul')?.focus(), 100);
+        }
+
+        function closeAddAgendaModal() {
+            const modal = document.getElementById('modal-add-agenda');
+            if (modal) modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+            if (!toast || !text) return;
+            text.textContent = msg;
+            if (icon) {
+                icon.className = isError
+                    ? 'fa-solid fa-circle-exclamation text-rose-400'
+                    : 'fa-solid fa-circle-check text-emerald-400';
+            }
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2800);
+        }
+
+        function submitAddAgenda(e) {
+            e.preventDefault();
+            const judul = (document.getElementById('f-judul')?.value || '').trim();
+            const tglMulai = document.getElementById('f-tgl-mulai')?.value || '';
+            const tglSelesai = document.getElementById('f-tgl-selesai')?.value || tglMulai;
+            const waktuMulai = document.getElementById('f-waktu-mulai')?.value || '';
+            const waktuSelesai = document.getElementById('f-waktu-selesai')?.value || '';
+            const tempat = (document.getElementById('f-tempat')?.value || '').trim();
+            const pelaksana = (document.getElementById('f-pelaksana')?.value || '').trim();
+            const keterangan = (document.getElementById('f-keterangan')?.value || '').trim();
+
+            if (!judul) {
+                showToast('Judul kegiatan wajib diisi', true);
+                document.getElementById('f-judul')?.focus();
+                return false;
+            }
+            if (!tglMulai) {
+                showToast('Tanggal mulai wajib diisi', true);
+                return false;
+            }
+            if (tglSelesai && tglSelesai < tglMulai) {
+                showToast('Tanggal selesai tidak boleh sebelum tanggal mulai', true);
+                return false;
+            }
+
+            const btn = document.getElementById('btn-save-agenda');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+            }
+
+            const newAgenda = {
+                id: 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                perihal: judul,
+                judul: judul,
+                nama_kegiatan: judul,
+                kegiatan: judul,
+                tglMulai: tglMulai,
+                tanggal: tglMulai,
+                tanggal_kegiatan: tglMulai,
+                tglSelesai: tglSelesai || tglMulai,
+                tanggal_selesai: tglSelesai || tglMulai,
+                waktuMulai: waktuMulai,
+                waktu: waktuMulai,
+                waktuSelesai: waktuSelesai,
+                tempat: tempat || pelaksana || 'Aula',
+                lokasi: tempat || '',
+                pelaksana: pelaksana || tempat || '',
+                keterangan: keterangan,
+                sumber: 'manual',
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                let rows = loadAgendaAulaLocal();
+                if (!Array.isArray(rows)) rows = [];
+                rows.push(newAgenda);
+                localStorage.setItem('gemini_agenda_aula_db', JSON.stringify(rows));
+
+                tryPostAgendaToCloud(newAgenda);
+
+                calendarEvents = collectCalendarEvents(loadSuratMasukLocal(), rows);
+                const p = tglMulai.split('-');
+                if (p.length === 3) {
+                    calViewYear = parseInt(p[0], 10);
+                    calViewMonth = parseInt(p[1], 10) - 1;
+                    selectedCalDate = tglMulai;
+                }
+                renderCalendar();
+                renderUpcoming();
+                renderMonthList();
+                updateStats();
+
+                closeAddAgendaModal();
+                showToast('Agenda berhasil ditambahkan');
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal menyimpan agenda', true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Agenda';
+                }
+            }
+            return false;
+        }
+
+        async function tryPostAgendaToCloud(agenda) {
+            try {
+                const url = AGENDA_AULA_GAS_URL + (AGENDA_AULA_GAS_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=add';
+                await fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(agenda)
+                });
+            } catch (e) {}
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeAddAgendaModal();
+        });
+
+        // ========== INIT ==========
+        window.addEventListener('DOMContentLoaded', function() {
+            const instansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+            const elInst = document.getElementById('header-instansi');
+            if (elInst) elInst.textContent = 'Instansi: ' + instansi;
+
+            const localSurat = loadSuratMasukLocal();
+            const localAula = loadAgendaAulaLocal();
+            calendarEvents = collectCalendarEvents(localSurat, localAula);
+            renderCalendar();
+            renderUpcoming();
+            renderMonthList();
+            updateStats();
+
+            refreshAllData();
+
+            document.getElementById('calPrevMonth')?.addEventListener('click', () => shiftCalendarMonth(-1));
+            document.getElementById('calNextMonth')?.addEventListener('click', () => shiftCalendarMonth(1));
+            document.getElementById('calTodayBtn')?.addEventListener('click', goCalendarToday);
+            document.getElementById('filter-source')?.addEventListener('change', renderMonthList);
+
+            updateDigitalClock();
+            setInterval(updateDigitalClock, 1000);
+        });
+    </script>
+</body>
+</html>
