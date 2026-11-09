@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Surat AI - sipena.v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0284c7', 600:'#0284c7', 700:'#0369a1' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-sans">
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-800 text-sm">Generate Surat (AI)</h1>
+          <p class="text-[10px] text-slate-500">Draf otomatis dari data surat keluar</p>
+        </div>
+      </div>
+      <button onclick="window.close()" class="text-xs text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-100">
+        <i class="fa-solid fa-xmark mr-1"></i> Tutup
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+
+    <div id="source-info" class="rounded-xl bg-white border border-slate-200 p-4 text-xs text-slate-600 shadow-sm">
+      Memuat data...
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+      <label class="block text-xs font-semibold text-slate-600">Pilih jenis surat</label>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="ai-type-list">
+        <button type="button" data-type="undangan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-violet-500 bg-violet-50 ring-2 ring-violet-200 text-xs font-medium">
+          <i class="fa-solid fa-envelope-open-text text-violet-500 mr-1"></i> Surat Undangan
+        </button>
+        <button type="button" data-type="dinas" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
+          <i class="fa-solid fa-building-columns text-violet-500 mr-1"></i> Surat Dinas
+        </button>
+        <button type="button" data-type="pemberitahuan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
+          <i class="fa-solid fa-bullhorn text-violet-500 mr-1"></i> Pemberitahuan
+        </button>
+        <button type="button" data-type="permohonan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
+          <i class="fa-solid fa-hand-holding-hand text-violet-500 mr-1"></i> Permohonan
+        </button>
+        <button type="button" data-type="keterangan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
+          <i class="fa-solid fa-file-circle-check text-violet-500 mr-1"></i> Keterangan
+        </button>
+        <button type="button" data-type="edaran" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
+          <i class="fa-solid fa-share-nodes text-violet-500 mr-1"></i> Edaran
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-semibold text-slate-600">Hasil draf surat</label>
+        <div class="flex gap-2">
+          <button onclick="copyOut()" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-medium">
+            <i class="fa-regular fa-copy mr-1"></i> Salin
+          </button>
+          <button onclick="generate()" class="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-semibold">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Generate
+          </button>
+        </div>
+      </div>
+      <textarea id="output" rows="18"
+        class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-violet-500"
+        placeholder="Klik Generate untuk membuat draf..."></textarea>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const data = {
+      no: params.get('no') || '',
+      nomor_surat: params.get('nomor_surat') || '',
+      perihal: params.get('perihal') || '',
+      tujuan: params.get('tujuan') || '',
+      sifat_surat: params.get('sifat_surat') || 'Biasa',
+      pengolah: params.get('pengolah') || '',
+      tanggal_surat: params.get('tanggal_surat') || '',
+      kode_klasifikasi: params.get('kode_klasifikasi') || ''
+    };
+    const instansi = localStorage.getItem('arsip_instansi') || 'Dinas Pemberdayaan Masyarakat dan Desa';
+    let selectedType = 'undangan';
+
+    document.getElementById('source-info').innerHTML =
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
+      '<div><span class="text-slate-400">No:</span> <strong>' + esc(data.no) + '</strong></div>' +
+      '<div><span class="text-slate-400">Nomor:</span> <strong class="font-mono">' + esc(data.nomor_surat) + '</strong></div>' +
+      '<div class="sm:col-span-2"><span class="text-slate-400">Perihal:</span> ' + esc(data.perihal) + '</div>' +
+      '<div class="sm:col-span-2"><span class="text-slate-400">Tujuan:</span> ' + esc(data.tujuan) + '</div>' +
+      '</div>';
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function selectType(btn) {
+      selectedType = btn.getAttribute('data-type');
+      document.querySelectorAll('.ai-type').forEach(function(b) {
+        b.classList.remove('border-violet-500', 'bg-violet-50', 'ring-2', 'ring-violet-200');
+        b.classList.add('border-slate-200');
+      });
+      btn.classList.add('border-violet-500', 'bg-violet-50', 'ring-2', 'ring-violet-200');
+      btn.classList.remove('border-slate-200');
+    }
+
+    function formatTglPanjang(s) {
+      if (!s) return '…';
+      const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      const p = String(s).slice(0, 10).split('-');
+      if (p.length === 3) return parseInt(p[2], 10) + ' ' + bulan[parseInt(p[1], 10) - 1] + ' ' + p[0];
+      return s;
+    }
+
+    function generate() {
+      const r = data;
+      const tgl = formatTglPanjang(r.tanggal_surat);
+      const jenisMap = {
+        undangan: 'UNDANGAN', dinas: 'SURAT DINAS', pemberitahuan: 'SURAT PEMBERITAHUAN',
+        permohonan: 'SURAT PERMOHONAN', keterangan: 'SURAT KETERANGAN', edaran: 'SURAT EDARAN'
+      };
+      const judul = jenisMap[selectedType] || 'SURAT';
+      let body = '';
+      if (selectedType === 'undangan') {
+        body = 'Dengan hormat,\n\nBersama ini kami mengundang Bapak/Ibu/Saudara untuk hadir dalam kegiatan:\n\n    Perihal      : ' + r.perihal + '\n    Hari/Tanggal : ' + tgl + '\n    Tempat       : (sesuaikan)\n\nMengingat pentingnya acara dimaksud, kehadiran Bapak/Ibu/Saudara tepat waktu sangat kami harapkan.\n\nAtas perhatian dan kehadirannya, diucapkan terima kasih.';
+      } else if (selectedType === 'permohonan') {
+        body = 'Dengan hormat,\n\nSehubungan dengan ' + r.perihal + ', bersama ini kami sampaikan permohonan kepada Bapak/Ibu agar berkenan memberikan dukungan/persetujuan sebagaimana mestinya.\n\nDemikian surat permohonan ini kami sampaikan. Atas perhatian dan kerjasamanya diucapkan terima kasih.';
+      } else if (selectedType === 'pemberitahuan') {
+        body = 'Dengan hormat,\n\nBersama ini kami beritahukan bahwa ' + r.perihal + '.\n\nDemikian pemberitahuan ini disampaikan untuk menjadi perhatian.';
+      } else if (selectedType === 'keterangan') {
+        body = 'Yang bertanda tangan di bawah ini menerangkan bahwa:\n\n    Perihal : ' + r.perihal + '\n    Tujuan  : ' + r.tujuan + '\n\nDemikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.';
+      } else if (selectedType === 'edaran') {
+        body = 'Bersama ini kami sampaikan surat edaran terkait:\n\n    ' + r.perihal + '\n\nKepada seluruh pihak terkait agar menjadikan edaran ini sebagai pedoman dan melaksanakan ketentuan yang berlaku.\n\nDemikian surat edaran ini disampaikan untuk dilaksanakan dengan penuh tanggung jawab.';
+      } else {
+        body = 'Dengan hormat,\n\nBersama ini kami sampaikan hal sebagai berikut:\n\n    ' + r.perihal + '\n\nDemikian surat ini kami sampaikan. Atas perhatiannya diucapkan terima kasih.';
+      }
+
+      const draft =
+instansi.toUpperCase() + '\n' +
+'================================================================================\n\n' +
+'Nomor       : ' + (r.nomor_surat || '…') + '\n' +
+'Sifat       : ' + (r.sifat_surat || 'Biasa') + '\n' +
+'Lampiran    : -\n' +
+'Perihal     : ' + r.perihal + '\n\n' +
+'Kepada Yth.\n' +
+(r.tujuan || '…') + '\n' +
+'di —\nTempat\n\n' +
+'                    ' + judul + '\n\n' +
+body + '\n\n' +
+'                                                    ' + tgl + '\n\n' +
+'                                                    ' + (r.pengolah || '…') + '-DPMD\n';
+
+      document.getElementById('output').value = draft;
+    }
+
+    function copyOut() {
+      const t = document.getElementById('output');
+      t.select();
+      document.execCommand('copy');
+      Swal.fire({ icon: 'success', title: 'Disalin', timer: 1000, showConfirmButton: false });
+    }
+
+    // Auto generate on load
+    generate();
+  </script>
+</body>
+</html>
