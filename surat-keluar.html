@@ -103,14 +103,54 @@
         <table class="data-table w-full text-left">
           <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
             <tr>
-              <th class="px-3 py-2.5 w-10">No</th>
-              <th class="px-3 py-2.5">Kode Klasifikasi</th>
-              <th class="px-3 py-2.5">Nomor Surat</th>
-              <th class="px-3 py-2.5">Tgl Surat</th>
-              <th class="px-3 py-2.5 min-w-[180px]">Perihal</th>
-              <th class="px-3 py-2.5">Sifat</th>
-              <th class="px-3 py-2.5">Pengolah</th>
-              <th class="px-3 py-2.5">Tujuan</th>
+              <th class="px-3 py-2.5 w-14">
+                <div class="flex items-center gap-1">No
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="no" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="no" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Kode Klasifikasi
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="kode_klasifikasi" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="kode_klasifikasi" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Nomor Surat
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="nomor_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="nomor_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Tgl Surat
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="tanggal_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="tanggal_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5 min-w-[180px]">
+                <div class="flex items-center gap-1">Perihal
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="perihal" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="perihal" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Sifat
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="sifat_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="sifat_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Pengolah
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="pengolah" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="pengolah" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
+              <th class="px-3 py-2.5">
+                <div class="flex items-center gap-1">Tujuan
+                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="tujuan" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
+                </div>
+                <input type="text" data-col="tujuan" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              </th>
               <th class="px-3 py-2.5">Lampiran</th>
               <th class="px-3 py-2.5 text-center w-36">Aksi</th>
             </tr>
@@ -169,13 +209,15 @@
             </div>
           </div>
 
-          <div>
+          <div class="relative">
             <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Klasifikasi <span class="text-red-500">*</span></label>
-            <select id="f-kode" required
+            <input type="text" id="f-kode" required autocomplete="off"
               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              onchange="rebuildNomorSurat()">
-              <option value="">— Pilih kode klasifikasi —</option>
-            </select>
+              placeholder="Ketik kode atau uraian untuk mencari..."
+              oninput="filterKodeSuggestions()" onfocus="filterKodeSuggestions()" onblur="setTimeout(hideKodeSuggestions, 200)">
+            <input type="hidden" id="f-kode-value">
+            <div id="kode-suggestions" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto hidden"></div>
+            <p class="text-[10px] text-slate-400 mt-0.5">Ketik untuk mencari, lalu pilih dari daftar</p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -423,16 +465,63 @@
     }
 
     function fillKodeSelect(selected) {
-      const sel = document.getElementById('f-kode');
-      if (!sel) return;
-      let html = '<option value="">— Pilih kode klasifikasi —</option>';
-      klasifikasiList.forEach(function(k) {
-        const v = k.kode || k;
-        const label = k.uraian ? (v + ' — ' + k.uraian) : v;
-        const selAttr = (selected && String(selected) === String(v)) ? ' selected' : '';
-        html += '<option value="' + escapeAttr(v) + '"' + selAttr + '>' + escapeHtml(label) + '</option>';
-      });
-      sel.innerHTML = html;
+      const inp = document.getElementById('f-kode');
+      const hid = document.getElementById('f-kode-value');
+      if (!inp) return;
+      if (selected) {
+        const found = klasifikasiList.find(function(k) { return String(k.kode) === String(selected); });
+        inp.value = found ? (found.kode + (found.uraian ? ' — ' + found.uraian : '')) : selected;
+        if (hid) hid.value = selected;
+      } else {
+        inp.value = '';
+        if (hid) hid.value = '';
+      }
+    }
+
+    function filterKodeSuggestions() {
+      const inp = document.getElementById('f-kode');
+      const box = document.getElementById('kode-suggestions');
+      if (!inp || !box) return;
+      const q = (inp.value || '').toLowerCase().trim();
+      let list = klasifikasiList;
+      if (q) {
+        list = klasifikasiList.filter(function(k) {
+          const blob = ((k.kode || '') + ' ' + (k.uraian || '')).toLowerCase();
+          return blob.indexOf(q) >= 0;
+        });
+      }
+      if (!list.length) {
+        box.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Tidak ditemukan</div>';
+        box.classList.remove('hidden');
+        return;
+      }
+      box.innerHTML = list.slice(0, 40).map(function(k) {
+        const label = escapeHtml(k.kode) + (k.uraian ? ' <span class="text-slate-400">— ' + escapeHtml(k.uraian) + '</span>' : '');
+        return '<button type="button" class="w-full text-left px-3 py-2 text-xs hover:bg-brand-50 border-b border-slate-50" onclick="pickKode(\'' + escapeAttr(k.kode) + '\', \'' + escapeAttr((k.kode || '') + (k.uraian ? ' — ' + k.uraian : '')) + '\')">' + label + '</button>';
+      }).join('');
+      box.classList.remove('hidden');
+    }
+
+    function pickKode(kode, label) {
+      document.getElementById('f-kode').value = label;
+      const hid = document.getElementById('f-kode-value');
+      if (hid) hid.value = kode;
+      hideKodeSuggestions();
+      rebuildNomorSurat();
+    }
+
+    function hideKodeSuggestions() {
+      const box = document.getElementById('kode-suggestions');
+      if (box) box.classList.add('hidden');
+    }
+
+    function getSelectedKode() {
+      const hid = document.getElementById('f-kode-value');
+      if (hid && hid.value) return hid.value;
+      const v = (document.getElementById('f-kode').value || '').trim();
+      // Ambil bagian sebelum " — "
+      const parts = v.split('—');
+      return (parts[0] || v).trim();
     }
 
     // ========== API ==========
@@ -442,13 +531,20 @@
         if (payload) {
           const res = await fetch(url, {
             method: 'POST',
-            // mode no-cors tidak bisa baca response; pakai text/plain agar CORS sederhana
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(Object.assign({ action: action }, payload))
           });
-          return await res.json();
+          const text = await res.text();
+          try { return JSON.parse(text); } catch (e) {
+            return { status: 'error', message: 'Respons tidak valid: ' + text.slice(0, 120) };
+          }
         } else {
-          const res = await fetch(url);
-          return await res.json();
+          const res = await fetch(url, { redirect: 'follow' });
+          const text = await res.text();
+          try { return JSON.parse(text); } catch (e) {
+            return { status: 'error', message: 'Respons tidak valid' };
+          }
         }
       } catch (e) {
         console.warn('API error', action, e);
@@ -484,13 +580,33 @@
     }
 
     // ========== FILTER & RENDER ==========
+    function toggleColFilter(btn) {
+      const col = btn.getAttribute('data-col');
+      const input = document.querySelector('.col-filter-input[data-col="' + col + '"]');
+      if (!input) return;
+      input.classList.toggle('hidden');
+      if (!input.classList.contains('hidden')) input.focus();
+      else { input.value = ''; applyFilter(); }
+    }
+
     function applyFilter() {
       const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
       const source = showingTrash ? trashData : allData;
+      const colFilters = {};
+      document.querySelectorAll('.col-filter-input').forEach(function(inp) {
+        const v = (inp.value || '').toLowerCase().trim();
+        if (v) colFilters[inp.getAttribute('data-col')] = v;
+      });
       filtered = source.filter(function(r) {
-        if (!q) return true;
-        const blob = [r.no, r.kode_klasifikasi, r.nomor_surat, r.perihal, r.tujuan, r.pengolah, r.sifat_surat].join(' ').toLowerCase();
-        return blob.indexOf(q) >= 0;
+        if (q) {
+          const blob = [r.no, r.kode_klasifikasi, r.nomor_surat, r.perihal, r.tujuan, r.pengolah, r.sifat_surat].join(' ').toLowerCase();
+          if (blob.indexOf(q) < 0) return false;
+        }
+        for (const col in colFilters) {
+          const cell = String(r[col] == null ? '' : r[col]).toLowerCase();
+          if (cell.indexOf(colFilters[col]) < 0) return false;
+        }
+        return true;
       });
       currentPage = 1;
       renderTable();
@@ -552,7 +668,7 @@
         if (canUpload) {
           h += '<button onclick="uploadLampiran(' + r.rowIndex + ')" title="Upload lampiran" class="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-600 text-xs"><i class="fa-solid fa-paperclip"></i></button>';
         }
-        h += '<button onclick="openAiModal(' + r.rowIndex + ')" title="Generate AI" class="w-7 h-7 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-600 text-xs"><i class="fa-solid fa-wand-magic-sparkles"></i></button>';
+        h += '<button onclick="openGenerateAi(' + r.rowIndex + ')" title="Generate AI" class="w-7 h-7 rounded-lg bg-violet-50 hover:bg-violet-100 text-violet-600 text-xs"><i class="fa-solid fa-wand-magic-sparkles"></i></button>';
         if (canDelete) {
           h += '<button onclick="softDeleteRow(' + r.rowIndex + ')" title="Hapus" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs"><i class="fa-solid fa-trash"></i></button>';
         }
@@ -679,7 +795,7 @@
     }
 
     function rebuildNomorSurat() {
-      const kode = document.getElementById('f-kode').value || '';
+      const kode = getSelectedKode();
       const no = document.getElementById('f-no').value || '';
       const pengolah = document.getElementById('f-pengolah').value || 'Sekr';
       const tgl = document.getElementById('f-tanggal').value || '';
@@ -707,7 +823,7 @@
       const mode = document.getElementById('f-mode').value;
       const payload = {
         no: document.getElementById('f-no').value,
-        kode_klasifikasi: document.getElementById('f-kode').value,
+        kode_klasifikasi: getSelectedKode(),
         nomor_surat: document.getElementById('f-nomor').value,
         tanggal_surat: document.getElementById('f-tanggal').value,
         perihal: document.getElementById('f-perihal').value,
@@ -905,7 +1021,8 @@
             }
             Swal.fire({ icon: 'success', title: 'Lampiran terunggah', timer: 1400, showConfirmButton: false });
           } else {
-            Swal.fire('Gagal', 'Upload gagal. Pastikan Web App sudah di-deploy dengan akses folder.', 'error');
+            const msg = (res && res.message) ? res.message : 'Upload gagal. Deploy ulang code.gs (akses Anyone) dan pastikan folder Drive dapat diakses script.';
+            Swal.fire('Gagal', msg, 'error');
           }
         };
         reader.readAsDataURL(file);
@@ -914,6 +1031,23 @@
     }
 
     // ========== GENERATE AI (template lokal) ==========
+    function openGenerateAi(rowIndex) {
+      const r = findRow(rowIndex);
+      if (!r) return;
+      const q = new URLSearchParams({
+        no: r.no || '',
+        nomor_surat: r.nomor_surat || '',
+        perihal: r.perihal || '',
+        tujuan: r.tujuan || '',
+        sifat_surat: r.sifat_surat || '',
+        pengolah: r.pengolah || '',
+        tanggal_surat: r.tanggal_surat || '',
+        kode_klasifikasi: r.kode_klasifikasi || ''
+      });
+      // Buka di tab baru agar tidak mengganggu iframe
+      window.open('generate-ai.html?' + q.toString(), '_blank');
+    }
+
     function openAiModal(rowIndex) {
       const r = findRow(rowIndex);
       if (!r) return;
