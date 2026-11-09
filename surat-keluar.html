@@ -103,53 +103,29 @@
         <table class="data-table w-full text-left">
           <thead class="bg-slate-50 border-b border-slate-200 text-slate-500">
             <tr>
-              <th class="px-3 py-2.5 w-14">
-                <div class="flex items-center gap-1">No
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="no" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="no" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 w-14 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('no')">
+                <div class="flex items-center gap-1">No <i id="sort-icon-no" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Kode Klasifikasi
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="kode_klasifikasi" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="kode_klasifikasi" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('kode_klasifikasi')">
+                <div class="flex items-center gap-1">Kode Klasifikasi <i id="sort-icon-kode_klasifikasi" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Nomor Surat
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="nomor_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="nomor_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('nomor_surat')">
+                <div class="flex items-center gap-1">Nomor Surat <i id="sort-icon-nomor_surat" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Tgl Surat
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="tanggal_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="tanggal_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('tanggal_surat')">
+                <div class="flex items-center gap-1">Tgl Surat <i id="sort-icon-tanggal_surat" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5 min-w-[180px]">
-                <div class="flex items-center gap-1">Perihal
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="perihal" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="perihal" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 min-w-[180px] cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('perihal')">
+                <div class="flex items-center gap-1">Perihal <i id="sort-icon-perihal" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Sifat
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="sifat_surat" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="sifat_surat" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('sifat_surat')">
+                <div class="flex items-center gap-1">Sifat <i id="sort-icon-sifat_surat" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Pengolah
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="pengolah" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="pengolah" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('pengolah')">
+                <div class="flex items-center gap-1">Pengolah <i id="sort-icon-pengolah" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
-              <th class="px-3 py-2.5">
-                <div class="flex items-center gap-1">Tujuan
-                  <button type="button" class="col-filter-btn text-slate-400 hover:text-brand-600" data-col="tujuan" onclick="toggleColFilter(this)" title="Filter"><i class="fa-solid fa-filter text-[9px]"></i></button>
-                </div>
-                <input type="text" data-col="tujuan" class="col-filter-input hidden mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Filter..." oninput="applyFilter()">
+              <th class="px-3 py-2.5 cursor-pointer select-none hover:bg-slate-100" onclick="sortBy('tujuan')">
+                <div class="flex items-center gap-1">Tujuan <i id="sort-icon-tujuan" class="fa-solid fa-sort text-[10px] text-slate-400"></i></div>
               </th>
               <th class="px-3 py-2.5">Lampiran</th>
               <th class="px-3 py-2.5 text-center w-36">Aksi</th>
@@ -580,35 +556,60 @@
     }
 
     // ========== FILTER & RENDER ==========
-    function toggleColFilter(btn) {
-      const col = btn.getAttribute('data-col');
-      const input = document.querySelector('.col-filter-input[data-col="' + col + '"]');
-      if (!input) return;
-      input.classList.toggle('hidden');
-      if (!input.classList.contains('hidden')) input.focus();
-      else { input.value = ''; applyFilter(); }
-    }
-
     function applyFilter() {
       const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
       const source = showingTrash ? trashData : allData;
-      const colFilters = {};
-      document.querySelectorAll('.col-filter-input').forEach(function(inp) {
-        const v = (inp.value || '').toLowerCase().trim();
-        if (v) colFilters[inp.getAttribute('data-col')] = v;
-      });
       filtered = source.filter(function(r) {
-        if (q) {
-          const blob = [r.no, r.kode_klasifikasi, r.nomor_surat, r.perihal, r.tujuan, r.pengolah, r.sifat_surat].join(' ').toLowerCase();
-          if (blob.indexOf(q) < 0) return false;
-        }
-        for (const col in colFilters) {
-          const cell = String(r[col] == null ? '' : r[col]).toLowerCase();
-          if (cell.indexOf(colFilters[col]) < 0) return false;
-        }
-        return true;
+        if (!q) return true;
+        const blob = [r.no, r.kode_klasifikasi, r.nomor_surat, r.perihal, r.tujuan, r.pengolah, r.sifat_surat].join(' ').toLowerCase();
+        return blob.indexOf(q) >= 0;
       });
+      // Terapkan sort aktif jika ada
+      if (sortCol) applySort(false);
       currentPage = 1;
+      renderTable();
+    }
+
+    let sortCol = null;
+    let sortDir = 'asc'; // asc | desc
+
+    function sortBy(col) {
+      if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = 'asc';
+      }
+      applySort(true);
+    }
+
+    function applySort(resetPage) {
+      if (!sortCol) return;
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const numericCols = { no: true };
+      filtered.sort(function(a, b) {
+        let va = a[sortCol];
+        let vb = b[sortCol];
+        if (numericCols[sortCol]) {
+          va = Number(va) || 0;
+          vb = Number(vb) || 0;
+          return (va - vb) * dir;
+        }
+        va = String(va == null ? '' : va).toLowerCase();
+        vb = String(vb == null ? '' : vb).toLowerCase();
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+      // Update ikon
+      document.querySelectorAll('[id^="sort-icon-"]').forEach(function(el) {
+        el.className = 'fa-solid fa-sort text-[10px] text-slate-400';
+      });
+      const icon = document.getElementById('sort-icon-' + sortCol);
+      if (icon) {
+        icon.className = 'fa-solid fa-sort-' + (sortDir === 'asc' ? 'up' : 'down') + ' text-[10px] text-brand-600';
+      }
+      if (resetPage) currentPage = 1;
       renderTable();
     }
 
