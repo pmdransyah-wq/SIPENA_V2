@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generate Surat AI - sipena.v2</title>
+  <title>Generate Surat - sipena.v2</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -20,169 +22,632 @@
       }
     }
   </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .type-card { transition: all 0.15s ease; }
+    .type-card:hover { transform: translateY(-2px); }
+    .type-card.active { border-color: #7c3aed; background: #f5f3ff; box-shadow: 0 0 0 2px rgba(124,58,237,0.25); }
+    .step-dot { width: 28px; height: 28px; border-radius: 9999px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+    .step-dot.done { background:#7c3aed; color:#fff; }
+    .step-dot.current { background:#ede9fe; color:#6d28d9; border:2px solid #7c3aed; }
+    .step-dot.wait { background:#f1f5f9; color:#94a3b8; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen font-sans">
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
 
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center">
+        <div class="w-9 h-9 rounded-xl bg-violet-600 text-white flex items-center justify-center shadow">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
         </div>
         <div>
-          <h1 class="font-bold text-slate-800 text-sm">Generate Surat (AI)</h1>
-          <p class="text-[10px] text-slate-500">Draf otomatis dari data surat keluar</p>
+          <h1 class="font-bold text-slate-800 text-sm leading-tight">Generate Surat</h1>
+          <p class="text-[10px] text-slate-500">Buat draf surat resmi → unduh Word</p>
         </div>
       </div>
-      <button onclick="window.close()" class="text-xs text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-100">
+      <button type="button" onclick="window.close()" class="text-xs text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg hover:bg-slate-100">
         <i class="fa-solid fa-xmark mr-1"></i> Tutup
       </button>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 py-6 space-y-4">
+  <main class="max-w-4xl mx-auto px-4 py-6 space-y-5">
 
-    <div id="source-info" class="rounded-xl bg-white border border-slate-200 p-4 text-xs text-slate-600 shadow-sm">
-      Memuat data...
-    </div>
-
-    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
-      <label class="block text-xs font-semibold text-slate-600">Pilih jenis surat</label>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="ai-type-list">
-        <button type="button" data-type="undangan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-violet-500 bg-violet-50 ring-2 ring-violet-200 text-xs font-medium">
-          <i class="fa-solid fa-envelope-open-text text-violet-500 mr-1"></i> Surat Undangan
-        </button>
-        <button type="button" data-type="dinas" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
-          <i class="fa-solid fa-building-columns text-violet-500 mr-1"></i> Surat Dinas
-        </button>
-        <button type="button" data-type="pemberitahuan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
-          <i class="fa-solid fa-bullhorn text-violet-500 mr-1"></i> Pemberitahuan
-        </button>
-        <button type="button" data-type="permohonan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
-          <i class="fa-solid fa-hand-holding-hand text-violet-500 mr-1"></i> Permohonan
-        </button>
-        <button type="button" data-type="keterangan" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
-          <i class="fa-solid fa-file-circle-check text-violet-500 mr-1"></i> Keterangan
-        </button>
-        <button type="button" data-type="edaran" onclick="selectType(this)" class="ai-type text-left px-3 py-2.5 rounded-xl border border-slate-200 hover:border-violet-400 hover:bg-violet-50 text-xs font-medium">
-          <i class="fa-solid fa-share-nodes text-violet-500 mr-1"></i> Edaran
-        </button>
+    <div class="flex items-center justify-center gap-2 text-xs">
+      <div class="flex items-center gap-2">
+        <div id="step1-dot" class="step-dot current">1</div>
+        <span class="font-semibold text-slate-600">Jenis Surat</span>
+      </div>
+      <div class="w-8 h-px bg-slate-200"></div>
+      <div class="flex items-center gap-2">
+        <div id="step2-dot" class="step-dot wait">2</div>
+        <span class="font-medium text-slate-400" id="step2-label">Isi Data</span>
+      </div>
+      <div class="w-8 h-px bg-slate-200"></div>
+      <div class="flex items-center gap-2">
+        <div id="step3-dot" class="step-dot wait">3</div>
+        <span class="font-medium text-slate-400" id="step3-label">Preview & Word</span>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-semibold text-slate-600">Hasil draf surat</label>
-        <div class="flex gap-2">
-          <button onclick="copyOut()" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-medium">
-            <i class="fa-regular fa-copy mr-1"></i> Salin
+    <!-- STEP 1 -->
+    <section id="step-1" class="space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <h2 class="font-bold text-slate-800 mb-1">Pilih jenis surat</h2>
+        <p class="text-xs text-slate-500 mb-4">Pilih template. Data dari Surat Keluar (jika ada) terisi otomatis.</p>
+        <div id="source-banner" class="hidden mb-4 rounded-xl bg-violet-50 border border-violet-100 px-4 py-3 text-xs text-violet-800"></div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="undangan" onclick="selectType('undangan')">
+            <div class="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center mb-2"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Surat Undangan</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Acara + daftar undangan + susunan acara</div>
           </button>
-          <button onclick="generate()" class="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-semibold">
-            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Generate
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="permohonan" onclick="selectType('permohonan')">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mb-2"><i class="fa-solid fa-hand-holding-hand"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Surat Permohonan</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Permohonan narasumber / dukungan</div>
+          </button>
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="pemberitahuan" onclick="selectType('pemberitahuan')">
+            <div class="w-10 h-10 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center mb-2"><i class="fa-solid fa-bullhorn"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Pemberitahuan</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Surat pemberitahuan resmi</div>
+          </button>
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="dinas" onclick="selectType('dinas')">
+            <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2"><i class="fa-solid fa-building-columns"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Surat Dinas</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Surat dinas umum</div>
+          </button>
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="keterangan" onclick="selectType('keterangan')">
+            <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center mb-2"><i class="fa-solid fa-file-circle-check"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Surat Keterangan</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Keterangan resmi</div>
+          </button>
+          <button type="button" class="type-card text-left p-4 rounded-xl border-2 border-slate-200 bg-white" data-type="edaran" onclick="selectType('edaran')">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center mb-2"><i class="fa-solid fa-share-nodes"></i></div>
+            <div class="font-semibold text-sm text-slate-800">Surat Edaran</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Edaran internal / eksternal</div>
           </button>
         </div>
       </div>
-      <textarea id="output" rows="18"
-        class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-violet-500"
-        placeholder="Klik Generate untuk membuat draf..."></textarea>
-    </div>
+      <div class="flex justify-end">
+        <button type="button" id="btn-to-step2" onclick="goStep(2)" disabled
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition">
+          Lanjut isi data <i class="fa-solid fa-arrow-right text-xs"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section id="step-2" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-slate-800" id="form-title">Isi Data Surat</h2>
+            <p class="text-xs text-slate-500">Lengkapi field sesuai template resmi</p>
+          </div>
+          <span id="form-type-badge" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-100 text-violet-700"></span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat & Tanggal Surat</label>
+            <div class="flex gap-2">
+              <input type="text" id="f-kota" value="Barabai" class="w-28 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+              <input type="date" id="f-tgl-surat" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Surat</label>
+            <input type="text" id="f-nomor" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="000.x.x.x/xx/Sekr-DPMD/2026">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Sifat</label>
+            <select id="f-sifat" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+              <option>Biasa</option><option>Penting</option><option>Segera</option><option>Sangat Segera</option><option>Rahasia</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Lampiran</label>
+            <input type="text" id="f-lampiran" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="cth: 2 (dua) berkas">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Hal / Perihal</label>
+            <input type="text" id="f-hal" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Perihal surat">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Yth. (Tujuan)</label>
+            <textarea id="f-yth" rows="2" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none resize-none" placeholder="Kepada Yth.&#10;(Daftar Undangan Terlampir)"></textarea>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Paragraf pembuka / dasar surat</label>
+          <textarea id="f-pembuka" rows="3" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Menindaklanjuti surat..."></textarea>
+        </div>
+
+        <!-- UNDANGAN -->
+        <div id="block-undangan" class="hidden space-y-4 border-t border-slate-100 pt-4">
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-rose-500"></i> Detail Kegiatan (Undangan)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Hari / Tanggal</label>
+              <input type="text" id="f-hari-tgl" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Jum’at / 28 Agustus 2026">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Waktu</label>
+              <input type="text" id="f-waktu" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="07.45 s.d. selesai">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat</label>
+              <input type="text" id="f-tempat" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Aula Dinas PMD ...">
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-600">Daftar Undangan (Lampiran 1)</label>
+              <button type="button" onclick="addUndanganRow()" class="text-[11px] font-semibold text-violet-600 hover:text-violet-800"><i class="fa-solid fa-plus mr-1"></i>Tambah baris</button>
+            </div>
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <table class="w-full text-xs">
+                <thead class="bg-slate-50 text-slate-500"><tr>
+                  <th class="px-2 py-2 w-10 text-left">No</th>
+                  <th class="px-2 py-2 text-left">Daftar Peserta</th>
+                  <th class="px-2 py-2 w-28 text-left">Jumlah</th>
+                  <th class="px-2 py-2 w-10"></th>
+                </tr></thead>
+                <tbody id="tbody-undangan"></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-600">Susunan Acara (Lampiran 2)</label>
+              <button type="button" onclick="addAcaraRow()" class="text-[11px] font-semibold text-violet-600 hover:text-violet-800"><i class="fa-solid fa-plus mr-1"></i>Tambah baris</button>
+            </div>
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <table class="w-full text-xs">
+                <thead class="bg-slate-50 text-slate-500"><tr>
+                  <th class="px-2 py-2 w-10 text-left">No</th>
+                  <th class="px-2 py-2 w-32 text-left">Waktu</th>
+                  <th class="px-2 py-2 text-left">Acara</th>
+                  <th class="px-2 py-2 text-left">Narasumber / Pendamping</th>
+                  <th class="px-2 py-2 w-10"></th>
+                </tr></thead>
+                <tbody id="tbody-acara"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERMOHONAN -->
+        <div id="block-permohonan" class="hidden space-y-3 border-t border-slate-100 pt-4">
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-user-tie text-amber-500"></i> Detail Permohonan</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Hari / Tanggal kegiatan</label>
+              <input type="text" id="f-mohon-hari" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Rabu, 8 April 2026">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Waktu</label>
+              <input type="text" id="f-mohon-waktu" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="09.00 s.d. selesai">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat</label>
+              <input type="text" id="f-mohon-tempat" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Aula Dinas PMD ...">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Kontak admin (opsional)</label>
+            <input type="text" id="f-mohon-kontak" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Saudari Norfitrianie, SKM — 0813...">
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Kalimat penutup</label>
+            <textarea id="f-penutup" rows="2" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">Demikian disampaikan, atas perhatian dan kehadirannya diucapkan terima kasih.</textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Jabatan penandatangan</label>
+              <input type="text" id="f-jabatan" value="Kepala Dinas" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama</label>
+              <input type="text" id="f-nama" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Nama lengkap">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">NIP</label>
+              <input type="text" id="f-nip" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="NIP ...">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Pangkat / Golongan</label>
+            <input type="text" id="f-pangkat" value="Pembina Tingkat I" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-between">
+        <button type="button" onclick="goStep(1)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200 transition"><i class="fa-solid fa-arrow-left text-xs"></i> Kembali</button>
+        <button type="button" onclick="goStep(3)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 shadow-sm transition">Preview & unduh Word <i class="fa-solid fa-arrow-right text-xs"></i></button>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section id="step-3" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50">
+          <h2 class="font-bold text-slate-800 text-sm">Preview surat</h2>
+          <div class="flex gap-2">
+            <button type="button" onclick="goStep(2)" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white font-medium"><i class="fa-solid fa-pen mr-1"></i> Edit data</button>
+            <button type="button" onclick="downloadWord()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"><i class="fa-solid fa-file-word mr-1"></i> Unduh Word (.docx)</button>
+          </div>
+        </div>
+        <div id="preview" class="p-6 sm:p-8 text-sm leading-relaxed text-slate-800 bg-white max-h-[70vh] overflow-y-auto" style="font-family: 'Times New Roman', Times, serif;"></div>
+      </div>
+      <div class="flex justify-between">
+        <button type="button" onclick="goStep(2)" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200 transition"><i class="fa-solid fa-arrow-left text-xs"></i> Kembali</button>
+        <button type="button" onclick="downloadWord()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition"><i class="fa-solid fa-file-word"></i> Unduh sebagai Word</button>
+      </div>
+    </section>
   </main>
 
   <script>
-    const params = new URLSearchParams(location.search);
-    const data = {
-      no: params.get('no') || '',
-      nomor_surat: params.get('nomor_surat') || '',
-      perihal: params.get('perihal') || '',
-      tujuan: params.get('tujuan') || '',
-      sifat_surat: params.get('sifat_surat') || 'Biasa',
-      pengolah: params.get('pengolah') || '',
-      tanggal_surat: params.get('tanggal_surat') || '',
-      kode_klasifikasi: params.get('kode_klasifikasi') || ''
+    const qs = new URLSearchParams(location.search);
+    const fromSurat = {
+      no: qs.get('no') || '',
+      nomor_surat: qs.get('nomor_surat') || '',
+      perihal: qs.get('perihal') || '',
+      tujuan: qs.get('tujuan') || '',
+      sifat_surat: qs.get('sifat_surat') || '',
+      pengolah: qs.get('pengolah') || '',
+      tanggal_surat: qs.get('tanggal_surat') || '',
+      kode_klasifikasi: qs.get('kode_klasifikasi') || ''
     };
-    const instansi = localStorage.getItem('arsip_instansi') || 'Dinas Pemberdayaan Masyarakat dan Desa';
-    let selectedType = 'undangan';
 
-    document.getElementById('source-info').innerHTML =
-      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
-      '<div><span class="text-slate-400">No:</span> <strong>' + esc(data.no) + '</strong></div>' +
-      '<div><span class="text-slate-400">Nomor:</span> <strong class="font-mono">' + esc(data.nomor_surat) + '</strong></div>' +
-      '<div class="sm:col-span-2"><span class="text-slate-400">Perihal:</span> ' + esc(data.perihal) + '</div>' +
-      '<div class="sm:col-span-2"><span class="text-slate-400">Tujuan:</span> ' + esc(data.tujuan) + '</div>' +
-      '</div>';
+    let selectedType = null;
+    let undanganRows = [];
+    let acaraRows = [];
 
-    function esc(s) {
-      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    const TYPE_LABEL = {
+      undangan: 'Surat Undangan', permohonan: 'Surat Permohonan', pemberitahuan: 'Surat Pemberitahuan',
+      dinas: 'Surat Dinas', keterangan: 'Surat Keterangan', edaran: 'Surat Edaran'
+    };
 
-    function selectType(btn) {
-      selectedType = btn.getAttribute('data-type');
-      document.querySelectorAll('.ai-type').forEach(function(b) {
-        b.classList.remove('border-violet-500', 'bg-violet-50', 'ring-2', 'ring-violet-200');
-        b.classList.add('border-slate-200');
+    document.addEventListener('DOMContentLoaded', function() {
+      if (fromSurat.nomor_surat || fromSurat.perihal) {
+        const b = document.getElementById('source-banner');
+        b.classList.remove('hidden');
+        b.innerHTML = '<strong>Data dari Surat Keluar:</strong> ' + esc(fromSurat.nomor_surat || '—') + ' · ' + esc(fromSurat.perihal || '—');
+      }
+      document.getElementById('f-tgl-surat').value = new Date().toISOString().slice(0, 10);
+      if (fromSurat.nomor_surat) document.getElementById('f-nomor').value = fromSurat.nomor_surat;
+      if (fromSurat.perihal) document.getElementById('f-hal').value = fromSurat.perihal;
+      if (fromSurat.tujuan) document.getElementById('f-yth').value = fromSurat.tujuan;
+      if (fromSurat.sifat_surat) {
+        const sel = document.getElementById('f-sifat');
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].text.toLowerCase() === fromSurat.sifat_surat.toLowerCase()) { sel.selectedIndex = i; break; }
+        }
+      }
+      if (fromSurat.tanggal_surat) document.getElementById('f-tgl-surat').value = String(fromSurat.tanggal_surat).slice(0, 10);
+
+      undanganRows = [{ peserta: '', jumlah: '1 Orang' }, { peserta: '', jumlah: '1 Orang' }];
+      acaraRows = [
+        { waktu: '07.45 – 08.00', acara: 'Registrasi peserta', narasumber: 'Panitia' },
+        { waktu: '08.00 – 08.05', acara: 'Pembukaan', narasumber: 'Pembawa Acara' }
+      ];
+      renderUndanganTable();
+      renderAcaraTable();
+    });
+
+    function selectType(type) {
+      selectedType = type;
+      document.querySelectorAll('.type-card').forEach(function(c) {
+        c.classList.toggle('active', c.getAttribute('data-type') === type);
       });
-      btn.classList.add('border-violet-500', 'bg-violet-50', 'ring-2', 'ring-violet-200');
-      btn.classList.remove('border-slate-200');
+      document.getElementById('btn-to-step2').disabled = false;
     }
 
-    function formatTglPanjang(s) {
-      if (!s) return '…';
-      const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-      const p = String(s).slice(0, 10).split('-');
-      if (p.length === 3) return parseInt(p[2], 10) + ' ' + bulan[parseInt(p[1], 10) - 1] + ' ' + p[0];
-      return s;
+    function goStep(n) {
+      if (n === 2 && !selectedType) {
+        Swal.fire('Pilih jenis surat', 'Silakan pilih jenis surat terlebih dahulu.', 'info');
+        return;
+      }
+      document.getElementById('step-1').classList.toggle('hidden', n !== 1);
+      document.getElementById('step-2').classList.toggle('hidden', n !== 2);
+      document.getElementById('step-3').classList.toggle('hidden', n !== 3);
+      setDot(1, n > 1 ? 'done' : (n === 1 ? 'current' : 'wait'));
+      setDot(2, n > 2 ? 'done' : (n === 2 ? 'current' : 'wait'));
+      setDot(3, n === 3 ? 'current' : 'wait');
+      document.getElementById('step2-label').className = n >= 2 ? 'font-semibold text-slate-600' : 'font-medium text-slate-400';
+      document.getElementById('step3-label').className = n >= 3 ? 'font-semibold text-slate-600' : 'font-medium text-slate-400';
+
+      if (n === 2) {
+        document.getElementById('form-title').textContent = 'Isi Data — ' + (TYPE_LABEL[selectedType] || '');
+        document.getElementById('form-type-badge').textContent = TYPE_LABEL[selectedType] || '';
+        document.getElementById('block-undangan').classList.toggle('hidden', selectedType !== 'undangan');
+        document.getElementById('block-permohonan').classList.toggle('hidden', selectedType !== 'permohonan');
+        if (selectedType === 'undangan' && !document.getElementById('f-pembuka').value) {
+          document.getElementById('f-pembuka').value = 'Menindaklanjuti surat terkait, serta dalam rangka meningkatkan kualitas penyelenggaraan pelayanan publik melalui pelibatan masyarakat dan pemangku kepentingan.\n\nSehubungan dengan hal tersebut, Dinas Pemberdayaan Masyarakat dan Desa Kabupaten Hulu Sungai Tengah akan melaksanakan kegiatan yang dimaksud, yang akan dilaksanakan pada:';
+          document.getElementById('f-penutup').value = 'Demikian disampaikan, atas perhatian dan kehadirannya diucapkan terima kasih.';
+          if (!document.getElementById('f-lampiran').value) document.getElementById('f-lampiran').value = '2 (dua) berkas';
+          if (!document.getElementById('f-yth').value) document.getElementById('f-yth').value = '(Daftar Undangan Terlampir)\ndi-\n    Tempat';
+        }
+        if (selectedType === 'permohonan' && !document.getElementById('f-pembuka').value) {
+          document.getElementById('f-pembuka').value = 'Menindaklanjuti ketentuan terkait, bersama ini kami bermaksud mengajukan permohonan sebagaimana perihal tersebut di atas.';
+          document.getElementById('f-penutup').value = 'Demikian kami sampaikan, atas perhatian dan kerjasama Bapak/Ibu kami ucapkan terima kasih.';
+        }
+      }
+      if (n === 3) renderPreview();
     }
 
-    function generate() {
-      const r = data;
-      const tgl = formatTglPanjang(r.tanggal_surat);
-      const jenisMap = {
-        undangan: 'UNDANGAN', dinas: 'SURAT DINAS', pemberitahuan: 'SURAT PEMBERITAHUAN',
-        permohonan: 'SURAT PERMOHONAN', keterangan: 'SURAT KETERANGAN', edaran: 'SURAT EDARAN'
+    function setDot(num, state) {
+      const el = document.getElementById('step' + num + '-dot');
+      el.className = 'step-dot ' + state;
+      el.textContent = state === 'done' ? '✓' : String(num);
+    }
+
+    function renderUndanganTable() {
+      const tb = document.getElementById('tbody-undangan');
+      tb.innerHTML = undanganRows.map(function(r, i) {
+        return '<tr class="border-t border-slate-100">' +
+          '<td class="px-2 py-1.5 text-slate-500">' + (i + 1) + '</td>' +
+          '<td class="px-2 py-1.5"><input class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs" value="' + escAttr(r.peserta) + '" onchange="undanganRows[' + i + '].peserta=this.value" placeholder="Nama instansi / peserta"></td>' +
+          '<td class="px-2 py-1.5"><input class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs" value="' + escAttr(r.jumlah) + '" onchange="undanganRows[' + i + '].jumlah=this.value" placeholder="1 Orang"></td>' +
+          '<td class="px-2 py-1.5 text-center"><button type="button" class="text-rose-400 hover:text-rose-600" onclick="undanganRows.splice(' + i + ',1);renderUndanganTable()"><i class="fa-solid fa-trash text-[10px]"></i></button></td></tr>';
+      }).join('');
+    }
+    function addUndanganRow() { undanganRows.push({ peserta: '', jumlah: '1 Orang' }); renderUndanganTable(); }
+
+    function renderAcaraTable() {
+      const tb = document.getElementById('tbody-acara');
+      tb.innerHTML = acaraRows.map(function(r, i) {
+        return '<tr class="border-t border-slate-100">' +
+          '<td class="px-2 py-1.5 text-slate-500">' + (i + 1) + '</td>' +
+          '<td class="px-2 py-1.5"><input class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs" value="' + escAttr(r.waktu) + '" onchange="acaraRows[' + i + '].waktu=this.value" placeholder="08.00 – 08.30"></td>' +
+          '<td class="px-2 py-1.5"><input class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs" value="' + escAttr(r.acara) + '" onchange="acaraRows[' + i + '].acara=this.value" placeholder="Acara"></td>' +
+          '<td class="px-2 py-1.5"><input class="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs" value="' + escAttr(r.narasumber) + '" onchange="acaraRows[' + i + '].narasumber=this.value" placeholder="Narasumber"></td>' +
+          '<td class="px-2 py-1.5 text-center"><button type="button" class="text-rose-400 hover:text-rose-600" onclick="acaraRows.splice(' + i + ',1);renderAcaraTable()"><i class="fa-solid fa-trash text-[10px]"></i></button></td></tr>';
+      }).join('');
+    }
+    function addAcaraRow() { acaraRows.push({ waktu: '', acara: '', narasumber: '' }); renderAcaraTable(); }
+
+    function collectForm() {
+      return {
+        type: selectedType,
+        kota: val('f-kota'), tglSurat: val('f-tgl-surat'), nomor: val('f-nomor'), sifat: val('f-sifat'),
+        lampiran: val('f-lampiran'), hal: val('f-hal'), yth: val('f-yth'), pembuka: val('f-pembuka'),
+        penutup: val('f-penutup'), jabatan: val('f-jabatan'), nama: val('f-nama'), nip: val('f-nip'), pangkat: val('f-pangkat'),
+        hariTgl: val('f-hari-tgl'), waktu: val('f-waktu'), tempat: val('f-tempat'),
+        undangan: undanganRows.filter(function(r) { return r.peserta || r.jumlah; }),
+        acara: acaraRows.filter(function(r) { return r.acara || r.waktu; }),
+        mohonHari: val('f-mohon-hari'), mohonWaktu: val('f-mohon-waktu'), mohonTempat: val('f-mohon-tempat'), mohonKontak: val('f-mohon-kontak')
       };
-      const judul = jenisMap[selectedType] || 'SURAT';
-      let body = '';
-      if (selectedType === 'undangan') {
-        body = 'Dengan hormat,\n\nBersama ini kami mengundang Bapak/Ibu/Saudara untuk hadir dalam kegiatan:\n\n    Perihal      : ' + r.perihal + '\n    Hari/Tanggal : ' + tgl + '\n    Tempat       : (sesuaikan)\n\nMengingat pentingnya acara dimaksud, kehadiran Bapak/Ibu/Saudara tepat waktu sangat kami harapkan.\n\nAtas perhatian dan kehadirannya, diucapkan terima kasih.';
-      } else if (selectedType === 'permohonan') {
-        body = 'Dengan hormat,\n\nSehubungan dengan ' + r.perihal + ', bersama ini kami sampaikan permohonan kepada Bapak/Ibu agar berkenan memberikan dukungan/persetujuan sebagaimana mestinya.\n\nDemikian surat permohonan ini kami sampaikan. Atas perhatian dan kerjasamanya diucapkan terima kasih.';
-      } else if (selectedType === 'pemberitahuan') {
-        body = 'Dengan hormat,\n\nBersama ini kami beritahukan bahwa ' + r.perihal + '.\n\nDemikian pemberitahuan ini disampaikan untuk menjadi perhatian.';
-      } else if (selectedType === 'keterangan') {
-        body = 'Yang bertanda tangan di bawah ini menerangkan bahwa:\n\n    Perihal : ' + r.perihal + '\n    Tujuan  : ' + r.tujuan + '\n\nDemikian surat keterangan ini dibuat untuk dipergunakan sebagaimana mestinya.';
-      } else if (selectedType === 'edaran') {
-        body = 'Bersama ini kami sampaikan surat edaran terkait:\n\n    ' + r.perihal + '\n\nKepada seluruh pihak terkait agar menjadikan edaran ini sebagai pedoman dan melaksanakan ketentuan yang berlaku.\n\nDemikian surat edaran ini disampaikan untuk dilaksanakan dengan penuh tanggung jawab.';
-      } else {
-        body = 'Dengan hormat,\n\nBersama ini kami sampaikan hal sebagai berikut:\n\n    ' + r.perihal + '\n\nDemikian surat ini kami sampaikan. Atas perhatiannya diucapkan terima kasih.';
+    }
+    function val(id) { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
+
+    function renderPreview() {
+      const d = collectForm();
+      const tglPanjang = formatTglPanjang(d.tglSurat);
+      let html = '';
+      html += '<div style="text-align:center;margin-bottom:12px;">';
+      html += '<div style="font-size:11px;font-weight:700;">PEMERINTAH KABUPATEN HULU SUNGAI TENGAH</div>';
+      html += '<div style="font-size:14px;font-weight:700;">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div>';
+      html += '<div style="font-size:10px;color:#444;">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</div>';
+      html += '<div style="border-bottom:3px solid #111;margin-top:6px;"></div><div style="border-bottom:1px solid #111;margin-top:1px;"></div></div>';
+      html += '<div style="text-align:right;margin:12px 0;">' + esc(d.kota) + ', ' + esc(tglPanjang) + '</div>';
+      html += '<table style="font-size:13px;margin-bottom:12px;border-collapse:collapse;">';
+      html += rowMeta('Nomor', d.nomor) + rowMeta('Sifat', d.sifat) + rowMeta('Lampiran', d.lampiran || '-') + rowMeta('Hal', d.hal);
+      html += '</table>';
+      html += '<div style="margin:14px 0 10px 0;"><strong>Yth.</strong><br>' + nl2br(esc(d.yth)) + '</div>';
+      html += '<div style="text-align:justify;margin:12px 0;">' + nl2br(esc(d.pembuka)) + '</div>';
+      if (d.type === 'undangan') {
+        html += '<div style="margin:12px 0 6px 0;">yang akan dilaksanakan pada:</div>';
+        html += '<table style="font-size:13px;margin:8px 0 12px 24px;border-collapse:collapse;">';
+        html += rowMeta('hari/tanggal', d.hariTgl) + rowMeta('waktu', d.waktu) + rowMeta('tempat', d.tempat) + '</table>';
+      }
+      if (d.type === 'permohonan') {
+        html += '<div style="margin:12px 0 6px 0;">Adapun kegiatan akan dilaksanakan pada:</div>';
+        html += '<table style="font-size:13px;margin:8px 0 12px 24px;border-collapse:collapse;">';
+        html += rowMeta('Hari/Tanggal', d.mohonHari) + rowMeta('Waktu', d.mohonWaktu) + rowMeta('Tempat', d.mohonTempat) + '</table>';
+        if (d.mohonKontak) html += '<div style="text-align:justify;margin:10px 0;">Untuk kelengkapan administrasi, dimohon menghubungi ' + esc(d.mohonKontak) + '.</div>';
+      }
+      html += '<div style="text-align:justify;margin:14px 0;">' + nl2br(esc(d.penutup)) + '</div>';
+      html += '<div style="margin-top:28px;margin-left:auto;width:240px;text-align:center;">';
+      html += '<div>' + esc(d.jabatan) + '</div><div style="height:64px;"></div>';
+      html += '<div style="font-weight:700;text-decoration:underline;">' + esc(d.nama || '................................') + '</div>';
+      html += '<div>' + esc(d.pangkat) + '</div>';
+      if (d.nip) html += '<div>NIP ' + esc(d.nip) + '</div>';
+      html += '</div>';
+
+      if (d.type === 'undangan' && d.undangan.length) {
+        html += '<div style="page-break-before:always;margin-top:40px;"></div>';
+        html += '<div style="font-size:12px;margin-bottom:8px;">Lampiran surat 1<br>Nomor : ' + esc(d.nomor) + '<br>Tanggal : ' + esc(tglPanjang) + '<br>Hal : ' + esc(d.hal) + '</div>';
+        html += '<div style="text-align:center;font-weight:700;margin:16px 0 10px;">DAFTAR UNDANGAN</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:12px;"><tr>' + th('No.') + th('Daftar Peserta') + th('Jumlah Peserta') + '</tr>';
+        d.undangan.forEach(function(r, i) {
+          html += '<tr>' + td(String(i + 1), true) + td(r.peserta) + td(r.jumlah, true) + '</tr>';
+        });
+        html += '</table>';
+      }
+      if (d.type === 'undangan' && d.acara.length) {
+        html += '<div style="page-break-before:always;margin-top:40px;"></div>';
+        html += '<div style="font-size:12px;margin-bottom:8px;">Lampiran surat 2<br>Nomor : ' + esc(d.nomor) + '<br>Tanggal : ' + esc(tglPanjang) + '<br>Hal : ' + esc(d.hal) + '</div>';
+        html += '<div style="text-align:center;font-weight:700;margin:16px 0 4px;">SUSUNAN ACARA</div>';
+        html += '<div style="text-align:center;font-weight:700;margin-bottom:10px;text-transform:uppercase;">' + esc(d.hal) + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:12px;"><tr>' + th('NO') + th('WAKTU (WITA)') + th('ACARA') + th('NARASUMBER / PENDAMPING') + '</tr>';
+        d.acara.forEach(function(r, i) {
+          html += '<tr>' + td(String(i + 1), true) + td(r.waktu, true) + td(r.acara) + td(r.narasumber) + '</tr>';
+        });
+        html += '</table>';
+        html += '<p style="font-size:11px;margin-top:10px;font-style:italic;">Catatan: Jadwal bersifat tentatif dan dapat disesuaikan dengan kondisi serta dinamika pelaksanaan kegiatan.</p>';
+      }
+      document.getElementById('preview').innerHTML = html;
+    }
+
+    function rowMeta(label, value) {
+      return '<tr><td style="padding:2px 12px 2px 0;vertical-align:top;width:100px;">' + esc(label) + '</td><td style="padding:2px 6px 2px 0;">:</td><td style="padding:2px 0;">' + nl2br(esc(value)) + '</td></tr>';
+    }
+    function th(t) { return '<th style="border:1px solid #333;padding:6px;background:#f8fafc;">' + t + '</th>'; }
+    function td(t, center) { return '<td style="border:1px solid #333;padding:6px;' + (center ? 'text-align:center;' : '') + '">' + esc(t) + '</td>'; }
+
+    async function downloadWord() {
+      if (typeof docx === 'undefined') {
+        Swal.fire('Gagal', 'Library Word belum termuat. Cek koneksi internet lalu refresh.', 'error');
+        return;
+      }
+      const d = collectForm();
+      const tglPanjang = formatTglPanjang(d.tglSurat);
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, VerticalAlign } = docx;
+      const border = { style: BorderStyle.SINGLE, size: 1, color: '333333' };
+      const borders = { top: border, bottom: border, left: border, right: border };
+
+      function p(text, opts) {
+        opts = opts || {};
+        return new Paragraph({
+          alignment: opts.align || AlignmentType.LEFT,
+          spacing: { after: opts.after != null ? opts.after : 120 },
+          children: [new TextRun({ text: text || '', bold: !!opts.bold, italics: !!opts.italics, size: opts.size || 24, font: 'Times New Roman', underline: opts.underline ? {} : undefined })]
+        });
+      }
+      function metaLine(label, value) {
+        return new Paragraph({
+          spacing: { after: 40 },
+          children: [
+            new TextRun({ text: (label + '            ').slice(0, 12), font: 'Times New Roman', size: 24 }),
+            new TextRun({ text: ':  ', font: 'Times New Roman', size: 24 }),
+            new TextRun({ text: value || '', font: 'Times New Roman', size: 24 })
+          ]
+        });
+      }
+      function cell(text, opts) {
+        opts = opts || {};
+        return new TableCell({
+          borders: borders,
+          width: { size: opts.width || 2000, type: WidthType.DXA },
+          verticalAlign: VerticalAlign.CENTER,
+          children: [new Paragraph({
+            alignment: opts.align || AlignmentType.LEFT,
+            children: [new TextRun({ text: text || '', bold: !!opts.bold, font: 'Times New Roman', size: 20 })]
+          })]
+        });
       }
 
-      const draft =
-instansi.toUpperCase() + '\n' +
-'================================================================================\n\n' +
-'Nomor       : ' + (r.nomor_surat || '…') + '\n' +
-'Sifat       : ' + (r.sifat_surat || 'Biasa') + '\n' +
-'Lampiran    : -\n' +
-'Perihal     : ' + r.perihal + '\n\n' +
-'Kepada Yth.\n' +
-(r.tujuan || '…') + '\n' +
-'di —\nTempat\n\n' +
-'                    ' + judul + '\n\n' +
-body + '\n\n' +
-'                                                    ' + tgl + '\n\n' +
-'                                                    ' + (r.pengolah || '…') + '-DPMD\n';
+      const children = [];
+      children.push(p('PEMERINTAH KABUPATEN HULU SUNGAI TENGAH', { align: AlignmentType.CENTER, bold: true, size: 20, after: 40 }));
+      children.push(p('DINAS PEMBERDAYAAN MASYARAKAT DAN DESA', { align: AlignmentType.CENTER, bold: true, size: 26, after: 40 }));
+      children.push(p('Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312', { align: AlignmentType.CENTER, size: 18, after: 60 }));
+      children.push(p('_____________________________________________________________________________', { align: AlignmentType.CENTER, size: 18, after: 200 }));
+      children.push(p(d.kota + ', ' + tglPanjang, { align: AlignmentType.RIGHT, after: 200 }));
+      children.push(metaLine('Nomor', d.nomor));
+      children.push(metaLine('Sifat', d.sifat));
+      children.push(metaLine('Lampiran', d.lampiran || '-'));
+      children.push(metaLine('Hal', d.hal));
+      children.push(p('', { after: 120 }));
+      children.push(p('Yth.', { after: 40 }));
+      (d.yth || '').split('\n').forEach(function(line) { children.push(p(line, { after: 20 })); });
+      children.push(p('', { after: 120 }));
+      (d.pembuka || '').split('\n').forEach(function(line) { children.push(p(line, { after: 80 })); });
 
-      document.getElementById('output').value = draft;
+      if (d.type === 'undangan') {
+        children.push(p('yang akan dilaksanakan pada:', { after: 80 }));
+        children.push(metaLine('hari/tanggal', d.hariTgl));
+        children.push(metaLine('waktu', d.waktu));
+        children.push(metaLine('tempat', d.tempat));
+        children.push(p('', { after: 120 }));
+      }
+      if (d.type === 'permohonan') {
+        children.push(p('Adapun kegiatan akan dilaksanakan pada:', { after: 80 }));
+        children.push(metaLine('Hari/Tanggal', d.mohonHari));
+        children.push(metaLine('Waktu', d.mohonWaktu));
+        children.push(metaLine('Tempat', d.mohonTempat));
+        if (d.mohonKontak) children.push(p('Untuk kelengkapan administrasi, dimohon menghubungi ' + d.mohonKontak + '.', { after: 80 }));
+        children.push(p('', { after: 80 }));
+      }
+      (d.penutup || '').split('\n').forEach(function(line) { children.push(p(line, { after: 80 })); });
+      children.push(p('', { after: 200 }));
+      children.push(p(d.jabatan, { align: AlignmentType.RIGHT, after: 40 }));
+      children.push(p('', { after: 40 })); children.push(p('', { after: 40 })); children.push(p('', { after: 40 }));
+      children.push(p(d.nama || '................................', { align: AlignmentType.RIGHT, bold: true, underline: true, after: 20 }));
+      children.push(p(d.pangkat, { align: AlignmentType.RIGHT, after: 20 }));
+      if (d.nip) children.push(p('NIP ' + d.nip, { align: AlignmentType.RIGHT, after: 20 }));
+
+      if (d.type === 'undangan' && d.undangan.length) {
+        children.push(p('', { after: 400 }));
+        children.push(p('Lampiran surat 1', { size: 20, after: 20 }));
+        children.push(p('Nomor : ' + d.nomor, { size: 20, after: 20 }));
+        children.push(p('Tanggal : ' + tglPanjang, { size: 20, after: 20 }));
+        children.push(p('Hal : ' + d.hal, { size: 20, after: 200 }));
+        children.push(p('DAFTAR UNDANGAN', { align: AlignmentType.CENTER, bold: true, after: 200 }));
+        const headUnd = new TableRow({ children: [
+          cell('No.', { bold: true, width: 800, align: AlignmentType.CENTER }),
+          cell('Daftar Peserta', { bold: true, width: 6000 }),
+          cell('Jumlah Peserta', { bold: true, width: 2200, align: AlignmentType.CENTER })
+        ]});
+        const rowsUnd = d.undangan.map(function(r, i) {
+          return new TableRow({ children: [
+            cell(String(i + 1), { width: 800, align: AlignmentType.CENTER }),
+            cell(r.peserta, { width: 6000 }),
+            cell(r.jumlah, { width: 2200, align: AlignmentType.CENTER })
+          ]});
+        });
+        children.push(new Table({ width: { size: 9000, type: WidthType.DXA }, rows: [headUnd].concat(rowsUnd) }));
+      }
+
+      if (d.type === 'undangan' && d.acara.length) {
+        children.push(p('', { after: 400 }));
+        children.push(p('Lampiran surat 2', { size: 20, after: 20 }));
+        children.push(p('Nomor : ' + d.nomor, { size: 20, after: 20 }));
+        children.push(p('Tanggal : ' + tglPanjang, { size: 20, after: 20 }));
+        children.push(p('Hal : ' + d.hal, { size: 20, after: 200 }));
+        children.push(p('SUSUNAN ACARA', { align: AlignmentType.CENTER, bold: true, after: 80 }));
+        children.push(p((d.hal || '').toUpperCase(), { align: AlignmentType.CENTER, bold: true, after: 200 }));
+        const headAc = new TableRow({ children: [
+          cell('NO', { bold: true, width: 700, align: AlignmentType.CENTER }),
+          cell('WAKTU (WITA)', { bold: true, width: 2000, align: AlignmentType.CENTER }),
+          cell('ACARA', { bold: true, width: 3500 }),
+          cell('NARASUMBER / PENDAMPING', { bold: true, width: 2800 })
+        ]});
+        const rowsAc = d.acara.map(function(r, i) {
+          return new TableRow({ children: [
+            cell(String(i + 1), { width: 700, align: AlignmentType.CENTER }),
+            cell(r.waktu, { width: 2000, align: AlignmentType.CENTER }),
+            cell(r.acara, { width: 3500 }),
+            cell(r.narasumber, { width: 2800 })
+          ]});
+        });
+        children.push(new Table({ width: { size: 9000, type: WidthType.DXA }, rows: [headAc].concat(rowsAc) }));
+        children.push(p('', { after: 120 }));
+        children.push(p('Catatan: Jadwal bersifat tentatif dan dapat disesuaikan dengan kondisi serta dinamika pelaksanaan kegiatan.', { italics: true, size: 20 }));
+      }
+
+      const doc = new Document({
+        sections: [{ properties: { page: { margin: { top: 720, bottom: 720, left: 1080, right: 1080 } } }, children: children }]
+      });
+
+      try {
+        const blob = await Packer.toBlob(doc);
+        const safeName = (d.hal || d.nomor || 'surat').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+        saveAs(blob, safeName + '.docx');
+        Swal.fire({ icon: 'success', title: 'Word berhasil diunduh', timer: 1500, showConfirmButton: false });
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Gagal', 'Tidak dapat membuat file Word: ' + err.message, 'error');
+      }
     }
 
-    function copyOut() {
-      const t = document.getElementById('output');
-      t.select();
-      document.execCommand('copy');
-      Swal.fire({ icon: 'success', title: 'Disalin', timer: 1000, showConfirmButton: false });
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function escAttr(s) { return esc(s).replace(/'/g, '&#39;'); }
+    function nl2br(s) { return String(s || '').replace(/\n/g, '<br>'); }
+    function formatTglPanjang(iso) {
+      if (!iso) return '…';
+      const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      const p = String(iso).slice(0, 10).split('-');
+      if (p.length === 3) return parseInt(p[2], 10) + ' ' + bulan[parseInt(p[1], 10) - 1] + ' ' + p[0];
+      return iso;
     }
-
-    // Auto generate on load
-    generate();
   </script>
 </body>
 </html>
