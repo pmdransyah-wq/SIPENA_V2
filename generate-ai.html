@@ -8,16 +8,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0284c7', 600:'#0284c7', 700:'#0369a1' }
-          }
+          colors: { brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0284c7', 600:'#0284c7', 700:'#0369a1' } }
         }
       }
     }
@@ -31,6 +27,13 @@
     .step-dot.done { background:#7c3aed; color:#fff; }
     .step-dot.current { background:#ede9fe; color:#6d28d9; border:2px solid #7c3aed; }
     .step-dot.wait { background:#f1f5f9; color:#94a3b8; }
+    /* Kop surat preview */
+    .kop-wrap { text-align: center; margin-bottom: 8px; }
+    .kop-line1 { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+    .kop-line2 { font-size: 15px; font-weight: 700; text-transform: uppercase; }
+    .kop-alamat { font-size: 10px; color: #333; line-height: 1.35; }
+    .kop-garis { border: none; border-top: 3px solid #111; margin: 6px 0 0 0; }
+    .kop-garis2 { border: none; border-top: 1px solid #111; margin: 2px 0 10px 0; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
@@ -131,11 +134,12 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat & Tanggal Surat</label>
-            <div class="flex gap-2">
-              <input type="text" id="f-kota" value="Barabai" class="w-28 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
-              <input type="date" id="f-tgl-surat" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
-            </div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat surat</label>
+            <input type="text" id="f-kota" value="Barabai" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal surat</label>
+            <input type="date" id="f-tgl-surat" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor Surat</label>
@@ -147,9 +151,17 @@
               <option>Biasa</option><option>Penting</option><option>Segera</option><option>Sangat Segera</option><option>Rahasia</option>
             </select>
           </div>
-          <div>
+          <div class="sm:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-1">Lampiran</label>
-            <input type="text" id="f-lampiran" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="cth: 2 (dua) berkas">
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input type="checkbox" id="f-ada-lampiran" class="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500" onchange="toggleLampiran()">
+                <span>Ada lampiran</span>
+              </label>
+              <input type="text" id="f-lampiran" disabled
+                class="flex-1 min-w-[180px] border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                placeholder="cth: 2 (dua) berkas">
+            </div>
           </div>
           <div class="sm:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-1">Hal / Perihal</label>
@@ -171,12 +183,23 @@
           <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-rose-500"></i> Detail Kegiatan (Undangan)</h3>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Hari / Tanggal</label>
-              <input type="text" id="f-hari-tgl" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Jum’at / 28 Agustus 2026">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Hari / Tanggal kegiatan</label>
+              <input type="date" id="f-tgl-kegiatan" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" onchange="syncHariTgl()">
+              <p class="text-[10px] text-slate-400 mt-0.5" id="f-hari-tgl-label">Pilih tanggal — hari terisi otomatis</p>
+              <input type="hidden" id="f-hari-tgl">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Waktu</label>
-              <input type="text" id="f-waktu" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="07.45 s.d. selesai">
+              <div class="flex items-center gap-1.5">
+                <input type="time" id="f-waktu-mulai" class="flex-1 border border-slate-300 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" value="07:45" onchange="syncWaktu()">
+                <span class="text-xs text-slate-400 shrink-0">s.d.</span>
+                <input type="time" id="f-waktu-selesai" class="flex-1 border border-slate-300 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" onchange="syncWaktu()">
+              </div>
+              <label class="inline-flex items-center gap-1.5 mt-1 text-[11px] text-slate-500 cursor-pointer">
+                <input type="checkbox" id="f-waktu-selesai-check" class="rounded border-slate-300 text-violet-600" checked onchange="toggleWaktuSelesai()">
+                Sampai selesai (tanpa jam akhir)
+              </label>
+              <input type="hidden" id="f-waktu">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat</label>
@@ -209,7 +232,7 @@
               <table class="w-full text-xs">
                 <thead class="bg-slate-50 text-slate-500"><tr>
                   <th class="px-2 py-2 w-10 text-left">No</th>
-                  <th class="px-2 py-2 w-32 text-left">Waktu</th>
+                  <th class="px-2 py-2 w-36 text-left">Waktu</th>
                   <th class="px-2 py-2 text-left">Acara</th>
                   <th class="px-2 py-2 text-left">Narasumber / Pendamping</th>
                   <th class="px-2 py-2 w-10"></th>
@@ -226,11 +249,18 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Hari / Tanggal kegiatan</label>
-              <input type="text" id="f-mohon-hari" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="Rabu, 8 April 2026">
+              <input type="date" id="f-mohon-tgl" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" onchange="syncMohonHari()">
+              <p class="text-[10px] text-slate-400 mt-0.5" id="f-mohon-hari-label">Pilih tanggal</p>
+              <input type="hidden" id="f-mohon-hari">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Waktu</label>
-              <input type="text" id="f-mohon-waktu" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" placeholder="09.00 s.d. selesai">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Waktu mulai</label>
+              <input type="time" id="f-mohon-waktu-mulai" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:outline-none" value="09:00" onchange="syncMohonWaktu()">
+              <label class="inline-flex items-center gap-1.5 mt-1 text-[11px] text-slate-500 cursor-pointer">
+                <input type="checkbox" id="f-mohon-selesai-check" class="rounded border-slate-300 text-violet-600" checked onchange="syncMohonWaktu()">
+                s.d. selesai
+              </label>
+              <input type="hidden" id="f-mohon-waktu">
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Tempat</label>
@@ -281,7 +311,7 @@
           <h2 class="font-bold text-slate-800 text-sm">Preview surat</h2>
           <div class="flex gap-2">
             <button type="button" onclick="goStep(2)" class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-white font-medium"><i class="fa-solid fa-pen mr-1"></i> Edit data</button>
-            <button type="button" onclick="downloadWord()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"><i class="fa-solid fa-file-word mr-1"></i> Unduh Word (.docx)</button>
+            <button type="button" onclick="downloadWord()" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm"><i class="fa-solid fa-file-word mr-1"></i> Unduh Word</button>
           </div>
         </div>
         <div id="preview" class="p-6 sm:p-8 text-sm leading-relaxed text-slate-800 bg-white max-h-[70vh] overflow-y-auto" style="font-family: 'Times New Roman', Times, serif;"></div>
@@ -310,9 +340,19 @@
     let undanganRows = [];
     let acaraRows = [];
 
+    const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     const TYPE_LABEL = {
       undangan: 'Surat Undangan', permohonan: 'Surat Permohonan', pemberitahuan: 'Surat Pemberitahuan',
       dinas: 'Surat Dinas', keterangan: 'Surat Keterangan', edaran: 'Surat Edaran'
+    };
+
+    // Kop surat (sesuai contoh Word DPMD HST)
+    const KOP = {
+      line1: 'PEMERINTAH KABUPATEN HULU SUNGAI TENGAH',
+      line2: 'DINAS PEMBERDAYAAN MASYARAKAT DAN DESA',
+      alamat: 'Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312',
+      kontak: 'Posel dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id'
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -340,6 +380,9 @@
       ];
       renderUndanganTable();
       renderAcaraTable();
+      toggleWaktuSelesai();
+      syncWaktu();
+      syncMohonWaktu();
     });
 
     function selectType(type) {
@@ -354,6 +397,10 @@
       if (n === 2 && !selectedType) {
         Swal.fire('Pilih jenis surat', 'Silakan pilih jenis surat terlebih dahulu.', 'info');
         return;
+      }
+      // sinkron field tersembunyi sebelum preview
+      if (n === 3) {
+        syncHariTgl(); syncWaktu(); syncMohonHari(); syncMohonWaktu();
       }
       document.getElementById('step-1').classList.toggle('hidden', n !== 1);
       document.getElementById('step-2').classList.toggle('hidden', n !== 2);
@@ -372,8 +419,11 @@
         if (selectedType === 'undangan' && !document.getElementById('f-pembuka').value) {
           document.getElementById('f-pembuka').value = 'Menindaklanjuti surat terkait, serta dalam rangka meningkatkan kualitas penyelenggaraan pelayanan publik melalui pelibatan masyarakat dan pemangku kepentingan.\n\nSehubungan dengan hal tersebut, Dinas Pemberdayaan Masyarakat dan Desa Kabupaten Hulu Sungai Tengah akan melaksanakan kegiatan yang dimaksud, yang akan dilaksanakan pada:';
           document.getElementById('f-penutup').value = 'Demikian disampaikan, atas perhatian dan kehadirannya diucapkan terima kasih.';
-          if (!document.getElementById('f-lampiran').value) document.getElementById('f-lampiran').value = '2 (dua) berkas';
           if (!document.getElementById('f-yth').value) document.getElementById('f-yth').value = '(Daftar Undangan Terlampir)\ndi-\n    Tempat';
+          // default centang lampiran untuk undangan
+          document.getElementById('f-ada-lampiran').checked = true;
+          toggleLampiran();
+          if (!document.getElementById('f-lampiran').value) document.getElementById('f-lampiran').value = '2 (dua) berkas';
         }
         if (selectedType === 'permohonan' && !document.getElementById('f-pembuka').value) {
           document.getElementById('f-pembuka').value = 'Menindaklanjuti ketentuan terkait, bersama ini kami bermaksud mengajukan permohonan sebagaimana perihal tersebut di atas.';
@@ -389,6 +439,60 @@
       el.textContent = state === 'done' ? '✓' : String(num);
     }
 
+    // ===== Tanggal / waktu helpers =====
+    function formatHariTanggal(iso) {
+      if (!iso) return '';
+      const d = new Date(iso + 'T00:00:00');
+      if (isNaN(d.getTime())) return '';
+      return HARI[d.getDay()] + ' / ' + d.getDate() + ' ' + BULAN[d.getMonth()] + ' ' + d.getFullYear();
+    }
+    function formatJam(t) {
+      // 07:45 -> 07.45
+      if (!t) return '';
+      return t.replace(':', '.');
+    }
+    function syncHariTgl() {
+      const iso = document.getElementById('f-tgl-kegiatan').value;
+      const label = formatHariTanggal(iso);
+      document.getElementById('f-hari-tgl').value = label;
+      document.getElementById('f-hari-tgl-label').textContent = label || 'Pilih tanggal — hari terisi otomatis';
+    }
+    function toggleWaktuSelesai() {
+      const c = document.getElementById('f-waktu-selesai-check').checked;
+      document.getElementById('f-waktu-selesai').disabled = c;
+      if (c) document.getElementById('f-waktu-selesai').value = '';
+      syncWaktu();
+    }
+    function syncWaktu() {
+      const mulai = formatJam(document.getElementById('f-waktu-mulai').value);
+      const selesaiCheck = document.getElementById('f-waktu-selesai-check').checked;
+      const selesai = formatJam(document.getElementById('f-waktu-selesai').value);
+      let text = '';
+      if (mulai) {
+        text = selesaiCheck || !selesai ? (mulai + ' s.d. selesai') : (mulai + ' s.d. ' + selesai);
+      }
+      document.getElementById('f-waktu').value = text;
+    }
+    function syncMohonHari() {
+      const iso = document.getElementById('f-mohon-tgl').value;
+      const label = formatHariTanggal(iso);
+      document.getElementById('f-mohon-hari').value = label;
+      document.getElementById('f-mohon-hari-label').textContent = label || 'Pilih tanggal';
+    }
+    function syncMohonWaktu() {
+      const mulai = formatJam(document.getElementById('f-mohon-waktu-mulai').value);
+      const sampaiSelesai = document.getElementById('f-mohon-selesai-check').checked;
+      document.getElementById('f-mohon-waktu').value = mulai ? (sampaiSelesai ? ('Pukul ' + mulai + ' s.d. selesai') : ('Pukul ' + mulai)) : '';
+    }
+    function toggleLampiran() {
+      const ada = document.getElementById('f-ada-lampiran').checked;
+      const inp = document.getElementById('f-lampiran');
+      inp.disabled = !ada;
+      if (!ada) inp.value = '';
+      else if (!inp.value) inp.focus();
+    }
+
+    // ===== Tabel =====
     function renderUndanganTable() {
       const tb = document.getElementById('tbody-undangan');
       tb.innerHTML = undanganRows.map(function(r, i) {
@@ -415,10 +519,14 @@
     function addAcaraRow() { acaraRows.push({ waktu: '', acara: '', narasumber: '' }); renderAcaraTable(); }
 
     function collectForm() {
+      syncHariTgl(); syncWaktu(); syncMohonHari(); syncMohonWaktu();
+      const adaLampiran = document.getElementById('f-ada-lampiran').checked;
       return {
         type: selectedType,
         kota: val('f-kota'), tglSurat: val('f-tgl-surat'), nomor: val('f-nomor'), sifat: val('f-sifat'),
-        lampiran: val('f-lampiran'), hal: val('f-hal'), yth: val('f-yth'), pembuka: val('f-pembuka'),
+        adaLampiran: adaLampiran,
+        lampiran: adaLampiran ? val('f-lampiran') : '-',
+        hal: val('f-hal'), yth: val('f-yth'), pembuka: val('f-pembuka'),
         penutup: val('f-penutup'), jabatan: val('f-jabatan'), nama: val('f-nama'), nip: val('f-nip'), pangkat: val('f-pangkat'),
         hariTgl: val('f-hari-tgl'), waktu: val('f-waktu'), tempat: val('f-tempat'),
         undangan: undanganRows.filter(function(r) { return r.peserta || r.jumlah; }),
@@ -428,18 +536,22 @@
     }
     function val(id) { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
 
+    function kopHtml() {
+      return '<div class="kop-wrap">' +
+        '<div class="kop-line1">' + esc(KOP.line1) + '</div>' +
+        '<div class="kop-line2">' + esc(KOP.line2) + '</div>' +
+        '<div class="kop-alamat">' + esc(KOP.alamat) + '<br>' + esc(KOP.kontak) + '</div>' +
+        '<hr class="kop-garis"><hr class="kop-garis2">' +
+        '</div>';
+    }
+
     function renderPreview() {
       const d = collectForm();
       const tglPanjang = formatTglPanjang(d.tglSurat);
-      let html = '';
-      html += '<div style="text-align:center;margin-bottom:12px;">';
-      html += '<div style="font-size:11px;font-weight:700;">PEMERINTAH KABUPATEN HULU SUNGAI TENGAH</div>';
-      html += '<div style="font-size:14px;font-weight:700;">DINAS PEMBERDAYAAN MASYARAKAT DAN DESA</div>';
-      html += '<div style="font-size:10px;color:#444;">Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312</div>';
-      html += '<div style="border-bottom:3px solid #111;margin-top:6px;"></div><div style="border-bottom:1px solid #111;margin-top:1px;"></div></div>';
+      let html = kopHtml();
       html += '<div style="text-align:right;margin:12px 0;">' + esc(d.kota) + ', ' + esc(tglPanjang) + '</div>';
       html += '<table style="font-size:13px;margin-bottom:12px;border-collapse:collapse;">';
-      html += rowMeta('Nomor', d.nomor) + rowMeta('Sifat', d.sifat) + rowMeta('Lampiran', d.lampiran || '-') + rowMeta('Hal', d.hal);
+      html += rowMeta('Nomor', d.nomor) + rowMeta('Sifat', d.sifat) + rowMeta('Lampiran', d.lampiran) + rowMeta('Hal', d.hal);
       html += '</table>';
       html += '<div style="margin:14px 0 10px 0;"><strong>Yth.</strong><br>' + nl2br(esc(d.yth)) + '</div>';
       html += '<div style="text-align:justify;margin:12px 0;">' + nl2br(esc(d.pembuka)) + '</div>';
@@ -493,149 +605,39 @@
     function th(t) { return '<th style="border:1px solid #333;padding:6px;background:#f8fafc;">' + t + '</th>'; }
     function td(t, center) { return '<td style="border:1px solid #333;padding:6px;' + (center ? 'text-align:center;' : '') + '">' + esc(t) + '</td>'; }
 
-    async function downloadWord() {
-      if (typeof docx === 'undefined') {
-        Swal.fire('Gagal', 'Library Word belum termuat. Cek koneksi internet lalu refresh.', 'error');
-        return;
-      }
+    // ===== WORD: HTML blob (tanpa library eksternal — selalu jalan) =====
+    function downloadWord() {
       const d = collectForm();
       const tglPanjang = formatTglPanjang(d.tglSurat);
-      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, VerticalAlign } = docx;
-      const border = { style: BorderStyle.SINGLE, size: 1, color: '333333' };
-      const borders = { top: border, bottom: border, left: border, right: border };
+      const preview = document.getElementById('preview').innerHTML;
 
-      function p(text, opts) {
-        opts = opts || {};
-        return new Paragraph({
-          alignment: opts.align || AlignmentType.LEFT,
-          spacing: { after: opts.after != null ? opts.after : 120 },
-          children: [new TextRun({ text: text || '', bold: !!opts.bold, italics: !!opts.italics, size: opts.size || 24, font: 'Times New Roman', underline: opts.underline ? {} : undefined })]
-        });
-      }
-      function metaLine(label, value) {
-        return new Paragraph({
-          spacing: { after: 40 },
-          children: [
-            new TextRun({ text: (label + '            ').slice(0, 12), font: 'Times New Roman', size: 24 }),
-            new TextRun({ text: ':  ', font: 'Times New Roman', size: 24 }),
-            new TextRun({ text: value || '', font: 'Times New Roman', size: 24 })
-          ]
-        });
-      }
-      function cell(text, opts) {
-        opts = opts || {};
-        return new TableCell({
-          borders: borders,
-          width: { size: opts.width || 2000, type: WidthType.DXA },
-          verticalAlign: VerticalAlign.CENTER,
-          children: [new Paragraph({
-            alignment: opts.align || AlignmentType.LEFT,
-            children: [new TextRun({ text: text || '', bold: !!opts.bold, font: 'Times New Roman', size: 20 })]
-          })]
-        });
-      }
+      // Dokumen HTML yang dikenali Microsoft Word
+      const docHtml = '<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>' + esc(d.hal || 'Surat') + '</title>' +
+        '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->' +
+        '<style>' +
+        'body{font-family:"Times New Roman",Times,serif;font-size:12pt;line-height:1.4;color:#000;}' +
+        'table{border-collapse:collapse;}' +
+        'th,td{border:1px solid #333;padding:6px;}' +
+        '@page{margin:2cm 2.5cm;}' +
+        '.kop-wrap{text-align:center;margin-bottom:8px;}' +
+        '.kop-line1{font-size:11pt;font-weight:bold;}' +
+        '.kop-line2{font-size:13pt;font-weight:bold;text-transform:uppercase;}' +
+        '.kop-alamat{font-size:9pt;}' +
+        '.kop-garis{border:none;border-top:3px solid #111;margin:6px 0 0 0;}' +
+        '.kop-garis2{border:none;border-top:1px solid #111;margin:2px 0 10px 0;}' +
+        '</style></head><body>' + preview + '</body></html>';
 
-      const children = [];
-      children.push(p('PEMERINTAH KABUPATEN HULU SUNGAI TENGAH', { align: AlignmentType.CENTER, bold: true, size: 20, after: 40 }));
-      children.push(p('DINAS PEMBERDAYAAN MASYARAKAT DAN DESA', { align: AlignmentType.CENTER, bold: true, size: 26, after: 40 }));
-      children.push(p('Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312', { align: AlignmentType.CENTER, size: 18, after: 60 }));
-      children.push(p('_____________________________________________________________________________', { align: AlignmentType.CENTER, size: 18, after: 200 }));
-      children.push(p(d.kota + ', ' + tglPanjang, { align: AlignmentType.RIGHT, after: 200 }));
-      children.push(metaLine('Nomor', d.nomor));
-      children.push(metaLine('Sifat', d.sifat));
-      children.push(metaLine('Lampiran', d.lampiran || '-'));
-      children.push(metaLine('Hal', d.hal));
-      children.push(p('', { after: 120 }));
-      children.push(p('Yth.', { after: 40 }));
-      (d.yth || '').split('\n').forEach(function(line) { children.push(p(line, { after: 20 })); });
-      children.push(p('', { after: 120 }));
-      (d.pembuka || '').split('\n').forEach(function(line) { children.push(p(line, { after: 80 })); });
-
-      if (d.type === 'undangan') {
-        children.push(p('yang akan dilaksanakan pada:', { after: 80 }));
-        children.push(metaLine('hari/tanggal', d.hariTgl));
-        children.push(metaLine('waktu', d.waktu));
-        children.push(metaLine('tempat', d.tempat));
-        children.push(p('', { after: 120 }));
-      }
-      if (d.type === 'permohonan') {
-        children.push(p('Adapun kegiatan akan dilaksanakan pada:', { after: 80 }));
-        children.push(metaLine('Hari/Tanggal', d.mohonHari));
-        children.push(metaLine('Waktu', d.mohonWaktu));
-        children.push(metaLine('Tempat', d.mohonTempat));
-        if (d.mohonKontak) children.push(p('Untuk kelengkapan administrasi, dimohon menghubungi ' + d.mohonKontak + '.', { after: 80 }));
-        children.push(p('', { after: 80 }));
-      }
-      (d.penutup || '').split('\n').forEach(function(line) { children.push(p(line, { after: 80 })); });
-      children.push(p('', { after: 200 }));
-      children.push(p(d.jabatan, { align: AlignmentType.RIGHT, after: 40 }));
-      children.push(p('', { after: 40 })); children.push(p('', { after: 40 })); children.push(p('', { after: 40 }));
-      children.push(p(d.nama || '................................', { align: AlignmentType.RIGHT, bold: true, underline: true, after: 20 }));
-      children.push(p(d.pangkat, { align: AlignmentType.RIGHT, after: 20 }));
-      if (d.nip) children.push(p('NIP ' + d.nip, { align: AlignmentType.RIGHT, after: 20 }));
-
-      if (d.type === 'undangan' && d.undangan.length) {
-        children.push(p('', { after: 400 }));
-        children.push(p('Lampiran surat 1', { size: 20, after: 20 }));
-        children.push(p('Nomor : ' + d.nomor, { size: 20, after: 20 }));
-        children.push(p('Tanggal : ' + tglPanjang, { size: 20, after: 20 }));
-        children.push(p('Hal : ' + d.hal, { size: 20, after: 200 }));
-        children.push(p('DAFTAR UNDANGAN', { align: AlignmentType.CENTER, bold: true, after: 200 }));
-        const headUnd = new TableRow({ children: [
-          cell('No.', { bold: true, width: 800, align: AlignmentType.CENTER }),
-          cell('Daftar Peserta', { bold: true, width: 6000 }),
-          cell('Jumlah Peserta', { bold: true, width: 2200, align: AlignmentType.CENTER })
-        ]});
-        const rowsUnd = d.undangan.map(function(r, i) {
-          return new TableRow({ children: [
-            cell(String(i + 1), { width: 800, align: AlignmentType.CENTER }),
-            cell(r.peserta, { width: 6000 }),
-            cell(r.jumlah, { width: 2200, align: AlignmentType.CENTER })
-          ]});
-        });
-        children.push(new Table({ width: { size: 9000, type: WidthType.DXA }, rows: [headUnd].concat(rowsUnd) }));
-      }
-
-      if (d.type === 'undangan' && d.acara.length) {
-        children.push(p('', { after: 400 }));
-        children.push(p('Lampiran surat 2', { size: 20, after: 20 }));
-        children.push(p('Nomor : ' + d.nomor, { size: 20, after: 20 }));
-        children.push(p('Tanggal : ' + tglPanjang, { size: 20, after: 20 }));
-        children.push(p('Hal : ' + d.hal, { size: 20, after: 200 }));
-        children.push(p('SUSUNAN ACARA', { align: AlignmentType.CENTER, bold: true, after: 80 }));
-        children.push(p((d.hal || '').toUpperCase(), { align: AlignmentType.CENTER, bold: true, after: 200 }));
-        const headAc = new TableRow({ children: [
-          cell('NO', { bold: true, width: 700, align: AlignmentType.CENTER }),
-          cell('WAKTU (WITA)', { bold: true, width: 2000, align: AlignmentType.CENTER }),
-          cell('ACARA', { bold: true, width: 3500 }),
-          cell('NARASUMBER / PENDAMPING', { bold: true, width: 2800 })
-        ]});
-        const rowsAc = d.acara.map(function(r, i) {
-          return new TableRow({ children: [
-            cell(String(i + 1), { width: 700, align: AlignmentType.CENTER }),
-            cell(r.waktu, { width: 2000, align: AlignmentType.CENTER }),
-            cell(r.acara, { width: 3500 }),
-            cell(r.narasumber, { width: 2800 })
-          ]});
-        });
-        children.push(new Table({ width: { size: 9000, type: WidthType.DXA }, rows: [headAc].concat(rowsAc) }));
-        children.push(p('', { after: 120 }));
-        children.push(p('Catatan: Jadwal bersifat tentatif dan dapat disesuaikan dengan kondisi serta dinamika pelaksanaan kegiatan.', { italics: true, size: 20 }));
-      }
-
-      const doc = new Document({
-        sections: [{ properties: { page: { margin: { top: 720, bottom: 720, left: 1080, right: 1080 } } }, children: children }]
-      });
-
-      try {
-        const blob = await Packer.toBlob(doc);
-        const safeName = (d.hal || d.nomor || 'surat').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
-        saveAs(blob, safeName + '.docx');
-        Swal.fire({ icon: 'success', title: 'Word berhasil diunduh', timer: 1500, showConfirmButton: false });
-      } catch (err) {
-        console.error(err);
-        Swal.fire('Gagal', 'Tidak dapat membuat file Word: ' + err.message, 'error');
-      }
+      const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = (d.hal || d.nomor || 'surat').replace(/[\\/:*?"<>|]/g, '_').slice(0, 60);
+      a.href = url;
+      a.download = safeName + '.doc';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      Swal.fire({ icon: 'success', title: 'Word berhasil diunduh', text: 'File .doc siap dibuka di Microsoft Word', timer: 1600, showConfirmButton: false });
     }
 
     function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -643,9 +645,8 @@
     function nl2br(s) { return String(s || '').replace(/\n/g, '<br>'); }
     function formatTglPanjang(iso) {
       if (!iso) return '…';
-      const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
       const p = String(iso).slice(0, 10).split('-');
-      if (p.length === 3) return parseInt(p[2], 10) + ' ' + bulan[parseInt(p[1], 10) - 1] + ' ' + p[0];
+      if (p.length === 3) return parseInt(p[2], 10) + ' ' + BULAN[parseInt(p[1], 10) - 1] + ' ' + p[0];
       return iso;
     }
   </script>
