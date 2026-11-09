@@ -87,11 +87,6 @@
     <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <a href="dashboard.html" class="flex items-center gap-2 text-slate-600 hover:text-brand-600 transition">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span class="text-sm font-medium hidden sm:inline">Kembali</span>
-                </a>
-                <div class="h-6 w-px bg-slate-200"></div>
                 <div class="flex items-center gap-2">
                     <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-600 to-indigo-700 flex items-center justify-center text-white shadow">
                         <i class="fa-solid fa-calendar-days"></i>
@@ -164,6 +159,7 @@
 
             <!-- KALENDER -->
             <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <!-- Header Kalender -->
                 <div class="bg-gradient-to-r from-red-600 to-rose-700 px-5 py-4 flex items-center justify-between text-white">
                     <button type="button" id="calPrevMonth" class="w-10 h-10 rounded-xl hover:bg-white/20 flex items-center justify-center transition" title="Bulan sebelumnya">
                         <i class="fa-solid fa-chevron-left"></i>
@@ -182,6 +178,7 @@
                     </div>
                 </div>
 
+                <!-- Hari -->
                 <div class="grid grid-cols-7 text-center text-xs font-bold text-slate-400 border-b border-slate-100 py-2.5 px-2">
                     <span class="text-red-500">Min</span>
                     <span>Sen</span>
@@ -192,8 +189,10 @@
                     <span>Sab</span>
                 </div>
 
+                <!-- Grid Tanggal -->
                 <div id="calendarDays" class="grid grid-cols-7 gap-1.5 p-3"></div>
 
+                <!-- Legend -->
                 <div class="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-4 text-xs text-slate-500">
                     <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> Libur / Minggu</span>
                     <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span> Ada Agenda</span>
@@ -220,6 +219,7 @@
                     </div>
                 </div>
 
+                <!-- Upcoming singkat -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div class="px-5 py-3 border-b border-slate-100">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -266,9 +266,12 @@
 
     <!-- ========== MODAL TAMBAH AGENDA ========== -->
     <div id="modal-add-agenda" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeAddAgendaModal()"></div>
+        <!-- Panel -->
         <div class="absolute inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center p-0 sm:p-4">
             <div class="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[92vh] overflow-hidden flex flex-col fade-in">
+                <!-- Header Modal -->
                 <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-brand-50 to-white shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow">
@@ -284,7 +287,9 @@
                     </button>
                 </div>
 
+                <!-- Form Body -->
                 <form id="form-add-agenda" class="flex-1 overflow-y-auto p-5 space-y-4" onsubmit="return submitAddAgenda(event)">
+                    <!-- Judul / Perihal -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1.5">
                             Judul / Nama Kegiatan <span class="text-red-500">*</span>
@@ -294,6 +299,7 @@
                             class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                     </div>
 
+                    <!-- Tanggal Mulai & Selesai -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1.5">
@@ -311,6 +317,7 @@
                         </div>
                     </div>
 
+                    <!-- Waktu -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Waktu Mulai</label>
@@ -324,20 +331,26 @@
                         </div>
                     </div>
 
+                    <!-- Tempat / Pelaksana -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tempat / Lokasi</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                            Tempat / Lokasi
+                        </label>
                         <input type="text" id="f-tempat" name="tempat" maxlength="150"
                             placeholder="Contoh: Aula Utama / Ruang Rapat Lantai 2"
                             class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">Pelaksana / Penanggung Jawab</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+                            Pelaksana / Penanggung Jawab
+                        </label>
                         <input type="text" id="f-pelaksana" name="pelaksana" maxlength="120"
                             placeholder="Contoh: Bagian Umum"
                             class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                     </div>
 
+                    <!-- Keterangan -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1.5">Keterangan (opsional)</label>
                         <textarea id="f-keterangan" name="keterangan" rows="2" maxlength="500"
@@ -345,12 +358,14 @@
                             class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition resize-none"></textarea>
                     </div>
 
+                    <!-- Info -->
                     <div class="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5 text-[11px] text-slate-500 flex items-start gap-2">
                         <i class="fa-solid fa-circle-info text-brand-500 mt-0.5"></i>
                         <span>Agenda yang ditambahkan akan tersimpan di perangkat ini dan muncul di kalender dashboard serta halaman Agenda Kegiatan.</span>
                     </div>
                 </form>
 
+                <!-- Footer Modal -->
                 <div class="px-5 py-4 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0 bg-slate-50/80">
                     <button type="button" onclick="closeAddAgendaModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-200 transition">
                         Batal
@@ -447,7 +462,7 @@
             }
         }
 
-        // ========== LOAD DATA ==========
+        // ========== LOAD DATA (sama logika dashboard) ==========
         function loadSuratMasukLocal() {
             try { return JSON.parse(localStorage.getItem('gemini_surat_masuk_db') || '[]'); }
             catch (e) { return []; }
@@ -489,6 +504,7 @@
 
         function collectCalendarEvents(dataSurat, dataAula) {
             const events = [];
+            // 1) Agenda Fasilitasi Aula
             (dataAula || []).forEach(function(a) {
                 const start = a.tglMulai || a.tanggal || a.tanggal_kegiatan || a.tgl || a.date || a['Tanggal'] || a['Tanggal Mulai'] || '';
                 const end = a.tglSelesai || a.tanggal_selesai || a['Tanggal Selesai'] || start;
@@ -514,6 +530,7 @@
                     });
                 });
             });
+            // 2) Surat masuk: indeks undangan / pemberitahuan
             (dataSurat || []).filter(isAktif).forEach(function(s) {
                 const indeks = String(s.indeks || s['Indeks'] || '').toLowerCase().trim();
                 if (!indeks) return;
@@ -745,6 +762,7 @@
                 if (seen.has(key)) return;
                 seen.add(key);
                 const p = ev.date.split('-');
+                const label = parseInt(p[2],10) + ' ' + bulanShort[parseInt(p[1],10)-1];
                 const isSurat = ev.source === 'surat';
                 html += `<div class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-slate-50 transition">
                     <div class="text-center shrink-0 w-10">
@@ -770,6 +788,7 @@
             if (filter === 'aula') items = items.filter(e => e.source === 'aula');
             if (filter === 'surat') items = items.filter(e => e.source === 'surat');
 
+            // Group by date
             const grouped = {};
             items.forEach(ev => {
                 if (!grouped[ev.date]) grouped[ev.date] = [];
@@ -897,8 +916,10 @@
         function openAddAgendaModal(prefillDate) {
             const modal = document.getElementById('modal-add-agenda');
             if (!modal) return;
+            // Reset form
             const form = document.getElementById('form-add-agenda');
             if (form) form.reset();
+            // Prefill tanggal jika diklik dari kalender
             const tglMulai = document.getElementById('f-tgl-mulai');
             const tglSelesai = document.getElementById('f-tgl-selesai');
             const defaultDate = prefillDate || selectedCalDate || (() => {
@@ -964,6 +985,7 @@
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             }
 
+            // Susun objek agenda (kompatibel dengan struktur data aula)
             const newAgenda = {
                 id: 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
                 perihal: judul,
@@ -987,14 +1009,18 @@
             };
 
             try {
+                // Ambil data lokal yang sudah ada
                 let rows = loadAgendaAulaLocal();
                 if (!Array.isArray(rows)) rows = [];
                 rows.push(newAgenda);
                 localStorage.setItem('gemini_agenda_aula_db', JSON.stringify(rows));
 
+                // Coba kirim ke cloud (fire-and-forget, tidak memblokir)
                 tryPostAgendaToCloud(newAgenda);
 
+                // Refresh tampilan
                 calendarEvents = collectCalendarEvents(loadSuratMasukLocal(), rows);
+                // Pindah kalender ke tanggal mulai jika berbeda bulan
                 const p = tglMulai.split('-');
                 if (p.length === 3) {
                     calViewYear = parseInt(p[0], 10);
@@ -1021,6 +1047,7 @@
         }
 
         async function tryPostAgendaToCloud(agenda) {
+            // Kirim ke GAS jika endpoint mendukung action=add (opsional)
             try {
                 const url = AGENDA_AULA_GAS_URL + (AGENDA_AULA_GAS_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=add';
                 await fetch(url, {
@@ -1029,19 +1056,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(agenda)
                 });
-            } catch (e) {}
+            } catch (e) {
+                // Abaikan — data sudah tersimpan lokal
+            }
         }
 
+        // Tutup modal dengan Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeAddAgendaModal();
         });
 
         // ========== INIT ==========
         window.addEventListener('DOMContentLoaded', function() {
+            // Instansi
             const instansi = localStorage.getItem('arsip_instansi') || 'Pusat';
             const elInst = document.getElementById('header-instansi');
             if (elInst) elInst.textContent = 'Instansi: ' + instansi;
 
+            // Load awal dari localStorage dulu biar cepat
             const localSurat = loadSuratMasukLocal();
             const localAula = loadAgendaAulaLocal();
             calendarEvents = collectCalendarEvents(localSurat, localAula);
@@ -1050,8 +1082,10 @@
             renderMonthList();
             updateStats();
 
+            // Lalu sync cloud
             refreshAllData();
 
+            // Event listeners
             document.getElementById('calPrevMonth')?.addEventListener('click', () => shiftCalendarMonth(-1));
             document.getElementById('calNextMonth')?.addEventListener('click', () => shiftCalendarMonth(1));
             document.getElementById('calTodayBtn')?.addEventListener('click', goCalendarToday);
