@@ -47,7 +47,7 @@
       color: #000;
     }
     .kop-flex { display: flex; align-items: center; gap: 12px; }
-    .kop-logo { width: 70px; height: auto; object-fit: contain; flex-shrink: 0; }
+    .kop-logo { width: 68px !important; max-width: 68px !important; height: auto !important; max-height: 85px !important; object-fit: contain !important; flex-shrink: 0 !important; }
     .kop-text { flex: 1; text-align: center; }
     .kop-line1 { font-weight: 700; text-transform: uppercase; font-size: 12pt; line-height: 1.25; }
     .kop-line2 { font-weight: 700; text-transform: uppercase; font-size: 13pt; line-height: 1.25; }
@@ -65,52 +65,105 @@
         height: auto !important;
         overflow: visible !important;
       }
-      /* Sembunyikan semua elemen halaman */
-      body * { display: none !important; }
-      /* Tampilkan hanya overlay + isi surat */
+      /* Sembunyikan seluruh UI */
+      body * { visibility: hidden !important; }
+      /* Tampilkan hanya area surat */
       #print-preview-overlay,
       #print-preview-overlay #print-preview-panel,
       #print-preview-overlay #print-root,
       #print-preview-overlay #print-root * {
-        display: block !important;
         visibility: visible !important;
-        opacity: 1 !important;
-        color: #000 !important;
-        background: #fff !important;
-        box-shadow: none !important;
-        position: static !important;
-        inset: auto !important;
-        width: auto !important;
-        max-width: none !important;
-        max-height: none !important;
-        overflow: visible !important;
-        margin: 0 !important;
       }
       #print-preview-overlay {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
+        overflow: visible !important;
+        inset: auto !important;
       }
       #print-preview-panel {
-        border-radius: 0 !important;
+        display: block !important;
         width: 100% !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        background: #fff !important;
       }
-      /* Sembunyikan toolbar & footer modal (anak langsung panel selain area konten) */
+      /* Sembunyikan toolbar & footer modal */
       #print-preview-panel > div:first-child,
       #print-preview-panel > div:last-child {
         display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
       }
       #print-preview-panel > div:nth-child(2) {
         display: block !important;
         padding: 0 !important;
+        margin: 0 !important;
         background: #fff !important;
         max-height: none !important;
         overflow: visible !important;
       }
       #print-root.sheet-a4 {
+        display: block !important;
         width: 100% !important;
+        max-width: 100% !important;
         min-height: auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         box-shadow: none !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-size: 12pt !important;
+        line-height: 1.5 !important;
+      }
+      /* JANGAN paksa display:block pada semua anak — biarkan flex kop tetap jalan */
+      #print-root .kop-flex {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+      }
+      #print-root .kop-logo,
+      #print-root img.kop-logo,
+      #print-root img {
+        width: 68px !important;
+        max-width: 68px !important;
+        height: auto !important;
+        max-height: 85px !important;
+        object-fit: contain !important;
+        display: inline-block !important;
+        flex-shrink: 0 !important;
+      }
+      #print-root .kop-text {
+        flex: 1 !important;
+        text-align: center !important;
+      }
+      #print-root .kop-line1,
+      #print-root .kop-line2 {
+        font-weight: bold !important;
+        text-transform: uppercase !important;
+      }
+      #print-root .ttd-block {
+        width: 240px !important;
+        margin-left: auto !important;
+        text-align: left !important;
+        margin-top: 18pt !important;
+      }
+      #print-root .ttd-spacer {
+        height: 54pt !important;
+      }
+      #print-root table {
+        border-collapse: collapse !important;
+      }
+      #print-root .meta td {
+        border: none !important;
       }
     }
     #print-preview-overlay {
@@ -1135,9 +1188,9 @@
     function val(id) { const el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
 
     function kopHtml() {
-      let h = '<div class="kop-flex">';
-      if (KOP.logo) h += '<img class="kop-logo" src="' + KOP.logo + '" alt="Logo">';
-      h += '<div class="kop-text">';
+      let h = '<div class="kop-flex" style="display:flex;align-items:center;gap:10px;">';
+      if (KOP.logo) h += '<img class="kop-logo" src="' + KOP.logo + '" alt="Logo" width="68" height="85" style="width:68px;max-width:68px;height:auto;max-height:85px;object-fit:contain;flex-shrink:0;">';
+      h += '<div class="kop-text" style="flex:1;text-align:center;">';
       h += '<div class="kop-line1">' + esc(KOP.instansi) + '</div>';
       h += '<div class="kop-line2">' + esc(KOP.unit) + '</div>';
       h += '<div class="kop-alamat">' + esc(KOP.alamat) + '<br>' + esc(KOP.kontak) + '</div>';
