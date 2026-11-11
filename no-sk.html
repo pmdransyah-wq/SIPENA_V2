@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>No. SK - sipena.v2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: Inter, sans-serif; }
+    .table-wrap { overflow-x: auto; }
+    table.data-table th { position: sticky; top: 0; z-index: 10; }
+    .sort-btn { opacity: 0.45; }
+    .sort-btn:hover, .sort-btn.active { opacity: 1; }
+    .modal-backdrop { background: rgba(15, 23, 42, 0.45); }
+    .toast {
+      animation: slideIn 0.25s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
+
+  <!-- TOAST -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[100] space-y-2"></div>
+
+  <!-- HEADER -->
+  <div class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-30">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-file-signature text-brand-600"></i>
+          Buku Agenda — No. SK
+        </h1>
+        <p class="text-xs text-slate-500 mt-0.5">Pencatatan Surat Keputusan / SK</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2" id="toolbar-actions">
+        <button type="button" id="btn-tambah" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 shadow-sm">
+          <i class="fa-solid fa-plus"></i> Tambah Data
+        </button>
+        <button type="button" id="btn-import" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
+          <i class="fa-solid fa-file-import"></i> Import
+        </button>
+        <button type="button" id="btn-export" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
+          <i class="fa-solid fa-file-export"></i> Export
+        </button>
+        <button type="button" id="btn-sync" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
+          <i class="fa-solid fa-arrows-rotate"></i> Sinkron
+        </button>
+        <button type="button" id="btn-trash" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50">
+          <i class="fa-solid fa-trash-can"></i> Tempat Sampah
+        </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="mt-3 flex flex-wrap items-center gap-2">
+      <div class="relative flex-1 min-w-[200px] max-w-md">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input id="search-input" type="search" placeholder="Cari NO. SK, perihal, tanggal..."
+          class="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
+      </div>
+      <select id="filter-year" class="text-sm border border-slate-200 rounded-lg px-2 py-2 bg-white focus:outline-none">
+        <option value="">Semua Tahun</option>
+      </select>
+      <span class="text-xs text-slate-500" id="result-count">0 data</span>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="p-3 md:p-4">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="table-wrap max-h-[calc(100vh-220px)] overflow-y-auto">
+        <table class="data-table w-full text-sm">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 text-left text-xs uppercase tracking-wider">
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap w-14">
+                <button type="button" class="sort-btn inline-flex items-center gap-1" data-sort="NO">NO <i class="fa-solid fa-sort text-[10px]"></i></button>
+              </th>
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap min-w-[200px]">
+                <button type="button" class="sort-btn inline-flex items-center gap-1" data-sort="NO_SK">NO. SK <i class="fa-solid fa-sort text-[10px]"></i></button>
+              </th>
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap">
+                <button type="button" class="sort-btn inline-flex items-center gap-1" data-sort="TANGGAL_SK">TANGGAL SK <i class="fa-solid fa-sort text-[10px]"></i></button>
+              </th>
+              <th class="px-3 py-2.5 font-semibold min-w-[220px]">
+                <button type="button" class="sort-btn inline-flex items-center gap-1" data-sort="PERIHAL">PERIHAL <i class="fa-solid fa-sort text-[10px]"></i></button>
+              </th>
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap">LAMPIRAN</th>
+              <th class="px-3 py-2.5 font-semibold whitespace-nowrap text-center w-40">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="px-3 py-10 text-center text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t border-slate-100 bg-slate-50/80">
+        <p class="text-xs text-slate-500" id="page-info">Menampilkan 0 data</p>
+        <div class="flex items-center gap-1" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL FORM ==================== -->
+  <div id="modal-form" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeFormModal()"></div>
+    <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4 border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <h2 class="font-bold text-slate-800" id="form-title">Tambah Data SK</h2>
+          <button type="button" onclick="closeFormModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form id="form-sk" class="p-5 space-y-4" onsubmit="return false;">
+          <input type="hidden" id="f-id">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">NO (Agenda)</label>
+              <input type="number" id="f-no" min="1" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" readonly>
+              <p class="text-[10px] text-slate-400 mt-0.5">Otomatis; reset ke 1 jika ganti tahun</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tahun</label>
+              <input type="number" id="f-tahun" min="2000" max="2100" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
+              <input type="text" id="f-kode" list="list-kode" placeholder="Contoh: 900.1.3.5" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+              <datalist id="list-kode"></datalist>
+              <p class="text-[10px] text-slate-400 mt-0.5">Ambil dari Master Kode Klasifikasi</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Pengolah <span class="text-rose-500">*</span></label>
+              <select id="f-pengolah" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+                <option value="Sekr">Sekr</option>
+                <option value="PPD">PPD</option>
+                <option value="PUEMD">PUEMD</option>
+                <option value="PMLKD">PMLKD</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">NO. SK (otomatis)</label>
+            <input type="text" id="f-no-sk" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 font-mono text-xs" readonly>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal SK <span class="text-rose-500">*</span></label>
+              <input type="date" id="f-tanggal" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan</label>
+              <input type="text" id="f-tujuan" placeholder="Instansi / pihak tujuan" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Perihal <span class="text-rose-500">*</span></label>
+            <textarea id="f-perihal" rows="3" placeholder="Uraian perihal SK..." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Lampiran (PDF, Word, JPG, PNG)</label>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="file" id="f-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,image/*" class="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 file:text-brand-700 file:font-semibold file:text-xs">
+              <button type="button" id="btn-upload-file" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+              </button>
+            </div>
+            <input type="hidden" id="f-lampiran">
+            <p id="f-lampiran-preview" class="text-xs text-slate-500 mt-1.5 break-all"></p>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <button type="button" onclick="closeFormModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50">Batal</button>
+            <button type="button" id="btn-save" class="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 shadow-sm">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL VIEW ==================== -->
+  <div id="modal-view" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeViewModal()"></div>
+    <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4 border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <h2 class="font-bold text-slate-800">Detail SK</h2>
+          <button type="button" onclick="closeViewModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div id="view-body" class="p-5 space-y-3 text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL TRASH ==================== -->
+  <div id="modal-trash" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeTrashModal()"></div>
+    <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4 border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <h2 class="font-bold text-slate-800"><i class="fa-solid fa-trash-can text-rose-500 mr-2"></i>Tempat Sampah</h2>
+          <button type="button" onclick="closeTrashModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div class="p-4 overflow-x-auto max-h-[70vh]">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-slate-50 text-xs uppercase text-slate-500">
+                <th class="px-2 py-2 text-left">NO</th>
+                <th class="px-2 py-2 text-left">NO. SK</th>
+                <th class="px-2 py-2 text-left">TANGGAL</th>
+                <th class="px-2 py-2 text-left">PERIHAL</th>
+                <th class="px-2 py-2 text-center">AKSI</th>
+              </tr>
+            </thead>
+            <tbody id="trash-body">
+              <tr><td colspan="5" class="px-2 py-8 text-center text-slate-400">Memuat...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL IMPORT ==================== -->
+  <div id="modal-import" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeImportModal()"></div>
+    <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md my-4 border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <h2 class="font-bold text-slate-800">Import Data</h2>
+          <button type="button" onclick="closeImportModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div class="p-5 space-y-3">
+          <p class="text-xs text-slate-500">Upload file CSV dengan header: NO, NO. SK, TANGGAL SK, PERIHAL, LAMPIRAN (opsional: KODE_KLASIFIKASI, PENGOLAH, TUJUAN)</p>
+          <input type="file" id="import-file" accept=".csv,text/csv" class="text-sm w-full">
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="closeImportModal()" class="px-3 py-1.5 rounded-lg border text-sm">Batal</button>
+            <button type="button" id="btn-do-import" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold">Import</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL UPLOAD LAMPIRAN SAJA ==================== -->
+  <div id="modal-upload-only" class="fixed inset-0 z-50 hidden">
+    <div class="modal-backdrop absolute inset-0" onclick="closeUploadOnlyModal()"></div>
+    <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md my-4 border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
+          <h2 class="font-bold text-slate-800">Upload Lampiran</h2>
+          <button type="button" onclick="closeUploadOnlyModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div class="p-5 space-y-3">
+          <p class="text-xs text-slate-500" id="upload-only-label">Pilih file untuk dilampirkan</p>
+          <input type="file" id="upload-only-file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,application/pdf,image/*" class="text-sm w-full">
+          <input type="hidden" id="upload-only-id">
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" onclick="closeUploadOnlyModal()" class="px-3 py-1.5 rounded-lg border text-sm">Batal</button>
+            <button type="button" id="btn-do-upload-only" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-semibold">
+              <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload & Simpan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   KONFIGURASI — ganti GAS_URL setelah deploy Web App
+   ============================================================ */
+const GAS_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+/* Setelah deploy Code.gs, paste URL Web App di atas */
+
+const PAGE_SIZE = 15;
+const PENGOLAH_LIST = ['Sekr', 'PPD', 'PUEMD', 'PMLKD'];
+
+/* Default kode klasifikasi (fallback jika localStorage kosong) */
+const DEFAULT_KODE = [
+  '900.1.3.5', '400.10.4.3', '400.10.4.1', '400.10.4.2',
+  '100.1.1', '200.2.1', '300.3.1', '500.5.1'
+];
+
+/* State */
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+let sortKey = 'CREATED_AT';
+let sortDir = 'desc'; // newest first
+let currentRole = (localStorage.getItem('arsip_role') || 'umum').toLowerCase();
+let editMode = false;
+
+/* Role helpers */
+function isSuperAdmin() { return currentRole === 'superadmin' || currentRole === 'super admin'; }
+function isAdmin() { return currentRole === 'admin' || isSuperAdmin(); }
+function canWrite() { return isAdmin() || isSuperAdmin(); }
+function canDelete() { return isSuperAdmin(); }
+function canImportExport() { return isSuperAdmin(); }
+function canTrash() { return isSuperAdmin(); }
+
+/* ---------- Utils ---------- */
+function toast(msg, type) {
+  const box = document.getElementById('toast-container');
+  const colors = {
+    success: 'bg-emerald-600',
+    error: 'bg-rose-600',
+    info: 'bg-slate-800'
+  };
+  const el = document.createElement('div');
+  el.className = 'toast ' + (colors[type] || colors.info) + ' text-white text-sm px-4 py-2.5 rounded-lg shadow-lg max-w-sm';
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(function () { el.remove(); }, 3200);
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatDateInput(indoOrIso) {
+  if (!indoOrIso) return '';
+  const s = String(indoOrIso).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  const bulan = ['januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
+  const m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const mi = bulan.indexOf(m[2].toLowerCase());
+    if (mi >= 0) return m[3] + '-' + String(mi + 1).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  return '';
+}
+
+function yearFromItem(item) {
+  const t = String(item.TANGGAL_SK || item.NO_SK || '');
+  const m = t.match(/(\d{4})/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function buildNoSK(kode, no, pengolah, tahun) {
+  const noStr = String(no || 1).padStart(2, '0');
+  return String(kode || '').trim() + '/' + noStr + '/' + String(pengolah || 'Sekr').trim() + '-DPMD TAHUN ' + tahun;
+}
+
+/* ---------- API ---------- */
+async function apiCall(action, payload) {
+  const body = Object.assign({ action: action }, payload || {});
+  // GET untuk list/read (lebih andal CORS), POST untuk write
+  const readActions = ['list', 'trash_list', 'get', 'next_no', 'ping'];
+  try {
+    if (readActions.indexOf(action) >= 0) {
+      const qs = Object.keys(body).map(function (k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(body[k] == null ? '' : body[k]);
+      }).join('&');
+      const res = await fetch(GAS_URL + '?' + qs, { method: 'GET', redirect: 'follow' });
+      return await res.json();
+    }
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+    return { success: false, message: 'Gagal terhubung ke server: ' + (err.message || err) };
+  }
+}
+
+/* ---------- Role UI ---------- */
+function applyRoleUI() {
+  const tambah = document.getElementById('btn-tambah');
+  const imp = document.getElementById('btn-import');
+  const exp = document.getElementById('btn-export');
+  const trash = document.getElementById('btn-trash');
+
+  if (!canWrite()) {
+    if (tambah) tambah.classList.add('hidden');
+  }
+  if (!canImportExport()) {
+    if (imp) imp.classList.add('hidden');
+    if (exp) exp.classList.add('hidden');
+  }
+  if (!canTrash()) {
+    if (trash) trash.classList.add('hidden');
+  }
+}
+
+/* ---------- Kode Klasifikasi ---------- */
+function loadKodeKlasifikasi() {
+  const list = document.getElementById('list-kode');
+  list.innerHTML = '';
+  let codes = [];
+  try {
+    const keys = ['gemini_kode_klasifikasi_db', 'kode_klasifikasi_db', 'arsip_kode_klasifikasi'];
+    for (let i = 0; i < keys.length; i++) {
+      const raw = localStorage.getItem(keys[i]);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      const rows = Array.isArray(parsed) ? parsed : (parsed && parsed.data ? parsed.data : []);
+      rows.forEach(function (r) {
+        const kode = r.kode || r.KODE || r.kode_klasifikasi || r['Kode Klasifikasi'] || r.code || '';
+        if (kode) codes.push(String(kode).trim());
+      });
+      if (codes.length) break;
+    }
+  } catch (e) {}
+  if (!codes.length) codes = DEFAULT_KODE.slice();
+  // unique
+  codes = codes.filter(function (v, i, a) { return a.indexOf(v) === i; });
+  codes.forEach(function (c) {
+    const opt = document.createElement('option');
+    opt.value = c;
+    list.appendChild(opt);
+  });
+}
+
+/* ---------- Load & Render ---------- */
+async function loadData(showToast) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
+
+  const res = await apiCall('list');
+  if (!res.success) {
+    tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-10 text-center text-rose-500">' + escapeHtml(res.message || 'Gagal memuat') + '</td></tr>';
+    if (showToast) toast(res.message || 'Gagal sinkron', 'error');
+    return;
+  }
+  allData = res.data || [];
+  // cache lokal
+  try { localStorage.setItem('gemini_no_sk_db', JSON.stringify(allData)); } catch (e) {}
+  buildYearFilter();
+  applyFilter();
+  if (showToast) toast('Data tersinkron (' + allData.length + ')', 'success');
+}
+
+function buildYearFilter() {
+  const sel = document.getElementById('filter-year');
+  const cur = sel.value;
+  const years = {};
+  allData.forEach(function (d) {
+    const y = yearFromItem(d);
+    if (y) years[y] = true;
+  });
+  const list = Object.keys(years).map(Number).sort(function (a, b) { return b - a; });
+  sel.innerHTML = '<option value="">Semua Tahun</option>';
+  list.forEach(function (y) {
+    const o = document.createElement('option');
+    o.value = String(y);
+    o.textContent = 'Tahun ' + y;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function applyFilter() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  const year = document.getElementById('filter-year').value;
+
+  filteredData = allData.filter(function (d) {
+    if (year) {
+      const y = yearFromItem(d);
+      if (String(y) !== String(year)) return false;
+    }
+    if (!q) return true;
+    const hay = [d.NO, d.NO_SK, d.TANGGAL_SK, d.PERIHAL, d.LAMPIRAN, d.PENGOLAH, d.TUJUAN]
+      .map(function (x) { return String(x || '').toLowerCase(); }).join(' ');
+    return hay.indexOf(q) >= 0;
+  });
+
+  sortData();
+  currentPage = 1;
+  renderTable();
+}
+
+function sortData() {
+  filteredData.sort(function (a, b) {
+    let va = a[sortKey];
+    let vb = b[sortKey];
+    if (sortKey === 'NO') {
+      va = parseInt(va, 10) || 0;
+      vb = parseInt(vb, 10) || 0;
+      return sortDir === 'asc' ? va - vb : vb - va;
+    }
+    if (sortKey === 'CREATED_AT' || sortKey === 'UPDATED_AT') {
+      va = String(va || '');
+      vb = String(vb || '');
+      if (!va && !vb) {
+        // fallback NO
+        return (parseInt(b.NO, 10) || 0) - (parseInt(a.NO, 10) || 0);
+      }
+      return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = String(va || '').toLowerCase();
+    vb = String(vb || '').toLowerCase();
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  const total = filteredData.length;
+  document.getElementById('result-count').textContent = total + ' data';
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredData.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('page-info').textContent =
+    total === 0 ? 'Tidak ada data' :
+    'Menampilkan ' + (start + 1) + '–' + Math.min(start + PAGE_SIZE, total) + ' dari ' + total;
+
+  renderPagination(totalPages);
+
+  if (!pageItems.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-10 text-center text-slate-400">Belum ada data SK</td></tr>';
+    return;
+  }
+
+  let html = '';
+  pageItems.forEach(function (d) {
+    const lampiran = d.LAMPIRAN
+      ? '<a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" rel="noopener" class="text-brand-600 hover:underline text-xs inline-flex items-center gap-1"><i class="fa-solid fa-paperclip"></i> Lihat</a>'
+      : '<span class="text-slate-300 text-xs">—</span>';
+
+    let actions = '';
+    actions += '<button type="button" title="Lihat" class="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-600" onclick="viewItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-eye text-xs"></i></button>';
+    if (canWrite()) {
+      actions += '<button type="button" title="Edit" class="w-7 h-7 rounded-md hover:bg-slate-100 text-brand-600" onclick="editItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-pen text-xs"></i></button>';
+      actions += '<button type="button" title="Upload lampiran" class="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-700" onclick="openUploadOnly(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-cloud-arrow-up text-xs"></i></button>';
+    }
+    if (canDelete()) {
+      actions += '<button type="button" title="Hapus" class="w-7 h-7 rounded-md hover:bg-rose-50 text-rose-600" onclick="deleteItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-trash text-xs"></i></button>';
+    }
+
+    html += '<tr class="hover:bg-slate-50/80">'
+      + '<td class="px-3 py-2.5 font-semibold text-slate-700">' + escapeHtml(d.NO) + '</td>'
+      + '<td class="px-3 py-2.5 font-mono text-xs text-slate-700">' + escapeHtml(d.NO_SK) + '</td>'
+      + '<td class="px-3 py-2.5 whitespace-nowrap text-slate-600">' + escapeHtml(d.TANGGAL_SK) + '</td>'
+      + '<td class="px-3 py-2.5 text-slate-700"><div class="line-clamp-2" title="' + escapeHtml(d.PERIHAL) + '">' + escapeHtml(d.PERIHAL) + '</div></td>'
+      + '<td class="px-3 py-2.5">' + lampiran + '</td>'
+      + '<td class="px-3 py-2.5"><div class="flex items-center justify-center gap-0.5">' + actions + '</div></td>'
+      + '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function renderPagination(totalPages) {
+  const box = document.getElementById('pagination');
+  if (totalPages <= 1) { box.innerHTML = ''; return; }
+  let html = '';
+  html += '<button type="button" class="px-2 py-1 rounded border text-xs ' + (currentPage <= 1 ? 'opacity-40' : 'hover:bg-white') + '" ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="goPage(' + (currentPage - 1) + ')"><i class="fa-solid fa-chevron-left"></i></button>';
+  const maxBtn = 5;
+  let from = Math.max(1, currentPage - 2);
+  let to = Math.min(totalPages, from + maxBtn - 1);
+  from = Math.max(1, to - maxBtn + 1);
+  for (let p = from; p <= to; p++) {
+    html += '<button type="button" class="px-2.5 py-1 rounded text-xs font-semibold ' + (p === currentPage ? 'bg-brand-600 text-white' : 'border hover:bg-white') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+  }
+  html += '<button type="button" class="px-2 py-1 rounded border text-xs ' + (currentPage >= totalPages ? 'opacity-40' : 'hover:bg-white') + '" ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="goPage(' + (currentPage + 1) + ')"><i class="fa-solid fa-chevron-right"></i></button>';
+  box.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+/* ---------- Form ---------- */
+function openFormModal(isEdit) {
+  editMode = !!isEdit;
+  document.getElementById('form-title').textContent = isEdit ? 'Edit Data SK' : 'Tambah Data SK';
+  document.getElementById('modal-form').classList.remove('hidden');
+}
+
+function closeFormModal() {
+  document.getElementById('modal-form').classList.add('hidden');
+  document.getElementById('form-sk').reset();
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-lampiran').value = '';
+  document.getElementById('f-lampiran-preview').innerHTML = '';
+  editMode = false;
+}
+
+function updateNoSkPreview() {
+  const kode = document.getElementById('f-kode').value;
+  const no = document.getElementById('f-no').value || 1;
+  const peng = document.getElementById('f-pengolah').value;
+  const tahun = document.getElementById('f-tahun').value || new Date().getFullYear();
+  document.getElementById('f-no-sk').value = buildNoSK(kode, no, peng, tahun);
+}
+
+async function refreshNextNo() {
+  const tahun = document.getElementById('f-tahun').value || new Date().getFullYear();
+  const res = await apiCall('next_no', { tahun: tahun });
+  if (res.success) {
+    document.getElementById('f-no').value = res.nextNo;
+  } else {
+    document.getElementById('f-no').value = 1;
+  }
+  updateNoSkPreview();
+}
+
+async function openTambah() {
+  if (!canWrite()) { toast('Akses ditolak', 'error'); return; }
+  closeFormModal();
+  const now = new Date();
+  document.getElementById('f-tahun').value = now.getFullYear();
+  document.getElementById('f-tanggal').value = now.toISOString().slice(0, 10);
+  document.getElementById('f-pengolah').value = 'Sekr';
+  document.getElementById('f-kode').value = '';
+  document.getElementById('f-perihal').value = '';
+  document.getElementById('f-tujuan').value = '';
+  document.getElementById('f-lampiran').value = '';
+  document.getElementById('f-lampiran-preview').innerHTML = '';
+  document.getElementById('f-id').value = '';
+  await refreshNextNo();
+  openFormModal(false);
+}
+
+function findById(id) {
+  for (let i = 0; i < allData.length; i++) {
+    if (String(allData[i].ID) === String(id)) return allData[i];
+  }
+  return null;
+}
+
+async function editItem(id) {
+  if (!canWrite()) { toast('Akses ditolak', 'error'); return; }
+  const d = findById(id);
+  if (!d) { toast('Data tidak ditemukan', 'error'); return; }
+  document.getElementById('f-id').value = d.ID;
+  document.getElementById('f-no').value = d.NO;
+  const y = yearFromItem(d) || new Date().getFullYear();
+  document.getElementById('f-tahun').value = y;
+  document.getElementById('f-kode').value = d.KODE_KLASIFIKASI || '';
+  document.getElementById('f-pengolah').value = d.PENGOLAH || 'Sekr';
+  document.getElementById('f-no-sk').value = d.NO_SK || '';
+  document.getElementById('f-tanggal').value = formatDateInput(d.TANGGAL_SK);
+  document.getElementById('f-tujuan').value = d.TUJUAN || '';
+  document.getElementById('f-perihal').value = d.PERIHAL || '';
+  document.getElementById('f-lampiran').value = d.LAMPIRAN || '';
+  document.getElementById('f-lampiran-preview').innerHTML = d.LAMPIRAN
+    ? '<a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" class="text-brand-600 hover:underline"><i class="fa-solid fa-paperclip mr-1"></i>' + escapeHtml(d.LAMPIRAN) + '</a>'
+    : '';
+  openFormModal(true);
+}
+
+function viewItem(id) {
+  const d = findById(id);
+  if (!d) { toast('Data tidak ditemukan', 'error'); return; }
+  const body = document.getElementById('view-body');
+  body.innerHTML =
+    rowView('NO', d.NO) +
+    rowView('NO. SK', d.NO_SK) +
+    rowView('Tanggal SK', d.TANGGAL_SK) +
+    rowView('Perihal', d.PERIHAL) +
+    rowView('Kode Klasifikasi', d.KODE_KLASIFIKASI || '—') +
+    rowView('Pengolah', d.PENGOLAH || '—') +
+    rowView('Tujuan', d.TUJUAN || '—') +
+    (d.LAMPIRAN
+      ? '<div><span class="text-xs font-semibold text-slate-500">Lampiran</span><div class="mt-0.5"><a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" class="text-brand-600 hover:underline text-sm break-all"><i class="fa-solid fa-paperclip mr-1"></i>' + escapeHtml(d.LAMPIRAN) + '</a></div></div>'
+      : rowView('Lampiran', '—'));
+  document.getElementById('modal-view').classList.remove('hidden');
+}
+
+function rowView(label, val) {
+  return '<div><span class="text-xs font-semibold text-slate-500">' + escapeHtml(label) + '</span><div class="mt-0.5 text-slate-800">' + escapeHtml(val == null || val === '' ? '—' : val) + '</div></div>';
+}
+
+function closeViewModal() {
+  document.getElementById('modal-view').classList.add('hidden');
+}
+
+async function saveForm() {
+  if (!canWrite()) { toast('Akses ditolak', 'error'); return; }
+  const id = document.getElementById('f-id').value;
+  const payload = {
+    id: id || undefined,
+    no: document.getElementById('f-no').value,
+    tahun: document.getElementById('f-tahun').value,
+    kode_klasifikasi: document.getElementById('f-kode').value.trim(),
+    pengolah: document.getElementById('f-pengolah').value,
+    no_sk: document.getElementById('f-no-sk').value,
+    tanggal_sk: document.getElementById('f-tanggal').value,
+    perihal: document.getElementById('f-perihal').value.trim(),
+    tujuan: document.getElementById('f-tujuan').value.trim(),
+    lampiran: document.getElementById('f-lampiran').value.trim()
+  };
+  if (!payload.kode_klasifikasi || !payload.perihal || !payload.tanggal_sk) {
+    toast('Lengkapi field wajib', 'error');
+    return;
+  }
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+
+  const res = await apiCall(id ? 'update' : 'create', payload);
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1"></i> Simpan';
+
+  if (!res.success) {
+    toast(res.message || 'Gagal menyimpan', 'error');
+    return;
+  }
+  toast(res.message || 'Tersimpan', 'success');
+  closeFormModal();
+  await loadData(false);
+}
+
+/* ---------- Upload ---------- */
+function readFileAsBase64(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(reader.result); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadSelectedFile(fileInput, onSuccess) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) { toast('Pilih file terlebih dahulu', 'error'); return; }
+  const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  const extOk = /\.(pdf|doc|docx|jpg|jpeg|png)$/i.test(file.name);
+  if (!extOk && allowed.indexOf(file.type) < 0) {
+    toast('Format file tidak didukung', 'error');
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    toast('Ukuran file maksimal 15 MB', 'error');
+    return;
+  }
+  toast('Mengunggah...', 'info');
+  try {
+    const dataUrl = await readFileAsBase64(file);
+    const res = await apiCall('upload', {
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      data: dataUrl
+    });
+    if (!res.success) {
+      toast(res.message || 'Upload gagal', 'error');
+      return;
+    }
+    toast('Upload berhasil', 'success');
+    if (onSuccess) onSuccess(res.url || res.driveUrl);
+  } catch (err) {
+    toast('Upload gagal: ' + (err.message || err), 'error');
+  }
+}
+
+/* ---------- Delete / Trash ---------- */
+async function deleteItem(id) {
+  if (!canDelete()) { toast('Hanya superadmin yang dapat menghapus', 'error'); return; }
+  if (!confirm('Pindahkan data ini ke Tempat Sampah?')) return;
+  const res = await apiCall('delete', { id: id });
+  if (!res.success) { toast(res.message || 'Gagal', 'error'); return; }
+  toast(res.message, 'success');
+  await loadData(false);
+}
+
+async function openTrash() {
+  if (!canTrash()) { toast('Akses ditolak', 'error'); return; }
+  document.getElementById('modal-trash').classList.remove('hidden');
+  const tbody = document.getElementById('trash-body');
+  tbody.innerHTML = '<tr><td colspan="5" class="px-2 py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i></td></tr>';
+  const res = await apiCall('trash_list');
+  if (!res.success) {
+    tbody.innerHTML = '<tr><td colspan="5" class="px-2 py-8 text-center text-rose-500">' + escapeHtml(res.message) + '</td></tr>';
+    return;
+  }
+  const rows = res.data || [];
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="px-2 py-8 text-center text-slate-400">Tempat sampah kosong</td></tr>';
+    return;
+  }
+  let html = '';
+  rows.forEach(function (d) {
+    html += '<tr class="border-t border-slate-100">'
+      + '<td class="px-2 py-2">' + escapeHtml(d.NO) + '</td>'
+      + '<td class="px-2 py-2 font-mono text-xs">' + escapeHtml(d.NO_SK) + '</td>'
+      + '<td class="px-2 py-2 whitespace-nowrap">' + escapeHtml(d.TANGGAL_SK) + '</td>'
+      + '<td class="px-2 py-2"><div class="line-clamp-2">' + escapeHtml(d.PERIHAL) + '</div></td>'
+      + '<td class="px-2 py-2 text-center whitespace-nowrap">'
+      + '<button type="button" class="text-xs text-emerald-600 hover:underline mr-2" onclick="restoreItem(\'' + escapeHtml(d.ID) + '\')">Kembalikan</button>'
+      + '<button type="button" class="text-xs text-rose-600 hover:underline" onclick="permanentDeleteItem(\'' + escapeHtml(d.ID) + '\')">Hapus permanen</button>'
+      + '</td></tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function closeTrashModal() {
+  document.getElementById('modal-trash').classList.add('hidden');
+}
+
+async function restoreItem(id) {
+  const res = await apiCall('restore', { id: id });
+  if (!res.success) { toast(res.message || 'Gagal', 'error'); return; }
+  toast(res.message, 'success');
+  openTrash();
+  await loadData(false);
+}
+
+async function permanentDeleteItem(id) {
+  if (!confirm('Hapus permanen? Tindakan ini tidak dapat dibatalkan.')) return;
+  const res = await apiCall('permanent_delete', { id: id });
+  if (!res.success) { toast(res.message || 'Gagal', 'error'); return; }
+  toast(res.message, 'success');
+  openTrash();
+}
+
+/* ---------- Import / Export ---------- */
+function openImportModal() {
+  if (!canImportExport()) { toast('Akses ditolak', 'error'); return; }
+  document.getElementById('modal-import').classList.remove('hidden');
+}
+function closeImportModal() {
+  document.getElementById('modal-import').classList.add('hidden');
+  document.getElementById('import-file').value = '';
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(function (l) { return l.trim(); });
+  if (lines.length < 2) return [];
+  function splitLine(line) {
+    const result = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        result.push(cur);
+        cur = '';
+      } else cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+  const headers = splitLine(lines[0]).map(function (h) { return h.trim().toLowerCase(); });
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitLine(lines[i]);
+    const obj = {};
+    headers.forEach(function (h, idx) {
+      obj[h] = (cols[idx] || '').trim();
+    });
+    rows.push({
+      no: obj['no'],
+      no_sk: obj['no. sk'] || obj['no_sk'] || obj['no sk'],
+      tanggal_sk: obj['tanggal sk'] || obj['tanggal_sk'],
+      perihal: obj['perihal'],
+      lampiran: obj['lampiran'],
+      kode_klasifikasi: obj['kode_klasifikasi'] || obj['kode klasifikasi'],
+      pengolah: obj['pengolah'],
+      tujuan: obj['tujuan']
+    });
+  }
+  return rows;
+}
+
+async function doImport() {
+  const file = document.getElementById('import-file').files[0];
+  if (!file) { toast('Pilih file CSV', 'error'); return; }
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if (!rows.length) { toast('CSV kosong / format salah', 'error'); return; }
+  const res = await apiCall('import', { rows: rows });
+  if (!res.success) { toast(res.message || 'Import gagal', 'error'); return; }
+  toast(res.message, 'success');
+  closeImportModal();
+  await loadData(false);
+}
+
+function doExport() {
+  if (!canImportExport()) { toast('Akses ditolak', 'error'); return; }
+  const headers = ['NO', 'NO. SK', 'TANGGAL SK', 'PERIHAL', 'LAMPIRAN', 'KODE_KLASIFIKASI', 'PENGOLAH', 'TUJUAN'];
+  const lines = [headers.join(',')];
+  filteredData.forEach(function (d) {
+    const row = [d.NO, d.NO_SK, d.TANGGAL_SK, d.PERIHAL, d.LAMPIRAN, d.KODE_KLASIFIKASI, d.PENGOLAH, d.TUJUAN]
+      .map(function (v) {
+        const s = String(v == null ? '' : v).replace(/"/g, '""');
+        return '"' + s + '"';
+      });
+    lines.push(row.join(','));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'no-sk-export-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export selesai', 'success');
+}
+
+/* ---------- Upload only ---------- */
+function openUploadOnly(id) {
+  if (!canWrite()) { toast('Akses ditolak', 'error'); return; }
+  document.getElementById('upload-only-id').value = id;
+  document.getElementById('upload-only-file').value = '';
+  const d = findById(id);
+  document.getElementById('upload-only-label').textContent = d
+    ? 'Upload lampiran untuk: ' + (d.NO_SK || d.ID)
+    : 'Pilih file';
+  document.getElementById('modal-upload-only').classList.remove('hidden');
+}
+function closeUploadOnlyModal() {
+  document.getElementById('modal-upload-only').classList.add('hidden');
+}
+
+async function doUploadOnly() {
+  const id = document.getElementById('upload-only-id').value;
+  const input = document.getElementById('upload-only-file');
+  await uploadSelectedFile(input, async function (url) {
+    const res = await apiCall('update', { id: id, lampiran: url });
+    if (!res.success) { toast(res.message || 'Gagal menyimpan link', 'error'); return; }
+    toast('Lampiran tersimpan', 'success');
+    closeUploadOnlyModal();
+    await loadData(false);
+  });
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('DOMContentLoaded', function () {
+  currentRole = (localStorage.getItem('arsip_role') || 'umum').toLowerCase();
+  applyRoleUI();
+  loadKodeKlasifikasi();
+
+  document.getElementById('btn-tambah').addEventListener('click', openTambah);
+  document.getElementById('btn-sync').addEventListener('click', function () { loadData(true); });
+  document.getElementById('btn-trash').addEventListener('click', openTrash);
+  document.getElementById('btn-import').addEventListener('click', openImportModal);
+  document.getElementById('btn-export').addEventListener('click', doExport);
+  document.getElementById('btn-save').addEventListener('click', saveForm);
+  document.getElementById('btn-do-import').addEventListener('click', doImport);
+  document.getElementById('btn-do-upload-only').addEventListener('click', doUploadOnly);
+
+  document.getElementById('btn-upload-file').addEventListener('click', function () {
+    uploadSelectedFile(document.getElementById('f-file'), function (url) {
+      document.getElementById('f-lampiran').value = url;
+      document.getElementById('f-lampiran-preview').innerHTML =
+        '<a href="' + escapeHtml(url) + '" target="_blank" class="text-brand-600 hover:underline"><i class="fa-solid fa-paperclip mr-1"></i>' + escapeHtml(url) + '</a>';
+    });
+  });
+
+  document.getElementById('search-input').addEventListener('input', function () {
+    clearTimeout(window._skSearchTimer);
+    window._skSearchTimer = setTimeout(applyFilter, 220);
+  });
+  document.getElementById('filter-year').addEventListener('change', applyFilter);
+
+  ['f-kode', 'f-pengolah', 'f-no', 'f-tahun'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', updateNoSkPreview);
+    document.getElementById(id).addEventListener('change', updateNoSkPreview);
+  });
+  document.getElementById('f-tahun').addEventListener('change', async function () {
+    if (!editMode) await refreshNextNo();
+    else updateNoSkPreview();
+  });
+  document.getElementById('f-tanggal').addEventListener('change', function () {
+    const iso = this.value;
+    if (iso && iso.length >= 4) {
+      const y = iso.substring(0, 4);
+      if (document.getElementById('f-tahun').value !== y) {
+        document.getElementById('f-tahun').value = y;
+        if (!editMode) refreshNextNo();
+        else updateNoSkPreview();
+      }
+    }
+  });
+
+  document.querySelectorAll('.sort-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const key = this.getAttribute('data-sort');
+      if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortKey = key; sortDir = 'asc'; }
+      document.querySelectorAll('.sort-btn').forEach(function (b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      sortData();
+      renderTable();
+    });
+  });
+
+  // Load lokal dulu biar cepat, lalu sync
+  try {
+    const cached = JSON.parse(localStorage.getItem('gemini_no_sk_db') || '[]');
+    if (Array.isArray(cached) && cached.length) {
+      allData = cached;
+      buildYearFilter();
+      applyFilter();
+    }
+  } catch (e) {}
+
+  loadData(false);
+});
+</script>
+</body>
+</html>
