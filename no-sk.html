@@ -22,82 +22,114 @@
     }
   </script>
   <style>
-    body { font-family: Inter, sans-serif; }
+    body { font-family: Inter, system-ui, sans-serif; }
     .table-wrap { overflow-x: auto; }
     table.data-table th { position: sticky; top: 0; z-index: 10; }
-    .sort-btn { opacity: 0.45; }
-    .sort-btn:hover, .sort-btn.active { opacity: 1; }
-    .modal-backdrop { background: rgba(15, 23, 42, 0.45); }
-    .toast {
-      animation: slideIn 0.25s ease;
-    }
+    .sort-btn { opacity: 0.5; transition: opacity .15s; }
+    .sort-btn:hover, .sort-btn.active { opacity: 1; color: #0284c7; }
+    .modal-backdrop { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); }
+    .toast { animation: slideIn .28s ease; }
     @keyframes slideIn {
-      from { transform: translateY(12px); opacity: 0; }
+      from { transform: translateY(10px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
     .line-clamp-2 {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .action-btn {
+      width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: all .15s;
+    }
+    .action-btn:hover { transform: translateY(-1px); }
+    .page-btn {
+      min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; font-size: 12px; font-weight: 600; transition: all .15s;
+    }
+    input[type="file"]::file-selector-button {
+      margin-right: 8px; padding: 6px 12px; border-radius: 8px; border: 0;
+      background: #e0f2fe; color: #0369a1; font-weight: 600; font-size: 12px; cursor: pointer;
+    }
+    .header-bar {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased min-h-screen">
 
   <!-- TOAST -->
-  <div id="toast-container" class="fixed top-4 right-4 z-[100] space-y-2"></div>
+  <div id="toast-container" class="fixed top-3 right-3 z-[200] space-y-2 pointer-events-none"></div>
 
-  <!-- HEADER -->
-  <div class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-30">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-file-signature text-brand-600"></i>
-          Buku Agenda — No. SK
-        </h1>
-        <p class="text-xs text-slate-500 mt-0.5">Pencatatan Surat Keputusan / SK</p>
+  <!-- HEADER (seragam Surat Keluar) -->
+  <div class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <!-- Baris 1: judul + sinkron/sampah -->
+    <div class="px-4 md:px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-full bg-sky-100 text-brand-600 flex items-center justify-center shrink-0">
+          <i class="fa-solid fa-file-signature"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base font-bold text-slate-800 leading-tight">No. SK</h1>
+          <p class="text-[11px] text-slate-500" id="header-instansi-line">Instansi: <span id="header-instansi-name">—</span></p>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2" id="toolbar-actions">
-        <button type="button" id="btn-tambah" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 shadow-sm">
-          <i class="fa-solid fa-plus"></i> Tambah Data
+      <div class="flex items-center gap-2">
+        <button type="button" id="btn-sync"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
+          <i class="fa-solid fa-arrows-rotate text-slate-400"></i> Sinkron
         </button>
-        <button type="button" id="btn-import" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
-          <i class="fa-solid fa-file-import"></i> Import
-        </button>
-        <button type="button" id="btn-export" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
-          <i class="fa-solid fa-file-export"></i> Export
-        </button>
-        <button type="button" id="btn-sync" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50">
-          <i class="fa-solid fa-arrows-rotate"></i> Sinkron
-        </button>
-        <button type="button" id="btn-trash" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50">
-          <i class="fa-solid fa-trash-can"></i> Tempat Sampah
+        <button type="button" id="btn-trash"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition relative">
+          <i class="fa-solid fa-trash-can text-slate-400"></i> Tempat Sampah
+          <span id="trash-badge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">0</span>
         </button>
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="mt-3 flex flex-wrap items-center gap-2">
-      <div class="relative flex-1 min-w-[200px] max-w-md">
-        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-        <input id="search-input" type="search" placeholder="Cari NO. SK, perihal, tanggal..."
-          class="w-full pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
+    <!-- Baris 2: aksi + pencarian -->
+    <div class="px-4 md:px-5 pb-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-2" id="toolbar-actions">
+        <button type="button" id="btn-tambah"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 shadow-sm transition">
+          <i class="fa-solid fa-plus"></i> Tambah Data
+        </button>
+        <button type="button" id="btn-import"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-emerald-300 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 transition">
+          <i class="fa-solid fa-file-import"></i> Import
+        </button>
+        <button type="button" id="btn-export"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
+          <i class="fa-solid fa-file-export"></i> Ekspor
+        </button>
       </div>
-      <select id="filter-year" class="text-sm border border-slate-200 rounded-lg px-2 py-2 bg-white focus:outline-none">
-        <option value="">Semua Tahun</option>
-      </select>
-      <span class="text-xs text-slate-500" id="result-count">0 data</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="filter-year"
+          class="text-xs border border-slate-200 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+          <option value="">Semua Tahun</option>
+        </select>
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+          <input id="search-input" type="search" placeholder="Cari nomor, perihal..."
+            class="w-52 sm:w-64 pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+        </div>
+      </div>
+    </div>
+
+    <!-- Baris 3: info daftar -->
+    <div class="px-4 md:px-5 pb-2.5 flex flex-wrap items-center justify-between gap-2">
+      <p class="text-xs text-slate-500">
+        Daftar No. SK · <span id="result-count" class="font-semibold text-slate-700">0 data</span>
+      </p>
+      <span class="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-100 px-2.5 py-1 rounded-full" id="header-role-badge">USER</span>
     </div>
   </div>
 
   <!-- TABLE -->
-  <div class="p-3 md:p-4">
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="table-wrap max-h-[calc(100vh-220px)] overflow-y-auto">
+  <main class="p-3 md:p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="table-wrap max-h-[calc(100vh-280px)] overflow-y-auto">
         <table class="data-table w-full text-sm">
           <thead>
-            <tr class="bg-slate-100 text-slate-600 text-left text-xs uppercase tracking-wider">
+            <tr class="bg-slate-50/95 text-slate-500 text-left text-[11px] uppercase tracking-wider border-b border-slate-100">
               <th class="px-3 py-2.5 font-semibold whitespace-nowrap w-14">
                 <button type="button" class="sort-btn inline-flex items-center gap-1" data-sort="NO">NO <i class="fa-solid fa-sort text-[10px]"></i></button>
               </th>
@@ -131,12 +163,13 @@
       </div>
     </div>
   </div>
+  </main>
 
   <!-- ==================== MODAL FORM ==================== -->
   <div id="modal-form" class="fixed inset-0 z-50 hidden">
     <div class="modal-backdrop absolute inset-0" onclick="closeFormModal()"></div>
     <div class="absolute inset-0 flex items-start justify-center p-3 md:p-6 overflow-y-auto">
-      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4 border border-slate-200">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-3 border border-slate-200/80">
         <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
           <h2 class="font-bold text-slate-800" id="form-title">Tambah Data SK</h2>
           <button type="button" onclick="closeFormModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -146,25 +179,32 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">NO (Agenda)</label>
-              <input type="number" id="f-no" min="1" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" readonly>
+              <input type="number" id="f-no" min="1" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50" readonly>
               <p class="text-[10px] text-slate-400 mt-0.5">Otomatis; reset ke 1 jika ganti tahun</p>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Tahun</label>
-              <input type="number" id="f-tahun" min="2000" max="2100" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+              <input type="number" id="f-tahun" min="2000" max="2100" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" required>
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
+            <div class="relative">
               <label class="block text-xs font-semibold text-slate-600 mb-1">Kode Klasifikasi <span class="text-rose-500">*</span></label>
-              <input type="text" id="f-kode" list="list-kode" placeholder="Contoh: 900.1.3.5" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
-              <datalist id="list-kode"></datalist>
-              <p class="text-[10px] text-slate-400 mt-0.5">Ambil dari Master Kode Klasifikasi</p>
+              <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                <input type="text" id="f-kode-search" autocomplete="off" placeholder="Cari kode atau uraian klasifikasi..."
+                  class="w-full border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500"
+                  oninput="filterKodeKlasifikasi(this.value)" onfocus="filterKodeKlasifikasi(this.value)" onkeydown="kodeSearchKey(event)">
+                <input type="hidden" id="f-kode" required>
+              </div>
+              <div id="kode-dropdown" class="hidden absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg text-sm"></div>
+              <p id="f-kode-selected" class="text-[10px] text-brand-600 mt-1 font-medium empty:hidden"></p>
+              <p class="text-[10px] text-slate-400 mt-0.5">Data dari Master Kode Klasifikasi — klik untuk memilih</p>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Pengolah <span class="text-rose-500">*</span></label>
-              <select id="f-pengolah" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+              <select id="f-pengolah" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" required>
                 <option value="Sekr">Sekr</option>
                 <option value="PPD">PPD</option>
                 <option value="PUEMD">PUEMD</option>
@@ -175,23 +215,17 @@
 
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">NO. SK (otomatis)</label>
-            <input type="text" id="f-no-sk" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 font-mono text-xs" readonly>
+            <input type="text" id="f-no-sk" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm bg-slate-50 font-mono text-xs" readonly>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal SK <span class="text-rose-500">*</span></label>
-              <input type="date" id="f-tanggal" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Tujuan</label>
-              <input type="text" id="f-tujuan" placeholder="Instansi / pihak tujuan" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
-            </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal SK <span class="text-rose-500">*</span></label>
+            <input type="date" id="f-tanggal" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" required>
           </div>
 
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Perihal <span class="text-rose-500">*</span></label>
-            <textarea id="f-perihal" rows="3" placeholder="Uraian perihal SK..." class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required></textarea>
+            <textarea id="f-perihal" rows="3" placeholder="Uraian perihal SK..." class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" required></textarea>
           </div>
 
           <div>
@@ -207,8 +241,8 @@
           </div>
 
           <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-            <button type="button" onclick="closeFormModal()" class="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50">Batal</button>
-            <button type="button" id="btn-save" class="px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 shadow-sm">
+            <button type="button" onclick="closeFormModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50">Batal</button>
+            <button type="button" id="btn-save" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 shadow-sm">
               <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan
             </button>
           </div>
@@ -274,7 +308,7 @@
           <input type="file" id="import-file" accept=".csv,text/csv" class="text-sm w-full">
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" onclick="closeImportModal()" class="px-3 py-1.5 rounded-lg border text-sm">Batal</button>
-            <button type="button" id="btn-do-import" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-sm font-semibold">Import</button>
+            <button type="button" id="btn-do-import" class="px-3 py-1.5 rounded-xl bg-brand-600 text-white text-sm font-semibold">Import</button>
           </div>
         </div>
       </div>
@@ -341,16 +375,14 @@ function canTrash() { return isSuperAdmin(); }
 /* ---------- Utils ---------- */
 function toast(msg, type) {
   const box = document.getElementById('toast-container');
-  const colors = {
-    success: 'bg-emerald-600',
-    error: 'bg-rose-600',
-    info: 'bg-slate-800'
-  };
+  const colors = { success: 'bg-emerald-600', error: 'bg-rose-600', info: 'bg-slate-800' };
+  const icons = { success: 'fa-circle-check', error: 'fa-circle-xmark', info: 'fa-circle-info' };
   const el = document.createElement('div');
-  el.className = 'toast ' + (colors[type] || colors.info) + ' text-white text-sm px-4 py-2.5 rounded-lg shadow-lg max-w-sm';
-  el.textContent = msg;
+  el.className = 'toast pointer-events-auto ' + (colors[type] || colors.info) +
+    ' text-white text-sm px-4 py-2.5 rounded-xl shadow-lg max-w-sm flex items-center gap-2';
+  el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.info) + '"></i><span>' + escapeHtml(msg) + '</span>';
   box.appendChild(el);
-  setTimeout(function () { el.remove(); }, 3200);
+  setTimeout(function () { el.remove(); }, 3500);
 }
 
 function escapeHtml(s) {
@@ -434,35 +466,105 @@ function applyRoleUI() {
 }
 
 /* ---------- Kode Klasifikasi ---------- */
+let kodeKlasifikasiList = [];
+
+function getCurrentUserLabel() {
+  const nama = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
+  const role = (localStorage.getItem('arsip_role') || currentRole || 'user').toUpperCase();
+  return nama + ' (' + role + ')';
+}
+
 function loadKodeKlasifikasi() {
-  const list = document.getElementById('list-kode');
-  list.innerHTML = '';
-  let codes = [];
+  kodeKlasifikasiList = [];
   try {
-    const keys = ['gemini_kode_klasifikasi_db', 'kode_klasifikasi_db', 'arsip_kode_klasifikasi'];
+    const keys = ['cachedKodeKlasifikasi', 'gemini_kode_klasifikasi_db', 'kode_klasifikasi_db', 'arsip_kode_klasifikasi'];
     for (let i = 0; i < keys.length; i++) {
       const raw = localStorage.getItem(keys[i]);
       if (!raw) continue;
       const parsed = JSON.parse(raw);
       const rows = Array.isArray(parsed) ? parsed : (parsed && parsed.data ? parsed.data : []);
       rows.forEach(function (r) {
-        const kode = r.kode || r.KODE || r.kode_klasifikasi || r['Kode Klasifikasi'] || r.code || '';
-        if (kode) codes.push(String(kode).trim());
+        const kode = String(r.kode || r.KODE || r.kode_klasifikasi || r['Kode Klasifikasi'] || r.code || '').trim();
+        const uraian = String(r.uraian || r.URAIAN || r.nama || r['Uraian Klasifikasi'] || r.deskripsi || '').trim();
+        if (kode) kodeKlasifikasiList.push({ kode: kode, uraian: uraian });
       });
-      if (codes.length) break;
+      if (kodeKlasifikasiList.length) break;
     }
   } catch (e) {}
-  if (!codes.length) codes = DEFAULT_KODE.slice();
-  // unique
-  codes = codes.filter(function (v, i, a) { return a.indexOf(v) === i; });
-  codes.forEach(function (c) {
-    const opt = document.createElement('option');
-    opt.value = c;
-    list.appendChild(opt);
+  if (!kodeKlasifikasiList.length) {
+    DEFAULT_KODE.forEach(function (c) { kodeKlasifikasiList.push({ kode: c, uraian: '' }); });
+  }
+  const seen = {};
+  kodeKlasifikasiList = kodeKlasifikasiList.filter(function (x) {
+    if (seen[x.kode]) return false;
+    seen[x.kode] = true;
+    return true;
   });
 }
 
-/* ---------- Load & Render ---------- */
+function filterKodeKlasifikasi(q) {
+  const box = document.getElementById('kode-dropdown');
+  if (!box) return;
+  const query = String(q || '').toLowerCase().trim();
+  let list = kodeKlasifikasiList;
+  if (query) {
+    list = kodeKlasifikasiList.filter(function (x) {
+      return x.kode.toLowerCase().indexOf(query) >= 0 || (x.uraian || '').toLowerCase().indexOf(query) >= 0;
+    });
+  }
+  if (!list.length) {
+    box.innerHTML = '<div class="px-3 py-2 text-xs text-slate-400">Tidak ada kode cocok</div>';
+    box.classList.remove('hidden');
+    return;
+  }
+  let html = '';
+  list.slice(0, 40).forEach(function (x) {
+    const k = String(x.kode).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const u = String(x.uraian || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    html += '<button type="button" class="kode-opt w-full text-left px-3 py-2 hover:bg-brand-50 border-b border-slate-50 transition" '
+      + 'onmousedown="event.preventDefault(); selectKodeKlasifikasi(\'' + k + '\', \'' + u + '\')">'
+      + '<span class="font-semibold text-brand-700 text-xs">' + escapeHtml(x.kode) + '</span>'
+      + (x.uraian ? '<span class="block text-[11px] text-slate-500 truncate">' + escapeHtml(x.uraian) + '</span>' : '')
+      + '</button>';
+  });
+  if (list.length > 40) {
+    html += '<div class="px-3 py-1.5 text-[10px] text-slate-400">+' + (list.length - 40) + ' lainnya — ketik untuk memfilter</div>';
+  }
+  box.innerHTML = html;
+  box.classList.remove('hidden');
+}
+
+function selectKodeKlasifikasi(kode, uraian) {
+  document.getElementById('f-kode').value = kode;
+  document.getElementById('f-kode-search').value = kode + (uraian ? ' — ' + uraian : '');
+  const sel = document.getElementById('f-kode-selected');
+  if (sel) sel.textContent = 'Terpilih: ' + kode + (uraian ? ' (' + uraian + ')' : '');
+  const box = document.getElementById('kode-dropdown');
+  if (box) box.classList.add('hidden');
+  updateNoSkPreview();
+}
+
+function kodeSearchKey(e) {
+  if (e.key === 'Escape') {
+    const box = document.getElementById('kode-dropdown');
+    if (box) box.classList.add('hidden');
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const first = document.querySelector('#kode-dropdown .kode-opt');
+    if (first) first.dispatchEvent(new MouseEvent('mousedown'));
+  }
+}
+
+document.addEventListener('click', function (e) {
+  const box = document.getElementById('kode-dropdown');
+  const search = document.getElementById('f-kode-search');
+  if (!box || !search) return;
+  if (!box.contains(e.target) && e.target !== search) box.classList.add('hidden');
+});
+
+
+
 async function loadData(showToast) {
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data...</td></tr>';
@@ -474,7 +576,6 @@ async function loadData(showToast) {
     return;
   }
   allData = res.data || [];
-  // cache lokal
   try { localStorage.setItem('gemini_no_sk_db', JSON.stringify(allData)); } catch (e) {}
   buildYearFilter();
   applyFilter();
@@ -510,7 +611,7 @@ function applyFilter() {
       if (String(y) !== String(year)) return false;
     }
     if (!q) return true;
-    const hay = [d.NO, d.NO_SK, d.TANGGAL_SK, d.PERIHAL, d.LAMPIRAN, d.PENGOLAH, d.TUJUAN]
+    const hay = [d.NO, d.NO_SK, d.TANGGAL_SK, d.PERIHAL, d.LAMPIRAN, d.PENGOLAH, d.CREATED_BY]
       .map(function (x) { return String(x || '').toLowerCase(); }).join(' ');
     return hay.indexOf(q) >= 0;
   });
@@ -546,6 +647,8 @@ function sortData() {
   });
 }
 
+
+
 function renderTable() {
   const tbody = document.getElementById('table-body');
   const total = filteredData.length;
@@ -570,21 +673,21 @@ function renderTable() {
   let html = '';
   pageItems.forEach(function (d) {
     const lampiran = d.LAMPIRAN
-      ? '<a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" rel="noopener" class="text-brand-600 hover:underline text-xs inline-flex items-center gap-1"><i class="fa-solid fa-paperclip"></i> Lihat</a>'
+      ? '<a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-brand-600 hover:text-brand-800 text-xs font-medium bg-brand-50 hover:bg-brand-100 px-2 py-1 rounded-lg transition"><i class="fa-solid fa-paperclip text-[10px]"></i> Lihat</a>'
       : '<span class="text-slate-300 text-xs">—</span>';
 
     let actions = '';
-    actions += '<button type="button" title="Lihat" class="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-600" onclick="viewItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-eye text-xs"></i></button>';
+    actions += '<button type="button" title="Lihat" class="action-btn hover:bg-slate-100 text-slate-500" onclick="viewItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-eye text-xs"></i></button>';
     if (canWrite()) {
-      actions += '<button type="button" title="Edit" class="w-7 h-7 rounded-md hover:bg-slate-100 text-brand-600" onclick="editItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-pen text-xs"></i></button>';
-      actions += '<button type="button" title="Upload lampiran" class="w-7 h-7 rounded-md hover:bg-slate-100 text-slate-700" onclick="openUploadOnly(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-cloud-arrow-up text-xs"></i></button>';
+      actions += '<button type="button" title="Edit" class="action-btn hover:bg-brand-50 text-brand-600" onclick="editItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-pen text-xs"></i></button>';
+      actions += '<button type="button" title="Upload lampiran" class="action-btn hover:bg-slate-100 text-slate-600" onclick="openUploadOnly(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-cloud-arrow-up text-xs"></i></button>';
     }
     if (canDelete()) {
-      actions += '<button type="button" title="Hapus" class="w-7 h-7 rounded-md hover:bg-rose-50 text-rose-600" onclick="deleteItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-trash text-xs"></i></button>';
+      actions += '<button type="button" title="Hapus" class="action-btn hover:bg-rose-50 text-rose-500" onclick="deleteItem(\'' + escapeHtml(d.ID) + '\')"><i class="fa-solid fa-trash text-xs"></i></button>';
     }
 
     html += '<tr class="hover:bg-slate-50/80">'
-      + '<td class="px-3 py-2.5 font-semibold text-slate-700">' + escapeHtml(d.NO) + '</td>'
+      + '<td class="px-3 py-2.5"><span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">' + escapeHtml(d.NO) + '</span></td>'
       + '<td class="px-3 py-2.5 font-mono text-xs text-slate-700">' + escapeHtml(d.NO_SK) + '</td>'
       + '<td class="px-3 py-2.5 whitespace-nowrap text-slate-600">' + escapeHtml(d.TANGGAL_SK) + '</td>'
       + '<td class="px-3 py-2.5 text-slate-700"><div class="line-clamp-2" title="' + escapeHtml(d.PERIHAL) + '">' + escapeHtml(d.PERIHAL) + '</div></td>'
@@ -659,8 +762,11 @@ async function openTambah() {
   document.getElementById('f-tanggal').value = now.toISOString().slice(0, 10);
   document.getElementById('f-pengolah').value = 'Sekr';
   document.getElementById('f-kode').value = '';
+  var _ks0 = document.getElementById('f-kode-search');
+  if (_ks0) _ks0.value = '';
+  var _sel0 = document.getElementById('f-kode-selected');
+  if (_sel0) _sel0.textContent = '';
   document.getElementById('f-perihal').value = '';
-  document.getElementById('f-tujuan').value = '';
   document.getElementById('f-lampiran').value = '';
   document.getElementById('f-lampiran-preview').innerHTML = '';
   document.getElementById('f-id').value = '';
@@ -684,10 +790,17 @@ async function editItem(id) {
   const y = yearFromItem(d) || new Date().getFullYear();
   document.getElementById('f-tahun').value = y;
   document.getElementById('f-kode').value = d.KODE_KLASIFIKASI || '';
+  var _ku = '';
+  for (var _i = 0; _i < kodeKlasifikasiList.length; _i++) {
+    if (kodeKlasifikasiList[_i].kode === (d.KODE_KLASIFIKASI || '')) { _ku = kodeKlasifikasiList[_i].uraian; break; }
+  }
+  var _ks = document.getElementById('f-kode-search');
+  if (_ks) _ks.value = (d.KODE_KLASIFIKASI || '') + (_ku ? ' — ' + _ku : '');
+  var _sel = document.getElementById('f-kode-selected');
+  if (_sel) _sel.textContent = d.KODE_KLASIFIKASI ? ('Terpilih: ' + d.KODE_KLASIFIKASI) : '';
   document.getElementById('f-pengolah').value = d.PENGOLAH || 'Sekr';
   document.getElementById('f-no-sk').value = d.NO_SK || '';
   document.getElementById('f-tanggal').value = formatDateInput(d.TANGGAL_SK);
-  document.getElementById('f-tujuan').value = d.TUJUAN || '';
   document.getElementById('f-perihal').value = d.PERIHAL || '';
   document.getElementById('f-lampiran').value = d.LAMPIRAN || '';
   document.getElementById('f-lampiran-preview').innerHTML = d.LAMPIRAN
@@ -707,7 +820,8 @@ function viewItem(id) {
     rowView('Perihal', d.PERIHAL) +
     rowView('Kode Klasifikasi', d.KODE_KLASIFIKASI || '—') +
     rowView('Pengolah', d.PENGOLAH || '—') +
-    rowView('Tujuan', d.TUJUAN || '—') +
+    rowView('Dicatat oleh', d.CREATED_BY || '—') +
+    rowView('Diperbarui oleh', d.UPDATED_BY || d.CREATED_BY || '—') +
     (d.LAMPIRAN
       ? '<div><span class="text-xs font-semibold text-slate-500">Lampiran</span><div class="mt-0.5"><a href="' + escapeHtml(d.LAMPIRAN) + '" target="_blank" class="text-brand-600 hover:underline text-sm break-all"><i class="fa-solid fa-paperclip mr-1"></i>' + escapeHtml(d.LAMPIRAN) + '</a></div></div>'
       : rowView('Lampiran', '—'));
@@ -725,6 +839,7 @@ function closeViewModal() {
 async function saveForm() {
   if (!canWrite()) { toast('Akses ditolak', 'error'); return; }
   const id = document.getElementById('f-id').value;
+  const userLabel = getCurrentUserLabel();
   const payload = {
     id: id || undefined,
     no: document.getElementById('f-no').value,
@@ -734,8 +849,11 @@ async function saveForm() {
     no_sk: document.getElementById('f-no-sk').value,
     tanggal_sk: document.getElementById('f-tanggal').value,
     perihal: document.getElementById('f-perihal').value.trim(),
-    tujuan: document.getElementById('f-tujuan').value.trim(),
-    lampiran: document.getElementById('f-lampiran').value.trim()
+    lampiran: document.getElementById('f-lampiran').value.trim(),
+    created_by: userLabel,
+    updated_by: userLabel,
+    user: userLabel,
+    role: currentRole
   };
   if (!payload.kode_klasifikasi || !payload.perihal || !payload.tanggal_sk) {
     toast('Lengkapi field wajib', 'error');
@@ -954,6 +1072,8 @@ function openUploadOnly(id) {
   document.getElementById('upload-only-id').value = id;
   document.getElementById('upload-only-file').value = '';
   const d = findById(id);
+  // simpan no_sk untuk fallback pencarian baris di server
+  document.getElementById('upload-only-id').setAttribute('data-no-sk', d ? (d.NO_SK || '') : '');
   document.getElementById('upload-only-label').textContent = d
     ? 'Upload lampiran untuk: ' + (d.NO_SK || d.ID)
     : 'Pilih file';
@@ -965,19 +1085,40 @@ function closeUploadOnlyModal() {
 
 async function doUploadOnly() {
   const id = document.getElementById('upload-only-id').value;
+  const noSk = document.getElementById('upload-only-id').getAttribute('data-no-sk') || '';
   const input = document.getElementById('upload-only-file');
-  await uploadSelectedFile(input, async function (url) {
-    const res = await apiCall('update', { id: id, lampiran: url });
-    if (!res.success) { toast(res.message || 'Gagal menyimpan link', 'error'); return; }
-    toast('Lampiran tersimpan', 'success');
-    closeUploadOnlyModal();
-    await loadData(false);
-  });
+  const btn = document.getElementById('btn-do-upload-only');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Mengunggah...';
+  }
+  try {
+    await uploadSelectedFile(input, async function (url) {
+      const res = await apiCall('update', { id: id, no_sk: noSk, lampiran: url });
+      if (!res.success) {
+        toast(res.message || 'Gagal menyimpan link lampiran', 'error');
+        return;
+      }
+      toast('Lampiran tersimpan', 'success');
+      closeUploadOnlyModal();
+      await loadData(false);
+    });
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> Upload & Simpan';
+    }
+  }
 }
 
 /* ---------- Events ---------- */
 document.addEventListener('DOMContentLoaded', function () {
   currentRole = (localStorage.getItem('arsip_role') || 'umum').toLowerCase();
+  var instansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+  var instEl = document.getElementById('header-instansi-name');
+  if (instEl) instEl.textContent = instansi;
+  var roleBadge = document.getElementById('header-role-badge');
+  if (roleBadge) roleBadge.textContent = currentRole.toUpperCase();
   applyRoleUI();
   loadKodeKlasifikasi();
 
@@ -1004,9 +1145,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   document.getElementById('filter-year').addEventListener('change', applyFilter);
 
-  ['f-kode', 'f-pengolah', 'f-no', 'f-tahun'].forEach(function (id) {
-    document.getElementById(id).addEventListener('input', updateNoSkPreview);
-    document.getElementById(id).addEventListener('change', updateNoSkPreview);
+  ['f-pengolah', 'f-no', 'f-tahun'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', updateNoSkPreview);
+    el.addEventListener('change', updateNoSkPreview);
   });
   document.getElementById('f-tahun').addEventListener('change', async function () {
     if (!editMode) await refreshNextNo();
