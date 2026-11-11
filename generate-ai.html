@@ -1160,6 +1160,7 @@
       html += rowMeta('Nomor', d.nomor) + rowMeta('Sifat', d.sifat) + rowMeta('Lampiran', d.lampiran) + rowMeta('Hal', d.hal);
       html += '</table>';
       html += '<div style="margin:14px 0 4px 0;"><strong>Yth.</strong><br>' + nl2br(esc(d.yth)) + '</div>';
+      html += '<div style="margin:0 0 12px 0;">di tempat</div>';
       html += '<div style="text-align:justify;margin:12px 0;">' + nl2br(esc(d.pembuka)) + '</div>';
       if (d.type === 'undangan') {
         html += '<table class="meta" style="font-size:inherit;margin:8px 0 12px 24px;border-collapse:collapse;border:none;">';
