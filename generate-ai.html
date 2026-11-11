@@ -62,109 +62,49 @@
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
-        height: auto !important;
-        overflow: visible !important;
       }
-      /* Sembunyikan seluruh UI */
       body * { visibility: hidden !important; }
-      /* Tampilkan hanya area surat */
-      #print-preview-overlay,
-      #print-preview-overlay #print-preview-panel,
-      #print-preview-overlay #print-root,
-      #print-preview-overlay #print-root * {
+      #print-root.print-active,
+      #print-root.print-active * {
         visibility: visible !important;
       }
-      #print-preview-overlay {
-        display: block !important;
+      #print-root.print-active {
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-        overflow: visible !important;
-        inset: auto !important;
-      }
-      #print-preview-panel {
-        display: block !important;
-        width: 100% !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        background: #fff !important;
-      }
-      /* Sembunyikan toolbar & footer modal */
-      #print-preview-panel > div:first-child,
-      #print-preview-panel > div:last-child {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        overflow: hidden !important;
-      }
-      #print-preview-panel > div:nth-child(2) {
-        display: block !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        background: #fff !important;
-        max-height: none !important;
-        overflow: visible !important;
-      }
-      #print-root.sheet-a4 {
-        display: block !important;
-        width: 100% !important;
         max-width: 100% !important;
-        min-height: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        box-shadow: none !important;
         background: #fff !important;
         color: #000 !important;
-        font-size: 12pt !important;
-        line-height: 1.5 !important;
+        box-shadow: none !important;
+        min-height: auto !important;
+        overflow: visible !important;
       }
-      /* JANGAN paksa display:block pada semua anak — biarkan flex kop tetap jalan */
-      #print-root .kop-flex {
+      #print-root.print-active .kop-flex {
         display: flex !important;
         align-items: center !important;
         gap: 10px !important;
       }
-      #print-root .kop-logo,
-      #print-root img.kop-logo,
-      #print-root img {
+      #print-root.print-active img,
+      #print-root.print-active .kop-logo {
         width: 68px !important;
         max-width: 68px !important;
         height: auto !important;
         max-height: 85px !important;
         object-fit: contain !important;
-        display: inline-block !important;
-        flex-shrink: 0 !important;
       }
-      #print-root .kop-text {
-        flex: 1 !important;
-        text-align: center !important;
-      }
-      #print-root .kop-line1,
-      #print-root .kop-line2 {
-        font-weight: bold !important;
-        text-transform: uppercase !important;
-      }
-      #print-root .ttd-block {
+      #print-root.print-active .kop-text { flex: 1 !important; text-align: center !important; }
+      #print-root.print-active .ttd-block {
         width: 240px !important;
         margin-left: auto !important;
         text-align: left !important;
         margin-top: 18pt !important;
       }
-      #print-root .ttd-spacer {
-        height: 54pt !important;
-      }
-      #print-root table {
-        border-collapse: collapse !important;
-      }
-      #print-root .meta td {
-        border: none !important;
-      }
+      #print-root.print-active .ttd-spacer { height: 54pt !important; }
+      #print-root.print-active table { border-collapse: collapse !important; }
+      #print-root.print-active .meta td { border: none !important; }
     }
     #print-preview-overlay {
       display: none;
@@ -1377,15 +1317,44 @@
     function doPrintFromPreview() {
       var root = document.getElementById('print-root');
       var sheet = document.getElementById('preview-sheet');
-      if (root && sheet) {
+      if (!root) {
+        Swal.fire('Gagal', 'Elemen cetak tidak ditemukan.', 'error');
+        return;
+      }
+      if (sheet) {
         var html = String(sheet.innerHTML || '').trim();
         if (html) root.innerHTML = html;
       }
-      if (root && !String(root.innerHTML || '').trim()) {
+      if (!String(root.innerHTML || '').trim()) {
         Swal.fire('Preview kosong', 'Konten surat belum tersedia.', 'warning');
         return;
       }
-      setTimeout(function() { window.print(); }, 80);
+
+      // Pindahkan #print-root langsung ke <body> agar tidak terpengaruh layout modal
+      var parent = root.parentNode;
+      var next = root.nextSibling;
+      document.body.appendChild(root);
+      root.classList.add('print-active');
+
+      var restored = false;
+      function restore() {
+        if (restored) return;
+        restored = true;
+        root.classList.remove('print-active');
+        try {
+          if (next) parent.insertBefore(root, next);
+          else parent.appendChild(root);
+        } catch (e) {
+          parent.appendChild(root);
+        }
+        window.removeEventListener('afterprint', restore);
+      }
+      window.addEventListener('afterprint', restore);
+      setTimeout(function() {
+        try { window.print(); } catch (e) {}
+        // fallback jika afterprint tidak dipanggil
+        setTimeout(restore, 1500);
+      }, 50);
     }
 
     function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
