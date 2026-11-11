@@ -57,26 +57,61 @@
     .ttd-block { width: 260px; margin-left: auto; text-align: left; margin-top: 28px; }
     .ttd-space { height: 70px; }
     @media print {
-      body * { visibility: hidden !important; }
-      #print-root, #print-root * { visibility: visible !important; }
-      #print-root {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
+      @page { size: A4; margin: 1.5cm 2cm 2.5cm 3cm; }
+      html, body {
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
-        box-shadow: none !important;
+        height: auto !important;
+        overflow: visible !important;
       }
-      #print-root .sheet-a4 {
+      /* Sembunyikan semua elemen halaman */
+      body * { display: none !important; }
+      /* Tampilkan hanya overlay + isi surat */
+      #print-preview-overlay,
+      #print-preview-overlay #print-preview-panel,
+      #print-preview-overlay #print-root,
+      #print-preview-overlay #print-root * {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        color: #000 !important;
+        background: #fff !important;
         box-shadow: none !important;
+        position: static !important;
+        inset: auto !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: none !important;
+        overflow: visible !important;
         margin: 0 !important;
+      }
+      #print-preview-overlay {
+        padding: 0 !important;
+        background: #fff !important;
+      }
+      #print-preview-panel {
+        border-radius: 0 !important;
+        width: 100% !important;
+      }
+      /* Sembunyikan toolbar & footer modal (anak langsung panel selain area konten) */
+      #print-preview-panel > div:first-child,
+      #print-preview-panel > div:last-child {
+        display: none !important;
+      }
+      #print-preview-panel > div:nth-child(2) {
+        display: block !important;
+        padding: 0 !important;
+        background: #fff !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      #print-root.sheet-a4 {
         width: 100% !important;
         min-height: auto !important;
-        padding: 0 !important; /* margin via @page */
+        padding: 0 !important;
+        box-shadow: none !important;
       }
-      @page { size: A4; margin: 1.5cm 2cm 2.5cm 3cm; }
     }
     #print-preview-overlay {
       display: none;
@@ -870,12 +905,17 @@
 
 
     function buildAutoDraft(type) {
-      const perihal = (fromSurat.perihal || document.getElementById('f-hal').value || (bahanMeta.extracted && bahanMeta.extracted.perihal) || '').trim();
-      const nomor = (fromSurat.nomor_surat || document.getElementById('f-nomor').value || (bahanMeta.extracted && bahanMeta.extracted.nomor) || '').trim();
-      const tglRef = (bahanMeta.extracted && bahanMeta.extracted.tanggal) || '';
-      const bodyRef = (bahanMeta.extracted && bahanMeta.extracted.body) || '';
+      // Data surat yang sedang dibuat (header)
+      const perihalSurat = (document.getElementById('f-hal').value || fromSurat.perihal || '').trim();
+      const nomorSurat = (document.getElementById('f-nomor').value || fromSurat.nomor_surat || '').trim();
 
-      // Jangan masukkan ulang label Nomor/Tanggal/Sifat/Lampiran/Hal ke paragraf
+      // Data hasil OCR / file referensi (prioritas untuk kalimat "Menindaklanjuti...")
+      const ext = bahanMeta.extracted || {};
+      const perihalRef = (ext.perihal || '').trim();
+      const nomorRef = (ext.nomor || '').trim();
+      const tglRef = (ext.tanggal || '').trim();
+      const bodyRef = (ext.body || '').trim();
+
       function stripMetaLines(text) {
         return String(text || '')
           .split('\n')
@@ -890,15 +930,26 @@
       const bahanClean = stripMetaLines(document.getElementById('bahan-text').value || bahanMeta.text || '');
       const bodyClean = stripMetaLines(bodyRef);
 
-      // Kalimat pembuka formal (memuat perihal/nomor/tanggal sekali saja)
+      // Pakai data REFERENSI (OCR) jika ada; jangan campur dengan nomor/perihal surat keluar
+      const perihal = perihalRef || perihalSurat;
+      const nomor = nomorRef || '';
+      const tanggal = tglRef || '';
+
       let draft = 'Menindaklanjuti';
-      if (perihal) draft += ' perihal ' + perihal;
-      else draft += ' surat terkait';
-      if (nomor) draft += ' Nomor ' + nomor;
-      if (tglRef) draft += ' tanggal ' + tglRef;
+      if (perihalRef || nomorRef || tglRef) {
+        // Dasar dari dokumen referensi hasil OCR
+        if (perihalRef) draft += ' perihal ' + perihalRef;
+        else draft += ' surat terkait';
+        if (nomorRef) draft += ' Nomor ' + nomorRef;
+        if (tglRef) draft += ' tanggal ' + tglRef;
+      } else {
+        // Tidak ada OCR — pakai data form/surat keluar
+        if (perihalSurat) draft += ' perihal ' + perihalSurat;
+        else draft += ' surat terkait';
+        if (nomorSurat) draft += ' Nomor ' + nomorSurat;
+      }
       draft += ', bersama ini kami sampaikan hal-hal sebagai berikut.';
 
-      // Hanya tambah isi substansi (bukan meta label)
       if (bodyClean) {
         draft += '\n\n' + bodyClean;
       } else if (bahanClean && bahanClean.length > 20) {
