@@ -32,14 +32,14 @@
       <div class="badge bg-secondary p-2 fs-6">Total Master JRA: <span id="total-jra-count">0</span></div>
     </div>
 
-    <!-- Tombol Aksi (Tombol manajemen hanya muncul untuk superadmin/admin) -->
+    <!-- Tombol Aksi (sesuai role: superadmin full, admin tanpa hapus/import/export, user hanya lihat) -->
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-      <div class="d-flex gap-2 flex-wrap super-admin-only">
-        <button class="btn btn-primary fw-semibold" onclick="openModalTambahJra()"><i class="fas fa-plus-circle me-1"></i> Tambah Master JRA</button>
-        <button class="btn btn-outline-danger fw-semibold" onclick="hapusJraTerpilih()"><i class="fas fa-trash-alt me-1"></i> Hapus Terpilih</button>
-        <button class="btn btn-danger fw-semibold" onclick="hapusSemuaJra()"><i class="fas fa-trash me-1"></i> Hapus Semua JRA</button>
-        <button class="btn btn-success fw-semibold" onclick="exportDataJraExcel()"><i class="fas fa-file-excel me-1"></i> Ekspor Excel</button>
-        <label class="btn btn-warning fw-semibold text-dark mb-0" style="cursor: pointer;">
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary fw-semibold role-add-edit d-none" onclick="openModalTambahJra()"><i class="fas fa-plus-circle me-1"></i> Tambah Master JRA</button>
+        <button class="btn btn-outline-danger fw-semibold role-delete d-none" onclick="hapusJraTerpilih()"><i class="fas fa-trash-alt me-1"></i> Hapus Terpilih</button>
+        <button class="btn btn-danger fw-semibold role-delete d-none" onclick="hapusSemuaJra()"><i class="fas fa-trash me-1"></i> Hapus Semua JRA</button>
+        <button class="btn btn-success fw-semibold role-import-export d-none" onclick="exportDataJraExcel()"><i class="fas fa-file-excel me-1"></i> Ekspor Excel</button>
+        <label class="btn btn-warning fw-semibold text-dark mb-0 role-import-export d-none" style="cursor: pointer;">
           <i class="fas fa-file-import me-1"></i> Import Excel <input type="file" id="importExcelFile" accept=".csv, .xlsx, .xls" style="display: none;" onchange="importDataJra(event)">
         </label>
       </div>
@@ -61,7 +61,7 @@
         <table class="table table-hover align-middle mb-0">
           <thead>
             <tr>
-              <th width="40" class="text-center super-admin-only"><input type="checkbox" id="select-all-jra" onclick="toggleSelectAllJra(this)"></th>
+              <th width="40" class="text-center role-delete d-none"><input type="checkbox" id="select-all-jra" onclick="toggleSelectAllJra(this)"></th>
               <th>ID JRA</th><th>Jenis Arsip</th><th>Jangka Waktu Aktif</th><th>Jangka Waktu Inaktif</th><th>Status Akhir</th><th class="text-center">Aksi</th>
             </tr>
           </thead>
@@ -113,9 +113,16 @@
     const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
     
     // Ambil data sesi login dari localStorage
-    const currentRole = localStorage.getItem('arsip_role') || 'umum';
+    const currentRole = (localStorage.getItem('arsip_role') || 'umum').toLowerCase();
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
     const currentUserName = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
+
+    // Role helpers: superadmin = full, admin = tanpa hapus/import/export/sampah, user/umum = hanya lihat
+    const isSuperAdmin = currentRole === 'superadmin';
+    const isAdmin = currentRole === 'admin';
+    const canAddEdit = isSuperAdmin || isAdmin;
+    const canDelete = isSuperAdmin;
+    const canImportExport = isSuperAdmin;
 
     let masterJraData = [];
     let filteredJra = [];
@@ -154,11 +161,15 @@
       document.getElementById('header-instansi-label').innerText = currentInstansi;
       document.getElementById('header-user-label').innerText = currentUserName + ` (${currentRole.toUpperCase()})`;
 
-      // Jika role bukan umum (artinya superadmin atau admin), tampilkan tombol pengelolaan khusus
-      if (currentRole.toLowerCase() !== 'umum') {
-        document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('d-none'));
-      } else {
-        document.querySelectorAll('.super-admin-only').forEach(el => el.classList.add('d-none'));
+      // Tampilkan tombol sesuai role
+      if (canAddEdit) {
+        document.querySelectorAll('.role-add-edit').forEach(el => el.classList.remove('d-none'));
+      }
+      if (canDelete) {
+        document.querySelectorAll('.role-delete').forEach(el => el.classList.remove('d-none'));
+      }
+      if (canImportExport) {
+        document.querySelectorAll('.role-import-export').forEach(el => el.classList.remove('d-none'));
       }
 
       // Load data dari server (prioritas) + fallback ke localStorage
@@ -172,7 +183,8 @@
 
       // Tampilkan loading di tabel
       const tbody = document.getElementById('tbody-jra');
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Memuat data...</td></tr>`;
+      const colSpan = canDelete ? 7 : 6;
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Memuat data...</td></tr>`;
 
       // Coba load dari cache dulu supaya cepat
       const cached = localStorage.getItem('cachedMasterJra');
@@ -214,7 +226,8 @@
           console.warn("Gagal load dari server, pakai cache lokal:", err);
           // Sudah di-render dari cache di atas, jadi tidak perlu apa-apa
           if (masterJraData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada data Master JRA</td></tr>`;
+            const colSpan = canDelete ? 7 : 6;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-3">Tidak ada data Master JRA</td></tr>`;
           }
         })
         .finally(() => {
@@ -229,20 +242,23 @@
       const paginatedData = filteredJra.slice(startIndex, startIndex + rowsPerPage);
 
       if (paginatedData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Tidak ada data Master JRA</td></tr>`;
+        const colSpan = canDelete ? 7 : 6;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-3">Tidak ada data Master JRA</td></tr>`;
       } else {
         paginatedData.forEach(item => {
           let badgeClass = item.status === "Musnah" ? "badge-status-musnah" : (item.status === "Permanen" ? "badge-status-permanen" : "badge-status-dinilai");
           
           let actionCol = `<td class="text-center text-nowrap"><button class="btn btn-sm btn-info text-white me-1" onclick="detailJra('${item.id}')" title="Detail"><i class="fas fa-search"></i></button>`;
-          // Tombol edit & hapus hanya muncul jika bukan role umum
-          if (currentRole.toLowerCase() !== 'umum') {
+          // Edit: superadmin + admin | Hapus: hanya superadmin
+          if (canAddEdit) {
             actionCol += `<button class="btn btn-sm btn-warning text-white me-1" onclick="editJra('${item.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+          }
+          if (canDelete) {
             actionCol += `<button class="btn btn-sm btn-danger" onclick="hapusJra('${item.id}')" title="Hapus"><i class="fas fa-trash"></i></button>`;
           }
           actionCol += `</td>`;
 
-          let checkboxCol = currentRole.toLowerCase() !== 'umum' ? `<td class="text-center"><input type="checkbox" class="jra-checkbox" value="${item.id}"></td>` : '';
+          let checkboxCol = canDelete ? `<td class="text-center"><input type="checkbox" class="jra-checkbox" value="${item.id}"></td>` : '';
 
           tbody.innerHTML += `
             <tr>
