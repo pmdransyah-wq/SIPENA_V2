@@ -346,11 +346,19 @@
 
     function formatTanggalDisplay(val) {
       if (!val) return '';
-      if (typeof val === 'string') return val;
+      // Jika sudah format Indonesia (ada nama bulan), biarkan
+      if (typeof val === 'string' && /[A-Za-z]{3,}/.test(val) && !/T\d{2}:/.test(val)) {
+        // cek apakah mengandung nama bulan Indo
+        var bulanCek = ['januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
+        var low = val.toLowerCase();
+        for (var bi = 0; bi < bulanCek.length; bi++) {
+          if (low.indexOf(bulanCek[bi]) >= 0) return val;
+        }
+      }
       try {
-        const d = new Date(val);
+        var d = new Date(val);
         if (!isNaN(d.getTime())) {
-          const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          var bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
           return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
         }
       } catch (e) {}
@@ -593,21 +601,41 @@
       document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Sertifikat [' + item.no + ']';
       document.getElementById('nomorSertifikat').value = item.nomorSertifikat;
 
-      var m = (item.nomorSertifikat || '').match(/^(.+?)\/(\d+)\/([A-Za-z]+)-DPMD\/(\d{4})/);
+      // Parse fleksibel: 400.10.7/1/PUEMD-DPMD/2026 atau .../PUEMD-DPMD/II/2026
+      var nom = item.nomorSertifikat || '';
+      var m = nom.match(/^(.+?)\/(\d+)\/([A-Za-z]+)-DPMD(?:\/[IVXLC]+)?\/(\d{4})/);
+      if (!m) m = nom.match(/^(.+?)\/(\d+)\/([A-Za-z]+)(?:-DPMD)?(?:\/[IVXLC]+)?\/(\d{4})/);
       if (m) {
         document.getElementById('kodeKlasifikasi').value = m[1];
         document.getElementById('pengolah').value = m[3];
         document.getElementById('tahun').value = m[4];
+      } else {
+        // fallback: ambil segmen pertama sebagai kode
+        var parts = nom.split('/');
+        if (parts.length >= 1) document.getElementById('kodeKlasifikasi').value = parts[0];
+        if (item.pengolah) document.getElementById('pengolah').value = item.pengolah;
       }
 
-      var tglStr = item.tanggal;
+      // Isi tanggal input (yyyy-mm-dd) dari format Indo ATAU ISO
+      var tglStr = item.tanggal || '';
       var bulanMap = { januari:'01', februari:'02', maret:'03', april:'04', mei:'05', juni:'06', juli:'07', agustus:'08', september:'09', oktober:'10', november:'11', desember:'12' };
       var mt = tglStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
       if (mt) {
         var bl = bulanMap[mt[2].toLowerCase()] || '01';
-        document.getElementById('tanggal').value = mt[3] + '-' + bl + '-' + mt[1].padStart(2, '0');
+        document.getElementById('tanggal').value = mt[3] + '-' + bl + '-' + String(mt[1]).padStart(2, '0');
+      } else {
+        // coba parse ISO / Date
+        var dTgl = new Date(tglStr);
+        if (!isNaN(dTgl.getTime())) {
+          var yyyy = dTgl.getFullYear();
+          var mm = String(dTgl.getMonth() + 1).padStart(2, '0');
+          var dd = String(dTgl.getDate()).padStart(2, '0');
+          document.getElementById('tanggal').value = yyyy + '-' + mm + '-' + dd;
+        }
       }
-      document.getElementById('tahun').value = item.tahun || '';
+      if (!document.getElementById('tahun').value) {
+        document.getElementById('tahun').value = item.tahun || '';
+      }
       document.getElementById('uraian').value = item.uraian;
       document.getElementById('pengolah').value = item.pengolah;
       document.getElementById('penandaTangan').value = item.penandaTangan || 'Kepala Dinas';
