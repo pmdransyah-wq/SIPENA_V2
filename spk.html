@@ -25,7 +25,6 @@
     .sort-icon.active { opacity: 1; color: var(--secondary-color); }
     .search-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .search-bar .form-select { width: auto; min-width: 130px; }
-    .search-bar .form-control { min-width: 220px; flex: 1; }
   </style>
 </head>
 <body>
@@ -39,6 +38,7 @@
         <i class="fas fa-sync-alt me-1"></i> Sinkronisasi Cloud
       </button>
     </div>
+
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
       <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-primary fw-semibold role-edit" onclick="openModalTambah()"><i class="fas fa-plus-circle me-1"></i> Tambah Data</button>
@@ -49,6 +49,7 @@
       </div>
       <div class="badge bg-secondary p-2 fs-6">Total SPK: <span id="total-count">0</span></div>
     </div>
+
     <div class="card card-custom mb-3 bg-light border-0">
       <div class="card-body p-3">
         <div class="search-bar">
@@ -61,6 +62,7 @@
         </div>
       </div>
     </div>
+
     <div class="table-container mb-3">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -87,6 +89,7 @@
       <nav><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
     </div>
   </div>
+
   <!-- MODAL TAMBAH/EDIT -->
   <div class="modal fade" id="modalSpk" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -97,314 +100,853 @@
         </div>
         <div class="modal-body">
           <form id="formSpk">
-            <input type="hidden" id="spkId"><input type="hidden" id="spkRowIndex">
+            <input type="hidden" id="spkId">
+            <input type="hidden" id="spkRowIndex">
             <div class="row g-3">
-              <div class="col-md-3"><label class="form-label fw-semibold">NO (Agenda) <span class="text-danger">*</span></label><input type="number" id="noSpk" class="form-control" required readonly><small class="text-muted">Otomatis per tahun</small></div>
-              <div class="col-md-5 position-relative"><label class="form-label fw-semibold">Kode Klasifikasi <span class="text-danger">*</span></label><input type="text" id="kodeKlasifikasi" class="form-control" placeholder="Ketik kode atau uraian..." autocomplete="off" required><div id="kode-list" class="autocomplete-items d-none"></div><small class="text-muted" id="kode-hint">Memuat daftar kode...</small></div>
-              <div class="col-md-4"><label class="form-label fw-semibold">Pengolah <span class="text-danger">*</span></label><select id="pengolah" class="form-select" required onchange="generateNomorSpk1()"><option value="">-- Pilih --</option><option value="Sekr">Sekr</option><option value="PPD">PPD</option><option value="PUEMD">PUEMD</option><option value="PMLKD">PMLKD</option></select></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Nomor SPK 1 (otomatis) <span class="text-danger">*</span></label><input type="text" id="nomorSpk1" class="form-control bg-light" readonly required></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Nomor SPK 2 (opsional)</label><input type="text" id="nomorSpk2" class="form-control" placeholder="Contoh: 011.3.2/12/BPK-BNM/2026"></div>
-              <div class="col-md-4"><label class="form-label fw-semibold">Tanggal <span class="text-danger">*</span></label><input type="date" id="tanggalSpk" class="form-control" required onchange="onTanggalChange()"></div>
-              <div class="col-md-4"><label class="form-label fw-semibold">Hari</label><input type="text" id="hariSpk" class="form-control bg-light" readonly></div>
-              <div class="col-md-4"><label class="form-label fw-semibold">Tahun</label><input type="text" id="tahunSpk" class="form-control bg-light" readonly></div>
-              <div class="col-md-12"><label class="form-label fw-semibold">Tentang <span class="text-danger">*</span></label><textarea id="tentangSpk" class="form-control" rows="3" required></textarea></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Pihak Kesatu</label><input type="text" id="pihakKesatu" class="form-control" value="EDDY RAHMAWAN, S.STP., M.IP"></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Pihak Kedua <span class="text-danger">*</span></label><input type="text" id="pihakKedua" class="form-control" required></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Keterangan</label><input type="text" id="keteranganSpk" class="form-control" placeholder="Contoh: 2 Berkas"></div>
-              <div class="col-md-6"><label class="form-label fw-semibold">Lampiran (PDF/Word/JPG/PNG)</label><input type="file" id="fileLampiran" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="previewLampiran(this)"><small id="lampiran-status" class="text-muted">Opsional — file diupload ke Drive</small></div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">NO (Agenda) <span class="text-danger">*</span></label>
+                <input type="number" id="noSpk" class="form-control" required readonly>
+                <small class="text-muted">Otomatis per tahun</small>
+              </div>
+              <div class="col-md-5 position-relative">
+                <label class="form-label fw-semibold">Kode Klasifikasi <span class="text-danger">*</span></label>
+                <input type="text" id="kodeKlasifikasi" class="form-control" placeholder="Ketik kode atau uraian..." autocomplete="off" required>
+                <div id="kode-list" class="autocomplete-items d-none"></div>
+                <small class="text-muted" id="kode-hint">Memuat daftar kode...</small>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Pengolah <span class="text-danger">*</span></label>
+                <select id="pengolah" class="form-select" required onchange="generateNomorSpk1()">
+                  <option value="">-- Pilih --</option>
+                  <option value="Sekr">Sekr</option>
+                  <option value="PPD">PPD</option>
+                  <option value="PUEMD">PUEMD</option>
+                  <option value="PMLKD">PMLKD</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nomor SPK 1 (otomatis) <span class="text-danger">*</span></label>
+                <input type="text" id="nomorSpk1" class="form-control bg-light" readonly required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nomor SPK 2 (opsional)</label>
+                <input type="text" id="nomorSpk2" class="form-control" placeholder="Contoh: 011.3.2/12/BPK-BNM/2026">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Tanggal <span class="text-danger">*</span></label>
+                <input type="date" id="tanggalSpk" class="form-control" required onchange="onTanggalChange()">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Hari</label>
+                <input type="text" id="hariSpk" class="form-control bg-light" readonly>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Tahun</label>
+                <input type="text" id="tahunSpk" class="form-control bg-light" readonly>
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">Tentang <span class="text-danger">*</span></label>
+                <textarea id="tentangSpk" class="form-control" rows="3" required></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Pihak Kesatu</label>
+                <input type="text" id="pihakKesatu" class="form-control" value="EDDY RAHMAWAN, S.STP., M.IP">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Pihak Kedua <span class="text-danger">*</span></label>
+                <input type="text" id="pihakKedua" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Keterangan</label>
+                <input type="text" id="keteranganSpk" class="form-control" placeholder="Contoh: 2 Berkas">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Lampiran (PDF/Word/JPG/PNG)</label>
+                <input type="file" id="fileLampiran" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="previewLampiran(this)">
+                <small id="lampiran-status" class="text-muted">Opsional — file diupload ke Drive</small>
+              </div>
             </div>
           </form>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-primary fw-semibold" onclick="simpanSpk()">Simpan Data</button></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary fw-semibold" onclick="simpanSpk()">Simpan Data</button>
+        </div>
       </div>
     </div>
   </div>
-  <div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-secondary text-white"><h5 class="modal-title">Detail SPK</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" id="detail-body"></div></div></div></div>
-  <div class="modal fade" id="modalSampah" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title"><i class="fas fa-trash-restore me-2"></i>Tempat Sampah SPK</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="d-flex justify-content-between mb-2"><span class="text-muted">Data yang dihapus dapat dikembalikan atau dihapus permanen.</span><button class="btn btn-sm btn-danger role-delete" onclick="kosongkanSampah()">Kosongkan Semua</button></div><div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>NO</th><th>NOMOR SPK</th><th>TANGGAL</th><th>TENTANG</th><th>PIHAK KEDUA</th><th class="text-center">AKSI</th></tr></thead><tbody id="tbody-sampah"></tbody></table></div></div></div></div></div>
+
+  <div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header bg-secondary text-white"><h5 class="modal-title">Detail SPK</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="detail-body"></div>
+    </div></div>
+  </div>
+
+  <div class="modal fade" id="modalSampah" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+      <div class="modal-header bg-warning"><h5 class="modal-title"><i class="fas fa-trash-restore me-2"></i>Tempat Sampah SPK</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Data yang dihapus dapat dikembalikan atau dihapus permanen.</span>
+          <button class="btn btn-sm btn-danger role-delete" onclick="kosongkanSampah()">Kosongkan Semua</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead><tr><th>NO</th><th>NOMOR SPK</th><th>TANGGAL</th><th>TENTANG</th><th>PIHAK KEDUA</th><th class="text-center">AKSI</th></tr></thead>
+            <tbody id="tbody-sampah"></tbody>
+          </table>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwGJI1zrkcxDoFuEBwMlpaeSWyETb76qh1CtK3BTo1bQwx9RZlk1n6QgszuamlROwH3/exec";
+
     const currentRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
-    function safeLocal(key, fallback) { const v = localStorage.getItem(key); if (!v || v === 'undefined' || v === 'null') return fallback; return v; }
+    function safeLocal(key, fallback) {
+      const v = localStorage.getItem(key);
+      if (!v || v === 'undefined' || v === 'null') return fallback;
+      return v;
+    }
     const currentUserName = safeLocal('arsip_nama', safeLocal('arsip_username', 'Pengguna'));
+
     const isSuperAdmin = () => currentRole === 'superadmin';
     const isAdmin = () => currentRole === 'admin';
     const canEdit = () => isSuperAdmin() || isAdmin();
     const canDelete = () => isSuperAdmin();
     const canExport = () => isSuperAdmin();
-    let spkData = [], sampahData = [], kodeKlasifikasiData = [], filteredData = [];
-    let currentPage = 1, rowsPerPage = 15, sortKey = 'no', sortAsc = false;
-    let base64File = '', fileNameStr = '', fileMimeStr = '', filterTimer = null;
+
+    let spkData = [];
+    let sampahData = [];
+    let kodeKlasifikasiData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const rowsPerPage = 15;
+    let sortKey = 'no';
+    let sortAsc = false;
+    let base64File = '', fileNameStr = '', fileMimeStr = '';
+    let filterTimer = null;
+
     function postToGAS(payload) {
-      return fetch(GAS_BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload), redirect: 'follow' })
-        .then(async (res) => { const text = await res.text(); try { return JSON.parse(text); } catch (e) { if (res.ok) return { status: 'success', raw: text }; throw new Error('Response bukan JSON: ' + text.substring(0, 150)); } });
+      return fetch(GAS_BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      }).then(async (res) => {
+        const text = await res.text();
+        try { return JSON.parse(text); }
+        catch (e) {
+          if (res.ok) return { status: 'success', raw: text };
+          throw new Error('Response bukan JSON: ' + text.substring(0, 150));
+        }
+      });
     }
+
     function applyRoleVisibility() {
       document.querySelectorAll('.role-edit').forEach(el => el.classList.toggle('d-none', !canEdit()));
       document.querySelectorAll('.role-delete').forEach(el => el.classList.toggle('d-none', !canDelete()));
       document.querySelectorAll('.role-export').forEach(el => el.classList.toggle('d-none', !canExport()));
     }
+
     document.addEventListener('DOMContentLoaded', function() {
-      if (localStorage.getItem('arsip_logged_in') !== 'true') { window.location.href = 'login.html'; return; }
+      if (localStorage.getItem('arsip_logged_in') !== 'true') {
+        window.location.href = 'login.html';
+        return;
+      }
       document.getElementById('header-instansi-label').innerText = currentInstansi;
       document.getElementById('header-user-label').innerText = currentUserName + ' (' + currentRole.toUpperCase() + ')';
       applyRoleVisibility();
-      try { const cachedKode = localStorage.getItem('cachedKodeKlasifikasi'); if (cachedKode) { const arr = JSON.parse(cachedKode) || []; kodeKlasifikasiData = arr.map(k => ({ kode: k.kode || k[0], uraian: k.uraian || k[1] || '' })); updateKodeHint(); } } catch(e) {}
-      try { const cached = localStorage.getItem('cachedSPK'); if (cached) { spkData = JSON.parse(cached) || []; filteredData = [...spkData]; buildYearOptions(); renderTable(); } } catch (e) {}
+
+      try {
+        const cachedKode = localStorage.getItem('cachedKodeKlasifikasi');
+        if (cachedKode) {
+          const arr = JSON.parse(cachedKode) || [];
+          kodeKlasifikasiData = arr.map(k => ({ kode: k.kode || k[0], uraian: k.uraian || k[1] || '' }));
+          updateKodeHint();
+        }
+      } catch (e) {}
+
+      try {
+        const cached = localStorage.getItem('cachedSPK');
+        if (cached) {
+          spkData = JSON.parse(cached) || [];
+          filteredData = [...spkData];
+          buildYearOptions();
+          renderTable();
+        }
+      } catch (e) {}
+
       setupKodeAutocomplete();
       loadDataFromCloud(false);
     });
+
     function updateKodeHint() {
-      const hint = document.getElementById('kode-hint'); if (!hint) return;
-      if (kodeKlasifikasiData.length === 0) hint.innerHTML = '<span class="text-warning">Belum ada data kode. Isi di menu Kode Klasifikasi lalu sinkron.</span>';
-      else hint.innerHTML = '<span class="text-success">' + kodeKlasifikasiData.length + ' kode tersedia. Ketik untuk mencari.</span>';
+      const hint = document.getElementById('kode-hint');
+      if (!hint) return;
+      if (kodeKlasifikasiData.length === 0) {
+        hint.innerHTML = '<span class="text-warning">Belum ada data kode. Isi di menu Kode Klasifikasi lalu sinkron.</span>';
+      } else {
+        hint.innerHTML = '<span class="text-success">' + kodeKlasifikasiData.length + ' kode tersedia. Ketik untuk mencari.</span>';
+      }
     }
+
     function loadDataFromCloud(isManual) {
-      if (isManual) Swal.fire({ title: 'Sinkronisasi...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      fetch(GAS_BACKEND_URL).then(res => res.json()).then(data => {
-        if (isManual) Swal.close();
-        if (data && data.SPK && Array.isArray(data.SPK)) {
-          spkData = data.SPK.slice(1).map((r, idx) => {
-            if (!r || r[0] === '' || r[0] == null) return null;
-            return { id: 'SPK-' + (idx + 1) + '-' + String(r[0]), no: parseInt(r[0]) || 0, nomorSpk: String(r[1] || ''), hari: String(r[2] || ''), tanggal: formatTanggalDisplay(r[3]), tentang: String(r[4] || ''), pihakKesatu: String(r[5] || ''), pihakKedua: String(r[6] || ''), keterangan: String(r[7] || ''), lampiran: String(r[8] || ''), rowIndex: idx + 2, tahun: extractYear(r[3], r[1]) };
-          }).filter(Boolean).reverse();
-          localStorage.setItem('cachedSPK', JSON.stringify(spkData));
-        }
-        if (data && data.SampahSPK && Array.isArray(data.SampahSPK)) {
-          sampahData = data.SampahSPK.slice(1).map((r, idx) => {
-            if (!r || r[0] === '' || r[0] == null) return null;
-            return { id: 'TRASH-' + (idx + 1), no: parseInt(r[0]) || 0, nomorSpk: String(r[1] || ''), hari: String(r[2] || ''), tanggal: formatTanggalDisplay(r[3]), tentang: String(r[4] || ''), pihakKesatu: String(r[5] || ''), pihakKedua: String(r[6] || ''), keterangan: String(r[7] || ''), lampiran: String(r[8] || ''), rowIndex: idx + 2 };
-          }).filter(Boolean);
-        }
-        if (data && data.KodeKlasifikasi && Array.isArray(data.KodeKlasifikasi) && data.KodeKlasifikasi.length > 1) {
-          kodeKlasifikasiData = data.KodeKlasifikasi.slice(1).filter(r => r && r[0]).map(r => ({ kode: String(r[0]).trim(), uraian: String(r[1] || '').trim() }));
-          localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(kodeKlasifikasiData));
-        }
-        updateKodeHint(); setupKodeAutocomplete();
-        document.getElementById('trash-count').innerText = sampahData.length;
-        filteredData = [...spkData]; buildYearOptions(); sortKey = 'no'; sortAsc = false; applySort(); renderTable();
-        if (isManual) Swal.fire('Berhasil', 'Sinkronisasi sukses.<br>SPK: ' + spkData.length + '<br>Sampah: ' + sampahData.length + '<br>Kode: ' + kodeKlasifikasiData.length, 'success');
-      }).catch(err => { console.warn(err); if (isManual) Swal.fire('Gagal', 'Tidak dapat terhubung ke cloud. Pastikan URL Web App benar & sudah Deploy New version.', 'error'); });
+      if (isManual) {
+        Swal.fire({ title: 'Sinkronisasi...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      }
+      fetch(GAS_BACKEND_URL)
+        .then(res => res.json())
+        .then(data => {
+          if (isManual) Swal.close();
+
+          if (data && data.SPK && Array.isArray(data.SPK)) {
+            spkData = data.SPK.slice(1)
+              .map((r, idx) => {
+                if (!r || r[0] === '' || r[0] == null) return null;
+                return {
+                  id: 'SPK-' + (idx + 1) + '-' + String(r[0]),
+                  no: parseInt(r[0]) || 0,
+                  nomorSpk: String(r[1] || ''),
+                  hari: String(r[2] || ''),
+                  tanggal: formatTanggalDisplay(r[3]),
+                  tentang: String(r[4] || ''),
+                  pihakKesatu: String(r[5] || ''),
+                  pihakKedua: String(r[6] || ''),
+                  keterangan: String(r[7] || ''),
+                  lampiran: String(r[8] || ''),
+                  rowIndex: idx + 2,
+                  tahun: extractYear(r[3], r[1])
+                };
+              })
+              .filter(Boolean)
+              .reverse();
+            localStorage.setItem('cachedSPK', JSON.stringify(spkData));
+          }
+
+          if (data && data.SampahSPK && Array.isArray(data.SampahSPK)) {
+            sampahData = data.SampahSPK.slice(1)
+              .map((r, idx) => {
+                if (!r || r[0] === '' || r[0] == null) return null;
+                return {
+                  id: 'TRASH-' + (idx + 1),
+                  no: parseInt(r[0]) || 0,
+                  nomorSpk: String(r[1] || ''),
+                  hari: String(r[2] || ''),
+                  tanggal: formatTanggalDisplay(r[3]),
+                  tentang: String(r[4] || ''),
+                  pihakKesatu: String(r[5] || ''),
+                  pihakKedua: String(r[6] || ''),
+                  keterangan: String(r[7] || ''),
+                  lampiran: String(r[8] || ''),
+                  rowIndex: idx + 2
+                };
+              })
+              .filter(Boolean);
+          }
+
+          if (data && data.KodeKlasifikasi && Array.isArray(data.KodeKlasifikasi) && data.KodeKlasifikasi.length > 1) {
+            kodeKlasifikasiData = data.KodeKlasifikasi.slice(1)
+              .filter(r => r && r[0])
+              .map(r => ({ kode: String(r[0]).trim(), uraian: String(r[1] || '').trim() }));
+            localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(kodeKlasifikasiData));
+          }
+          updateKodeHint();
+          setupKodeAutocomplete();
+
+          document.getElementById('trash-count').innerText = sampahData.length;
+          filteredData = [...spkData];
+          buildYearOptions();
+          sortKey = 'no';
+          sortAsc = false;
+          applySort();
+          renderTable();
+
+          if (isManual) {
+            Swal.fire('Berhasil', 'Sinkronisasi sukses.<br>SPK: ' + spkData.length + '<br>Sampah: ' + sampahData.length + '<br>Kode: ' + kodeKlasifikasiData.length, 'success');
+          }
+        })
+        .catch(err => {
+          console.warn(err);
+          if (isManual) Swal.fire('Gagal', 'Tidak dapat terhubung ke cloud. Pastikan URL Web App benar & sudah Deploy New version.', 'error');
+        });
     }
+
     function formatTanggalDisplay(val) {
-      if (!val) return ''; if (typeof val === 'string') return val;
-      try { const d = new Date(val); if (!isNaN(d.getTime())) { const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear(); } } catch(e) {}
+      if (!val) return '';
+      if (typeof val === 'string') return val;
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+        }
+      } catch (e) {}
       return String(val);
     }
+
     function extractYear(tgl, nomor) {
-      if (tgl) { const m = String(tgl).match(/(\\d{4})/); if (m) return parseInt(m[1], 10); }
-      if (nomor) { const m = String(nomor).match(/\\/(\\d{4})/); if (m) return parseInt(m[1], 10); }
+      if (tgl) {
+        const m = String(tgl).match(/(\d{4})/);
+        if (m) return parseInt(m[1], 10);
+      }
+      if (nomor) {
+        const m = String(nomor).match(/\/(\d{4})/);
+        if (m) return parseInt(m[1], 10);
+      }
       return new Date().getFullYear();
     }
+
     function buildYearOptions() {
-      const years = [...new Set(spkData.map(d => d.tahun).filter(Boolean))].sort((a,b) => b - a);
-      const sel = document.getElementById('filter-tahun'); const cur = sel.value;
+      const years = [...new Set(spkData.map(d => d.tahun).filter(Boolean))].sort((a, b) => b - a);
+      const sel = document.getElementById('filter-tahun');
+      const cur = sel.value;
       sel.innerHTML = '<option value="">Semua Tahun</option>';
       years.forEach(y => { sel.innerHTML += '<option value="' + y + '">' + y + '</option>'; });
       if (cur) sel.value = cur;
     }
+
     function applySort() {
       filteredData.sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
-        if (sortKey === 'no' || sortKey === 'tahun') { va = Number(va) || 0; vb = Number(vb) || 0; }
-        else { va = String(va || '').toLowerCase(); vb = String(vb || '').toLowerCase(); }
-        if (va < vb) return sortAsc ? -1 : 1; if (va > vb) return sortAsc ? 1 : -1; return 0;
+        if (sortKey === 'no' || sortKey === 'tahun') {
+          va = Number(va) || 0; vb = Number(vb) || 0;
+        } else {
+          va = String(va || '').toLowerCase();
+          vb = String(vb || '').toLowerCase();
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
       });
     }
+
     function sortBy(key) {
-      if (sortKey === key) sortAsc = !sortAsc; else { sortKey = key; sortAsc = true; }
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
       document.querySelectorAll('.sort-icon').forEach(i => i.className = 'fas fa-sort sort-icon');
-      const icon = document.getElementById('sort-' + key); if (icon) icon.className = 'fas fa-sort-' + (sortAsc ? 'up' : 'down') + ' sort-icon active';
-      applySort(); currentPage = 1; renderTable();
+      const icon = document.getElementById('sort-' + key);
+      if (icon) icon.className = 'fas fa-sort-' + (sortAsc ? 'up' : 'down') + ' sort-icon active';
+      applySort();
+      currentPage = 1;
+      renderTable();
     }
+
     function renderTable() {
-      const tbody = document.getElementById('tbody-spk'); tbody.innerHTML = '';
-      const start = (currentPage - 1) * rowsPerPage; const pageData = filteredData.slice(start, start + rowsPerPage);
-      if (pageData.length === 0) tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada data SPK</td></tr>';
-      else pageData.forEach((item) => {
-        const lampiranBtn = item.lampiran ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Buka Lampiran"><i class="fas fa-paperclip"></i></a>' : '-';
-        let actions = '<button class="btn btn-sm btn-info text-white me-1" onclick="detailSpk(\\'' + item.id + '\\')" title="View"><i class="fas fa-eye"></i></button>';
-        if (canEdit()) { actions += '<button class="btn btn-sm btn-warning text-white me-1" onclick="editSpk(\\'' + item.id + '\\')" title="Edit"><i class="fas fa-edit"></i></button>'; actions += '<button class="btn btn-sm btn-secondary me-1" onclick="uploadLampiranOnly(\\'' + item.id + '\\')" title="Upload Lampiran"><i class="fas fa-upload"></i></button>'; }
-        if (canDelete()) actions += '<button class="btn btn-sm btn-danger" onclick="hapusSpk(\\'' + item.id + '\\')" title="Hapus"><i class="fas fa-trash"></i></button>';
-        tbody.innerHTML += '<tr><td class="fw-bold">' + item.no + '</td><td><div class="nomor-spk-col">' + escapeHtml(item.nomorSpk) + '</div></td><td>' + item.hari + '</td><td>' + item.tanggal + '</td><td><div class="uraian-column">' + escapeHtml(item.tentang) + '</div></td><td><small>' + escapeHtml(item.pihakKesatu) + '</small></td><td><small>' + escapeHtml(item.pihakKedua) + '</small></td><td>' + escapeHtml(item.keterangan) + '</td><td>' + lampiranBtn + '</td><td class="text-center text-nowrap">' + actions + '</td></tr>';
-      });
+      const tbody = document.getElementById('tbody-spk');
+      tbody.innerHTML = '';
+      const start = (currentPage - 1) * rowsPerPage;
+      const pageData = filteredData.slice(start, start + rowsPerPage);
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada data SPK</td></tr>';
+      } else {
+        pageData.forEach(function(item) {
+          const lampiranBtn = item.lampiran
+            ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Buka Lampiran"><i class="fas fa-paperclip"></i></a>'
+            : '-';
+          let actions = '<button class="btn btn-sm btn-info text-white me-1" onclick="detailSpk(\'' + item.id + '\')" title="View"><i class="fas fa-eye"></i></button>';
+          if (canEdit()) {
+            actions += '<button class="btn btn-sm btn-warning text-white me-1" onclick="editSpk(\'' + item.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
+            actions += '<button class="btn btn-sm btn-secondary me-1" onclick="uploadLampiranOnly(\'' + item.id + '\')" title="Upload Lampiran"><i class="fas fa-upload"></i></button>';
+          }
+          if (canDelete()) {
+            actions += '<button class="btn btn-sm btn-danger" onclick="hapusSpk(\'' + item.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>';
+          }
+          tbody.innerHTML += '<tr>' +
+            '<td class="fw-bold">' + item.no + '</td>' +
+            '<td><div class="nomor-spk-col">' + escapeHtml(item.nomorSpk) + '</div></td>' +
+            '<td>' + item.hari + '</td>' +
+            '<td>' + item.tanggal + '</td>' +
+            '<td><div class="uraian-column">' + escapeHtml(item.tentang) + '</div></td>' +
+            '<td><small>' + escapeHtml(item.pihakKesatu) + '</small></td>' +
+            '<td><small>' + escapeHtml(item.pihakKedua) + '</small></td>' +
+            '<td>' + escapeHtml(item.keterangan) + '</td>' +
+            '<td>' + lampiranBtn + '</td>' +
+            '<td class="text-center text-nowrap">' + actions + '</td>' +
+            '</tr>';
+        });
+      }
       document.getElementById('total-count').innerText = filteredData.length;
       document.getElementById('pagination-info').innerText = 'Menampilkan ' + pageData.length + ' dari ' + filteredData.length + ' data';
       renderPagination();
     }
-    function escapeHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function renderPagination() {
-      const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1; const cont = document.getElementById('pagination');
-      cont.innerHTML = '<li class="page-item ' + (currentPage === 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage-1) + ');return false;">Prev</a></li>';
-      let startP = Math.max(1, currentPage - 2); let endP = Math.min(totalPages, startP + 4);
-      for (let i = startP; i <= endP; i++) cont.innerHTML += '<li class="page-item ' + (currentPage === i ? 'active' : '') + '"><a class="page-link" href="#" onclick="changePage(' + i + ');return false;">' + i + '</a></li>';
-      cont.innerHTML += '<li class="page-item ' + (currentPage === totalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage+1) + ');return false;">Next</a></li>';
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-    function changePage(p) { if (p < 1) return; currentPage = p; renderTable(); }
-    function debounceFilter() { clearTimeout(filterTimer); filterTimer = setTimeout(applyFilter, 250); }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+      const cont = document.getElementById('pagination');
+      cont.innerHTML = '<li class="page-item ' + (currentPage === 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ');return false;">Prev</a></li>';
+      let startP = Math.max(1, currentPage - 2);
+      let endP = Math.min(totalPages, startP + 4);
+      for (let i = startP; i <= endP; i++) {
+        cont.innerHTML += '<li class="page-item ' + (currentPage === i ? 'active' : '') + '"><a class="page-link" href="#" onclick="changePage(' + i + ');return false;">' + i + '</a></li>';
+      }
+      cont.innerHTML += '<li class="page-item ' + (currentPage === totalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ');return false;">Next</a></li>';
+    }
+
+    function changePage(p) {
+      if (p < 1) return;
+      currentPage = p;
+      renderTable();
+    }
+
+    function debounceFilter() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(applyFilter, 250);
+    }
+
     function applyFilter() {
       const q = (document.getElementById('filter-q').value || '').toLowerCase().trim();
       const th = document.getElementById('filter-tahun').value;
-      filteredData = spkData.filter(item => {
-        const matchQ = !q || (item.nomorSpk || '').toLowerCase().includes(q) || (item.tentang || '').toLowerCase().includes(q) || (item.pihakKedua || '').toLowerCase().includes(q) || (item.pihakKesatu || '').toLowerCase().includes(q) || (item.keterangan || '').toLowerCase().includes(q) || String(item.no).includes(q);
+      filteredData = spkData.filter(function(item) {
+        const matchQ = !q ||
+          (item.nomorSpk || '').toLowerCase().includes(q) ||
+          (item.tentang || '').toLowerCase().includes(q) ||
+          (item.pihakKedua || '').toLowerCase().includes(q) ||
+          (item.pihakKesatu || '').toLowerCase().includes(q) ||
+          (item.keterangan || '').toLowerCase().includes(q) ||
+          String(item.no).includes(q);
         return matchQ && (!th || String(item.tahun) === th);
       });
-      applySort(); currentPage = 1; renderTable();
+      applySort();
+      currentPage = 1;
+      renderTable();
     }
-    function resetFilter() { document.getElementById('filter-q').value = ''; document.getElementById('filter-tahun').value = ''; filteredData = [...spkData]; applySort(); currentPage = 1; renderTable(); }
+
+    function resetFilter() {
+      document.getElementById('filter-q').value = '';
+      document.getElementById('filter-tahun').value = '';
+      filteredData = [...spkData];
+      applySort();
+      currentPage = 1;
+      renderTable();
+    }
+
     function onTanggalChange() {
-      const val = document.getElementById('tanggalSpk').value; if (!val) return;
-      const d = new Date(val + 'T00:00:00'); const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-      document.getElementById('hariSpk').value = hari[d.getDay()]; document.getElementById('tahunSpk').value = d.getFullYear();
-      hitungNoOtomatis(d.getFullYear()); generateNomorSpk1();
+      const val = document.getElementById('tanggalSpk').value;
+      if (!val) return;
+      const d = new Date(val + 'T00:00:00');
+      const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+      document.getElementById('hariSpk').value = hari[d.getDay()];
+      document.getElementById('tahunSpk').value = d.getFullYear();
+      hitungNoOtomatis(d.getFullYear());
+      generateNomorSpk1();
     }
-    function hitungNoOtomatis(tahun) { let maxNo = 0; spkData.forEach(item => { if (item.tahun === tahun && item.no > maxNo) maxNo = item.no; }); document.getElementById('noSpk').value = maxNo + 1; }
+
+    function hitungNoOtomatis(tahun) {
+      let maxNo = 0;
+      spkData.forEach(function(item) {
+        if (item.tahun === tahun && item.no > maxNo) maxNo = item.no;
+      });
+      document.getElementById('noSpk').value = maxNo + 1;
+    }
+
     function generateNomorSpk1() {
-      const kode = document.getElementById('kodeKlasifikasi').value.trim(); const no = document.getElementById('noSpk').value;
-      const pengolah = document.getElementById('pengolah').value; const tahun = document.getElementById('tahunSpk').value || new Date().getFullYear();
-      document.getElementById('nomorSpk1').value = (kode && no && pengolah) ? (kode + '/' + no + '/' + pengolah + '-DPMD/' + tahun) : '';
+      const kode = document.getElementById('kodeKlasifikasi').value.trim();
+      const no = document.getElementById('noSpk').value;
+      const pengolah = document.getElementById('pengolah').value;
+      const tahun = document.getElementById('tahunSpk').value || new Date().getFullYear();
+      if (kode && no && pengolah) {
+        document.getElementById('nomorSpk1').value = kode + '/' + no + '/' + pengolah + '-DPMD/' + tahun;
+      } else {
+        document.getElementById('nomorSpk1').value = '';
+      }
     }
+
     function setupKodeAutocomplete() {
-      const input = document.getElementById('kodeKlasifikasi'); const list = document.getElementById('kode-list'); if (!input || !list) return;
-      const newInput = input.cloneNode(true); input.parentNode.replaceChild(newInput, input);
+      const input = document.getElementById('kodeKlasifikasi');
+      const list = document.getElementById('kode-list');
+      if (!input || !list) return;
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+
       newInput.addEventListener('input', function() {
-        const val = this.value.trim().toLowerCase(); list.innerHTML = '';
+        const val = this.value.trim().toLowerCase();
+        list.innerHTML = '';
         if (!val) { list.classList.add('d-none'); return; }
-        if (!kodeKlasifikasiData || kodeKlasifikasiData.length === 0) { list.innerHTML = '<div class="text-danger p-2">Data kode kosong. Buka menu Kode Klasifikasi & sinkronisasi.</div>'; list.classList.remove('d-none'); return; }
-        const matches = kodeKlasifikasiData.filter(k => (k.kode || '').toLowerCase().includes(val) || (k.uraian || '').toLowerCase().includes(val)).slice(0, 15);
-        if (matches.length === 0) { list.innerHTML = '<div class="text-muted p-2">Tidak ditemukan. Boleh ketik manual.</div>'; list.classList.remove('d-none'); return; }
+        if (!kodeKlasifikasiData || kodeKlasifikasiData.length === 0) {
+          list.innerHTML = '<div class="text-danger p-2">Data kode kosong. Buka menu Kode Klasifikasi & sinkronisasi.</div>';
+          list.classList.remove('d-none');
+          return;
+        }
+        const matches = kodeKlasifikasiData.filter(function(k) {
+          return (k.kode || '').toLowerCase().includes(val) || (k.uraian || '').toLowerCase().includes(val);
+        }).slice(0, 15);
+        if (matches.length === 0) {
+          list.innerHTML = '<div class="text-muted p-2">Tidak ditemukan. Boleh ketik manual.</div>';
+          list.classList.remove('d-none');
+          return;
+        }
         list.classList.remove('d-none');
-        matches.forEach(k => { const div = document.createElement('div'); div.innerHTML = '<strong>' + k.kode + '</strong><br><small class="text-muted">' + (k.uraian || '') + '</small>'; div.onclick = () => { newInput.value = k.kode; list.classList.add('d-none'); generateNomorSpk1(); }; list.appendChild(div); });
+        matches.forEach(function(k) {
+          const div = document.createElement('div');
+          div.innerHTML = '<strong>' + k.kode + '</strong><br><small class="text-muted">' + (k.uraian || '') + '</small>';
+          div.onclick = function() {
+            newInput.value = k.kode;
+            list.classList.add('d-none');
+            generateNomorSpk1();
+          };
+          list.appendChild(div);
+        });
       });
-      newInput.addEventListener('change', generateNomorSpk1); newInput.addEventListener('blur', () => setTimeout(() => generateNomorSpk1(), 200));
-      document.addEventListener('click', e => { if (e.target !== newInput && !list.contains(e.target)) list.classList.add('d-none'); });
+      newInput.addEventListener('change', generateNomorSpk1);
+      newInput.addEventListener('blur', function() { setTimeout(generateNomorSpk1, 200); });
+      document.addEventListener('click', function(e) {
+        if (e.target !== newInput && !list.contains(e.target)) list.classList.add('d-none');
+      });
     }
+
     function openModalTambah() {
-      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak menambah data.', 'warning'); return; }
-      document.getElementById('formSpk').reset(); document.getElementById('spkId').value = ''; document.getElementById('spkRowIndex').value = '';
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak menambah data.', 'warning');
+        return;
+      }
+      document.getElementById('formSpk').reset();
+      document.getElementById('spkId').value = '';
+      document.getElementById('spkRowIndex').value = '';
       document.getElementById('modalSpkTitle').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Tambah Data SPK';
-      document.getElementById('pihakKesatu').value = 'EDDY RAHMAWAN, S.STP., M.IP'; base64File = ''; fileNameStr = ''; fileMimeStr = '';
-      document.getElementById('lampiran-status').innerHTML = '<span class="text-muted">Opsional — file diupload ke Drive</span>';
-      const today = new Date(); document.getElementById('tanggalSpk').value = today.toISOString().split('T')[0]; onTanggalChange(); updateKodeHint();
-      new bootstrap.Modal(document.getElementById('modalSpk')).show();
-    }
-    function editSpk(id) {
-      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak mengubah data.', 'warning'); return; }
-      const item = spkData.find(a => a.id === id); if (!item) return;
-      document.getElementById('spkId').value = item.id; document.getElementById('spkRowIndex').value = item.rowIndex;
-      document.getElementById('noSpk').value = item.no; document.getElementById('modalSpkTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit SPK [' + item.no + ']';
-      const lines = (item.nomorSpk || '').split('\\n').map(s => s.replace(/^-\\s*/, '').trim()).filter(Boolean);
-      document.getElementById('nomorSpk1').value = lines[0] || item.nomorSpk || ''; document.getElementById('nomorSpk2').value = lines[1] || '';
-      const m = (lines[0] || '').match(/^(.+?)\\/(\\d+)\\/([A-Za-z]+)-DPMD\\/(\\d{4})/);
-      if (m) { document.getElementById('kodeKlasifikasi').value = m[1]; document.getElementById('pengolah').value = m[3]; document.getElementById('tahunSpk').value = m[4]; }
-      const tglStr = item.tanggal; const bulanMap = {januari:'01',februari:'02',maret:'03',april:'04',mei:'05',juni:'06',juli:'07',agustus:'08',september:'09',oktober:'10',november:'11',desember:'12'};
-      const mt = tglStr.match(/(\\d{1,2})\\s+([A-Za-z]+)\\s+(\\d{4})/);
-      if (mt) { const bl = bulanMap[mt[2].toLowerCase()] || '01'; document.getElementById('tanggalSpk').value = mt[3] + '-' + bl + '-' + mt[1].padStart(2,'0'); }
-      document.getElementById('hariSpk').value = item.hari; document.getElementById('tahunSpk').value = item.tahun || '';
-      document.getElementById('tentangSpk').value = item.tentang; document.getElementById('pihakKesatu').value = item.pihakKesatu || 'EDDY RAHMAWAN, S.STP., M.IP';
-      document.getElementById('pihakKedua').value = item.pihakKedua; document.getElementById('keteranganSpk').value = item.keterangan;
+      document.getElementById('pihakKesatu').value = 'EDDY RAHMAWAN, S.STP., M.IP';
       base64File = ''; fileNameStr = ''; fileMimeStr = '';
-      document.getElementById('lampiran-status').innerHTML = item.lampiran ? '<span class="text-success">Lampiran sudah ada. Pilih file baru untuk mengganti.</span>' : '<span class="text-muted">Opsional</span>';
+      document.getElementById('lampiran-status').innerHTML = '<span class="text-muted">Opsional — file diupload ke Drive</span>';
+      const today = new Date();
+      document.getElementById('tanggalSpk').value = today.toISOString().split('T')[0];
+      onTanggalChange();
+      updateKodeHint();
       new bootstrap.Modal(document.getElementById('modalSpk')).show();
     }
+
+    function editSpk(id) {
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak mengubah data.', 'warning');
+        return;
+      }
+      const item = spkData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      document.getElementById('spkId').value = item.id;
+      document.getElementById('spkRowIndex').value = item.rowIndex;
+      document.getElementById('noSpk').value = item.no;
+      document.getElementById('modalSpkTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit SPK [' + item.no + ']';
+
+      const lines = (item.nomorSpk || '').split('\n').map(function(s) { return s.replace(/^-\s*/, '').trim(); }).filter(Boolean);
+      document.getElementById('nomorSpk1').value = lines[0] || item.nomorSpk || '';
+      document.getElementById('nomorSpk2').value = lines[1] || '';
+
+      const m = (lines[0] || '').match(/^(.+?)\/(\d+)\/([A-Za-z]+)-DPMD\/(\d{4})/);
+      if (m) {
+        document.getElementById('kodeKlasifikasi').value = m[1];
+        document.getElementById('pengolah').value = m[3];
+        document.getElementById('tahunSpk').value = m[4];
+      }
+
+      const tglStr = item.tanggal;
+      const bulanMap = { januari: '01', februari: '02', maret: '03', april: '04', mei: '05', juni: '06', juli: '07', agustus: '08', september: '09', oktober: '10', november: '11', desember: '12' };
+      const mt = tglStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+      if (mt) {
+        const bl = bulanMap[mt[2].toLowerCase()] || '01';
+        document.getElementById('tanggalSpk').value = mt[3] + '-' + bl + '-' + mt[1].padStart(2, '0');
+      }
+      document.getElementById('hariSpk').value = item.hari;
+      document.getElementById('tahunSpk').value = item.tahun || '';
+      document.getElementById('tentangSpk').value = item.tentang;
+      document.getElementById('pihakKesatu').value = item.pihakKesatu || 'EDDY RAHMAWAN, S.STP., M.IP';
+      document.getElementById('pihakKedua').value = item.pihakKedua;
+      document.getElementById('keteranganSpk').value = item.keterangan;
+      base64File = ''; fileNameStr = ''; fileMimeStr = '';
+      document.getElementById('lampiran-status').innerHTML = item.lampiran
+        ? '<span class="text-success">Lampiran sudah ada. Pilih file baru untuk mengganti.</span>'
+        : '<span class="text-muted">Opsional</span>';
+      new bootstrap.Modal(document.getElementById('modalSpk')).show();
+    }
+
     function previewLampiran(input) {
-      base64File = ''; fileNameStr = ''; fileMimeStr = ''; const statusEl = document.getElementById('lampiran-status');
-      if (!input.files || !input.files[0]) { statusEl.innerHTML = '<span class="text-muted">Opsional</span>'; return Promise.resolve(''); }
+      base64File = ''; fileNameStr = ''; fileMimeStr = '';
+      const statusEl = document.getElementById('lampiran-status');
+      if (!input.files || !input.files[0]) {
+        statusEl.innerHTML = '<span class="text-muted">Opsional</span>';
+        return Promise.resolve('');
+      }
       const file = input.files[0];
-      if (file.size > 8 * 1024 * 1024) { statusEl.innerHTML = '<span class="text-danger">Maksimal 8MB</span>'; input.value = ''; Swal.fire('Error', 'Ukuran file maksimal 8MB', 'error'); return Promise.resolve(''); }
-      fileNameStr = file.name; fileMimeStr = file.type || ''; statusEl.innerHTML = '<span class="text-warning"><i class="fas fa-spinner fa-spin"></i> Membaca...</span>';
-      return new Promise((resolve, reject) => {
+      if (file.size > 8 * 1024 * 1024) {
+        statusEl.innerHTML = '<span class="text-danger">Maksimal 8MB</span>';
+        input.value = '';
+        Swal.fire('Error', 'Ukuran file maksimal 8MB', 'error');
+        return Promise.resolve('');
+      }
+      fileNameStr = file.name;
+      fileMimeStr = file.type || '';
+      statusEl.innerHTML = '<span class="text-warning"><i class="fas fa-spinner fa-spin"></i> Membaca...</span>';
+      return new Promise(function(resolve, reject) {
         const reader = new FileReader();
-        reader.onload = e => { base64File = e.target.result || ''; statusEl.innerHTML = base64File ? '<span class="text-success"><i class="fas fa-check"></i> ' + fileNameStr + ' siap (' + Math.round(base64File.length/1024) + ' KB)</span>' : '<span class="text-danger">Gagal baca</span>'; resolve(base64File); };
-        reader.onerror = reject; reader.readAsDataURL(file);
+        reader.onload = function(e) {
+          base64File = e.target.result || '';
+          statusEl.innerHTML = base64File
+            ? '<span class="text-success"><i class="fas fa-check"></i> ' + fileNameStr + ' siap (' + Math.round(base64File.length / 1024) + ' KB)</span>'
+            : '<span class="text-danger">Gagal baca</span>';
+          resolve(base64File);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
+
     async function simpanSpk() {
-      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Tidak memiliki hak menyimpan.', 'warning'); return; }
-      const form = document.getElementById('formSpk'); if (!form.checkValidity()) { form.reportValidity(); return; }
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Tidak memiliki hak menyimpan.', 'warning');
+        return;
+      }
+      const form = document.getElementById('formSpk');
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+
       const fileInput = document.getElementById('fileLampiran');
       if (fileInput && fileInput.files && fileInput.files[0] && (!base64File || base64File.length < 50)) {
-        try { await previewLampiran(fileInput); } catch(e) { Swal.fire('Error', 'Gagal membaca file', 'error'); return; }
-        let waited = 0; while ((!base64File || base64File.length < 50) && waited < 3000) { await new Promise(r => setTimeout(r, 100)); waited += 100; }
+        try { await previewLampiran(fileInput); } catch (e) {
+          Swal.fire('Error', 'Gagal membaca file', 'error'); return;
+        }
+        let waited = 0;
+        while ((!base64File || base64File.length < 50) && waited < 3000) {
+          await new Promise(function(r) { setTimeout(r, 100); });
+          waited += 100;
+        }
       }
-      const isEdit = !!document.getElementById('spkId').value; const rowIndex = parseInt(document.getElementById('spkRowIndex').value) || 0;
-      const tanggalVal = document.getElementById('tanggalSpk').value; const d = new Date(tanggalVal + 'T00:00:00');
+
+      const isEdit = !!document.getElementById('spkId').value;
+      const rowIndex = parseInt(document.getElementById('spkRowIndex').value) || 0;
+      const tanggalVal = document.getElementById('tanggalSpk').value;
+      const d = new Date(tanggalVal + 'T00:00:00');
       const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
       const tglFormatted = d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+
       let coverPayload = base64File || '';
-      if (!coverPayload && isEdit) { const existing = spkData.find(x => x.id === document.getElementById('spkId').value); if (existing && existing.lampiran) coverPayload = existing.lampiran; }
-      const payload = { action: isEdit ? 'update' : 'add', type: 'spk', rowIndex: rowIndex, no: parseInt(document.getElementById('noSpk').value), nomorSpk1: document.getElementById('nomorSpk1').value.trim(), nomorSpk2: document.getElementById('nomorSpk2').value.trim(), hari: document.getElementById('hariSpk').value, tanggal: tanggalVal, tanggalFormatted: tglFormatted, tentang: document.getElementById('tentangSpk').value.trim(), pihakKesatu: document.getElementById('pihakKesatu').value.trim(), pihakKedua: document.getElementById('pihakKedua').value.trim(), keterangan: document.getElementById('keteranganSpk').value.trim(), cover: coverPayload, fileName: fileNameStr || ('SPK_' + document.getElementById('noSpk').value + '.pdf'), fileMime: fileMimeStr || '' };
-      Swal.fire({ title: isEdit ? 'Mengubah data & lampiran...' : 'Menyimpan SPK & Upload Lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      if (!coverPayload && isEdit) {
+        const existing = spkData.find(function(x) { return x.id === document.getElementById('spkId').value; });
+        if (existing && existing.lampiran) coverPayload = existing.lampiran;
+      }
+
+      const payload = {
+        action: isEdit ? 'update' : 'add',
+        type: 'spk',
+        rowIndex: rowIndex,
+        no: parseInt(document.getElementById('noSpk').value),
+        nomorSpk1: document.getElementById('nomorSpk1').value.trim(),
+        nomorSpk2: document.getElementById('nomorSpk2').value.trim(),
+        hari: document.getElementById('hariSpk').value,
+        tanggal: tanggalVal,
+        tanggalFormatted: tglFormatted,
+        tentang: document.getElementById('tentangSpk').value.trim(),
+        pihakKesatu: document.getElementById('pihakKesatu').value.trim(),
+        pihakKedua: document.getElementById('pihakKedua').value.trim(),
+        keterangan: document.getElementById('keteranganSpk').value.trim(),
+        cover: coverPayload,
+        fileName: fileNameStr || ('SPK_' + document.getElementById('noSpk').value + '.pdf'),
+        fileMime: fileMimeStr || ''
+      };
+
+      Swal.fire({ title: isEdit ? 'Mengubah data & lampiran...' : 'Menyimpan SPK & Upload Lampiran...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
       try {
         const result = await postToGAS(payload);
         if (result && result.status === 'success') {
-          const extra = result.coverUrl ? '<br><small>Lampiran tersimpan di Google Drive.</small>' : (payload.cover && payload.cover.indexOf('data:') === 0 ? '<br><small class="text-warning">Lampiran mungkin gagal di-upload (cek log Apps Script).</small>' : '');
+          const extra = result.coverUrl
+            ? '<br><small>Lampiran tersimpan di Google Drive.</small>'
+            : (payload.cover && payload.cover.indexOf('data:') === 0
+              ? '<br><small class="text-warning">Lampiran mungkin gagal di-upload (cek log Apps Script).</small>'
+              : '');
           Swal.fire('Berhasil!', (result.message || 'Data tersimpan.') + extra, 'success');
-          bootstrap.Modal.getInstance(document.getElementById('modalSpk')).hide(); base64File = ''; fileNameStr = ''; fileMimeStr = ''; if (fileInput) fileInput.value = '';
-          setTimeout(() => loadDataFromCloud(false), 900);
-        } else Swal.fire('Info', result?.message || JSON.stringify(result), 'info');
-      } catch (err) { console.error(err); Swal.fire('Gagal', err.message, 'error'); }
+          bootstrap.Modal.getInstance(document.getElementById('modalSpk')).hide();
+          base64File = ''; fileNameStr = ''; fileMimeStr = '';
+          if (fileInput) fileInput.value = '';
+          setTimeout(function() { loadDataFromCloud(false); }, 900);
+        } else {
+          Swal.fire('Info', (result && result.message) || JSON.stringify(result), 'info');
+        }
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Gagal', err.message, 'error');
+      }
     }
+
     function detailSpk(id) {
-      const item = spkData.find(a => a.id === id); if (!item) return;
-      document.getElementById('detail-body').innerHTML = '<table class="table table-bordered"><tr><th width="30%">NO</th><td>' + item.no + '</td></tr><tr><th>Nomor SPK</th><td style="white-space:pre-line">' + escapeHtml(item.nomorSpk) + '</td></tr><tr><th>Hari / Tanggal</th><td>' + item.hari + ', ' + item.tanggal + '</td></tr><tr><th>Tentang</th><td style="white-space:pre-line">' + escapeHtml(item.tentang) + '</td></tr><tr><th>Pihak Kesatu</th><td>' + escapeHtml(item.pihakKesatu) + '</td></tr><tr><th>Pihak Kedua</th><td>' + escapeHtml(item.pihakKedua) + '</td></tr><tr><th>Keterangan</th><td>' + escapeHtml(item.keterangan) + '</td></tr><tr><th>Lampiran</th><td>' + (item.lampiran ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt me-1"></i> Buka File</a>' : 'Tidak ada') + '</td></tr></table>';
+      const item = spkData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      document.getElementById('detail-body').innerHTML =
+        '<table class="table table-bordered">' +
+        '<tr><th width="30%">NO</th><td>' + item.no + '</td></tr>' +
+        '<tr><th>Nomor SPK</th><td style="white-space:pre-line">' + escapeHtml(item.nomorSpk) + '</td></tr>' +
+        '<tr><th>Hari / Tanggal</th><td>' + item.hari + ', ' + item.tanggal + '</td></tr>' +
+        '<tr><th>Tentang</th><td style="white-space:pre-line">' + escapeHtml(item.tentang) + '</td></tr>' +
+        '<tr><th>Pihak Kesatu</th><td>' + escapeHtml(item.pihakKesatu) + '</td></tr>' +
+        '<tr><th>Pihak Kedua</th><td>' + escapeHtml(item.pihakKedua) + '</td></tr>' +
+        '<tr><th>Keterangan</th><td>' + escapeHtml(item.keterangan) + '</td></tr>' +
+        '<tr><th>Lampiran</th><td>' + (item.lampiran ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt me-1"></i> Buka File</a>' : 'Tidak ada') + '</td></tr>' +
+        '</table>';
       new bootstrap.Modal(document.getElementById('modalDetail')).show();
     }
+
     function hapusSpk(id) {
-      if (!canDelete()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat menghapus.', 'warning'); return; }
-      const item = spkData.find(a => a.id === id); if (!item) return;
-      Swal.fire({ title: 'Pindahkan ke Tempat Sampah?', text: 'NO ' + item.no + ' - ' + item.pihakKedua, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus' }).then(async result => {
+      if (!canDelete()) {
+        Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat menghapus.', 'warning');
+        return;
+      }
+      const item = spkData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      Swal.fire({
+        title: 'Pindahkan ke Tempat Sampah?',
+        text: 'NO ' + item.no + ' - ' + item.pihakKedua,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Ya, Hapus'
+      }).then(async function(result) {
         if (!result.isConfirmed) return;
-        try { await postToGAS({ action: 'delete', type: 'spk', rowIndex: item.rowIndex }); Swal.fire('Dipindahkan', 'Data masuk Tempat Sampah.', 'success'); setTimeout(() => loadDataFromCloud(false), 600); } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+        try {
+          await postToGAS({ action: 'delete', type: 'spk', rowIndex: item.rowIndex });
+          Swal.fire('Dipindahkan', 'Data masuk Tempat Sampah.', 'success');
+          setTimeout(function() { loadDataFromCloud(false); }, 600);
+        } catch (e) {
+          Swal.fire('Gagal', e.message, 'error');
+        }
       });
     }
+
     function uploadLampiranOnly(id) {
-      if (!canEdit()) return; const item = spkData.find(a => a.id === id); if (!item) return;
-      const input = document.createElement('input'); input.type = 'file'; input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+      if (!canEdit()) return;
+      const item = spkData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
       input.onchange = async function() {
-        if (!this.files || !this.files[0]) return; const file = this.files[0];
-        if (file.size > 8 * 1024 * 1024) { Swal.fire('Error', 'Maks 8MB', 'error'); return; }
-        Swal.fire({ title: 'Upload lampiran...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        if (!this.files || !this.files[0]) return;
+        const file = this.files[0];
+        if (file.size > 8 * 1024 * 1024) {
+          Swal.fire('Error', 'Maks 8MB', 'error'); return;
+        }
+        Swal.fire({ title: 'Upload lampiran...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
         const reader = new FileReader();
-        reader.onload = async e => {
+        reader.onload = async function(e) {
           try {
-            const lines = (item.nomorSpk || '').split('\\n').map(s => s.replace(/^-\\s*/, '').trim()).filter(Boolean);
-            const result = await postToGAS({ action: 'update', type: 'spk', rowIndex: item.rowIndex, no: item.no, nomorSpk1: lines[0] || item.nomorSpk, nomorSpk2: lines[1] || '', hari: item.hari, tanggal: item.tanggal, tanggalFormatted: item.tanggal, tentang: item.tentang, pihakKesatu: item.pihakKesatu, pihakKedua: item.pihakKedua, keterangan: item.keterangan, cover: e.target.result, fileName: file.name, fileMime: file.type });
-            if (result.status === 'success') { Swal.fire('Berhasil', 'Lampiran berhasil diupload.' + (result.coverUrl ? '<br><small>URL tersimpan di sheet.</small>' : ''), 'success'); setTimeout(() => loadDataFromCloud(false), 700); }
-            else Swal.fire('Info', result.message || 'Selesai', 'info');
-          } catch (err) { Swal.fire('Gagal', err.message, 'error'); }
+            const lines = (item.nomorSpk || '').split('\n').map(function(s) { return s.replace(/^-\s*/, '').trim(); }).filter(Boolean);
+            const result = await postToGAS({
+              action: 'update',
+              type: 'spk',
+              rowIndex: item.rowIndex,
+              no: item.no,
+              nomorSpk1: lines[0] || item.nomorSpk,
+              nomorSpk2: lines[1] || '',
+              hari: item.hari,
+              tanggal: item.tanggal,
+              tanggalFormatted: item.tanggal,
+              tentang: item.tentang,
+              pihakKesatu: item.pihakKesatu,
+              pihakKedua: item.pihakKedua,
+              keterangan: item.keterangan,
+              cover: e.target.result,
+              fileName: file.name,
+              fileMime: file.type
+            });
+            if (result.status === 'success') {
+              Swal.fire('Berhasil', 'Lampiran berhasil diupload.' + (result.coverUrl ? '<br><small>URL tersimpan di sheet.</small>' : ''), 'success');
+              setTimeout(function() { loadDataFromCloud(false); }, 700);
+            } else {
+              Swal.fire('Info', result.message || 'Selesai', 'info');
+            }
+          } catch (err) {
+            Swal.fire('Gagal', err.message, 'error');
+          }
         };
         reader.readAsDataURL(file);
       };
       input.click();
     }
+
     function openTempatSampah() {
-      if (!canDelete()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat mengakses Tempat Sampah.', 'warning'); return; }
-      const tbody = document.getElementById('tbody-sampah'); tbody.innerHTML = '';
-      if (sampahData.length === 0) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Tempat sampah kosong</td></tr>';
-      else sampahData.forEach(item => {
-        tbody.innerHTML += '<tr><td>' + item.no + '</td><td><small style="white-space:pre-line">' + escapeHtml(item.nomorSpk) + '</small></td><td>' + item.tanggal + '</td><td><div class="uraian-column">' + escapeHtml(item.tentang) + '</div></td><td>' + escapeHtml(item.pihakKedua) + '</td><td class="text-center text-nowrap"><button class="btn btn-sm btn-success me-1" onclick="restoreSampah(' + item.rowIndex + ')" title="Kembalikan"><i class="fas fa-undo"></i></button><button class="btn btn-sm btn-danger" onclick="hapusPermanen(' + item.rowIndex + ')" title="Hapus Permanen"><i class="fas fa-times"></i></button></td></tr>';
-      });
+      if (!canDelete()) {
+        Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat mengakses Tempat Sampah.', 'warning');
+        return;
+      }
+      const tbody = document.getElementById('tbody-sampah');
+      tbody.innerHTML = '';
+      if (sampahData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Tempat sampah kosong</td></tr>';
+      } else {
+        sampahData.forEach(function(item) {
+          tbody.innerHTML += '<tr>' +
+            '<td>' + item.no + '</td>' +
+            '<td><small style="white-space:pre-line">' + escapeHtml(item.nomorSpk) + '</small></td>' +
+            '<td>' + item.tanggal + '</td>' +
+            '<td><div class="uraian-column">' + escapeHtml(item.tentang) + '</div></td>' +
+            '<td>' + escapeHtml(item.pihakKedua) + '</td>' +
+            '<td class="text-center text-nowrap">' +
+            '<button class="btn btn-sm btn-success me-1" onclick="restoreSampah(' + item.rowIndex + ')" title="Kembalikan"><i class="fas fa-undo"></i></button>' +
+            '<button class="btn btn-sm btn-danger" onclick="hapusPermanen(' + item.rowIndex + ')" title="Hapus Permanen"><i class="fas fa-times"></i></button>' +
+            '</td></tr>';
+        });
+      }
       new bootstrap.Modal(document.getElementById('modalSampah')).show();
     }
-    async function restoreSampah(rowIndex) { try { await postToGAS({ action: 'restore', type: 'spk', rowIndex: rowIndex }); Swal.fire('Berhasil', 'Data dikembalikan.', 'success'); bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide(); setTimeout(() => loadDataFromCloud(false), 600); } catch (e) { Swal.fire('Gagal', e.message, 'error'); } }
+
+    async function restoreSampah(rowIndex) {
+      try {
+        await postToGAS({ action: 'restore', type: 'spk', rowIndex: rowIndex });
+        Swal.fire('Berhasil', 'Data dikembalikan.', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide();
+        setTimeout(function() { loadDataFromCloud(false); }, 600);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+    }
+
     async function hapusPermanen(rowIndex) {
-      const conf = await Swal.fire({ title: 'Hapus permanen?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Permanen' }); if (!conf.isConfirmed) return;
-      try { await postToGAS({ action: 'permanent_delete', type: 'spk', rowIndex: rowIndex }); Swal.fire('Dihapus', 'Data dihapus permanen.', 'success'); setTimeout(() => { loadDataFromCloud(false); openTempatSampah(); }, 500); } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+      const conf = await Swal.fire({ title: 'Hapus permanen?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Permanen' });
+      if (!conf.isConfirmed) return;
+      try {
+        await postToGAS({ action: 'permanent_delete', type: 'spk', rowIndex: rowIndex });
+        Swal.fire('Dihapus', 'Data dihapus permanen.', 'success');
+        setTimeout(function() { loadDataFromCloud(false); openTempatSampah(); }, 500);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
     }
+
     async function kosongkanSampah() {
-      const conf = await Swal.fire({ title: 'Kosongkan seluruh Tempat Sampah?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Kosongkan' }); if (!conf.isConfirmed) return;
-      try { await postToGAS({ action: 'delete_all_trash', type: 'spk' }); Swal.fire('Berhasil', 'Tempat sampah dikosongkan.', 'success'); bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide(); setTimeout(() => loadDataFromCloud(false), 500); } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+      const conf = await Swal.fire({ title: 'Kosongkan seluruh Tempat Sampah?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Kosongkan' });
+      if (!conf.isConfirmed) return;
+      try {
+        await postToGAS({ action: 'delete_all_trash', type: 'spk' });
+        Swal.fire('Berhasil', 'Tempat sampah dikosongkan.', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide();
+        setTimeout(function() { loadDataFromCloud(false); }, 500);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
     }
+
     function exportDataExcel() {
-      if (!canExport()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat ekspor.', 'warning'); return; }
-      let csv = 'data:text/csv;charset=utf-8,NO,NOMOR SPK,HARI,TANGGAL,TENTANG,PIHAK KESATU,PIHAK KEDUA,KETERANGAN,LAMPIRAN\\n';
-      spkData.forEach(r => { csv += '"' + r.no + '","' + (r.nomorSpk||'').replace(/"/g,'""').replace(/\\n/g,' | ') + '","' + r.hari + '","' + r.tanggal + '","' + (r.tentang||'').replace(/"/g,'""') + '","' + r.pihakKesatu + '","' + r.pihakKedua + '","' + r.keterangan + '","' + r.lampiran + '"\\n'; });
-      const link = document.createElement('a'); link.href = encodeURI(csv); link.download = 'data_spk.csv'; link.click();
+      if (!canExport()) {
+        Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat ekspor.', 'warning');
+        return;
+      }
+      let csv = 'data:text/csv;charset=utf-8,NO,NOMOR SPK,HARI,TANGGAL,TENTANG,PIHAK KESATU,PIHAK KEDUA,KETERANGAN,LAMPIRAN\n';
+      spkData.forEach(function(r) {
+        csv += '"' + r.no + '","' + (r.nomorSpk || '').replace(/"/g, '""').replace(/\n/g, ' | ') + '","' + r.hari + '","' + r.tanggal + '","' + (r.tentang || '').replace(/"/g, '""') + '","' + r.pihakKesatu + '","' + r.pihakKedua + '","' + r.keterangan + '","' + r.lampiran + '"\n';
+      });
+      const link = document.createElement('a');
+      link.href = encodeURI(csv);
+      link.download = 'data_spk.csv';
+      link.click();
     }
-    function importDataCSV(input) { if (!canExport()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat import.', 'warning'); return; } Swal.fire('Info', 'Untuk bulk import, gunakan Google Sheets langsung atau hubungi admin.', 'info'); input.value = ''; }
+
+    function importDataCSV(input) {
+      if (!canExport()) {
+        Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat import.', 'warning');
+        return;
+      }
+      Swal.fire('Info', 'Untuk bulk import, gunakan Google Sheets langsung atau hubungi admin.', 'info');
+      input.value = '';
+    }
   </script>
 </body>
 </html>
