@@ -560,6 +560,10 @@
       const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
       const source = showingTrash ? trashData : allData;
       filtered = source.filter(function(r) {
+           // Hanya tampilkan baris yang punya perihal/uraian (data nyata)
+        const hasContent = String(r.perihal || '').trim() !== '';
+        if (!showingTrash && !hasContent) return false;
+        
         if (!q) return true;
         const blob = [r.no, r.kode_klasifikasi, r.nomor_surat, r.perihal, r.tujuan, r.pengolah, r.sifat_surat].join(' ').toLowerCase();
         return blob.indexOf(q) >= 0;
