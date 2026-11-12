@@ -192,29 +192,29 @@
 
     <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50 space-y-4">
       
-      <!-- TOOLBAR ATAS -->
+      <!-- TOOLBAR ATAS (sesuai role: superadmin full, admin tanpa hapus/import/export, user hanya lihat) -->
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div class="d-flex gap-2 flex-wrap">
-          <button class="btn btn-primary btn-sm fw-semibold" onclick="openModalKlasifikasi()">
+          <button class="btn btn-primary btn-sm fw-semibold role-add-edit d-none" onclick="openModalKlasifikasi()">
             <i class="fas fa-plus-circle me-1"></i> Tambah Kode Klasifikasi
           </button>
           <button class="btn btn-info btn-sm text-white fw-semibold" onclick="loadKlasifikasiFromCloud(true)">
             <i class="fas fa-sync-alt me-1"></i> Singkron Cloud
           </button>
-          <button class="btn btn-outline-danger btn-sm fw-semibold" onclick="hapusKlasifikasiTerpilih()">
+          <button class="btn btn-outline-danger btn-sm fw-semibold role-delete d-none" onclick="hapusKlasifikasiTerpilih()">
             <i class="fas fa-trash-alt me-1"></i> Hapus Terpilih
           </button>
-          <button class="btn btn-danger btn-sm fw-semibold" onclick="hapusSemuaKlasifikasi()">
+          <button class="btn btn-danger btn-sm fw-semibold role-delete d-none" onclick="hapusSemuaKlasifikasi()">
             <i class="fas fa-trash me-1"></i> Hapus Semua Klasifikasi
           </button>
         </div>
 
         <div class="d-flex gap-2 flex-wrap">
-          <label class="btn btn-outline-success btn-sm fw-semibold mb-0 cursor-pointer">
+          <label class="btn btn-outline-success btn-sm fw-semibold mb-0 cursor-pointer role-import-export d-none">
             <i class="fas fa-file-import me-1"></i> Impor Excel/CSV
             <input type="file" id="inputImportCsv" accept=".csv" class="d-none" onchange="importKlasifikasiCsv(this)">
           </label>
-          <button class="btn btn-success btn-sm fw-semibold" onclick="exportKlasifikasiCsv()">
+          <button class="btn btn-success btn-sm fw-semibold role-import-export d-none" onclick="exportKlasifikasiCsv()">
             <i class="fas fa-file-excel me-1"></i> Ekspor Excel/CSV
           </button>
         </div>
@@ -238,7 +238,7 @@
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th width="40" class="text-center"><input type="checkbox" id="select-all-klasifikasi" onclick="toggleSelectAllKlasifikasi(this)"></th>
+                <th width="40" class="text-center role-delete d-none"><input type="checkbox" id="select-all-klasifikasi" onclick="toggleSelectAllKlasifikasi(this)"></th>
                 <th width="60">No</th>
                 <th width="200">Kode Klasifikasi</th>
                 <th>Uraian Klasifikasi</th>
@@ -293,9 +293,16 @@
     const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
 
     // Ambil data sesi login dari localStorage
-    const currentRole = localStorage.getItem('arsip_role') || 'umum';
+    const currentRole = (localStorage.getItem('arsip_role') || 'umum').toLowerCase();
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
     const currentNama = localStorage.getItem('arsip_nama') || localStorage.getItem('arsip_username') || 'Pengguna';
+
+    // Role helpers: superadmin = full, admin = tanpa hapus/import/export/sampah, user/umum = hanya lihat
+    const isSuperAdmin = currentRole === 'superadmin';
+    const isAdmin = currentRole === 'admin';
+    const canAddEdit = isSuperAdmin || isAdmin;
+    const canDelete = isSuperAdmin;
+    const canImportExport = isSuperAdmin;
 
     let klasifikasiDataList = [];
     let filteredKlasifikasiData = [];
@@ -323,9 +330,20 @@
       document.getElementById('user-role-display').innerText = currentRole.toUpperCase();
       document.getElementById('display-instansi-name').innerText = currentInstansi;
 
-      // Batasi Menu Sampah jika rolenya umum
+      // Tampilkan tombol sesuai role
+      if (canAddEdit) {
+        document.querySelectorAll('.role-add-edit').forEach(el => el.classList.remove('d-none'));
+      }
+      if (canDelete) {
+        document.querySelectorAll('.role-delete').forEach(el => el.classList.remove('d-none'));
+      }
+      if (canImportExport) {
+        document.querySelectorAll('.role-import-export').forEach(el => el.classList.remove('d-none'));
+      }
+
+      // Menu Sampah hanya untuk superadmin
       const menuSampah = document.getElementById('menu-sampah-link');
-      if (menuSampah && currentRole.toLowerCase() === 'umum') {
+      if (menuSampah && !isSuperAdmin) {
         menuSampah.classList.add('d-none');
       }
 
@@ -407,8 +425,9 @@
       
       document.getElementById('total-badge-klasifikasi').innerText = `Total Kode Klasifikasi: ${klasifikasiDataList.length}`;
 
+      const colSpan = canDelete ? 5 : 4;
       if (filteredKlasifikasiData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Belum ada data kode klasifikasi.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-3">Belum ada data kode klasifikasi.</td></tr>`;
         document.getElementById('info-jumlah-tampil').innerText = `Menampilkan 0 dari 0 data`;
         document.getElementById('pagination-klasifikasi').innerHTML = '';
         return;
@@ -420,15 +439,25 @@
 
       paginatedData.forEach((item, index) => {
         const absoluteIndex = startIndex + index + 1;
+        let checkboxCol = canDelete ? `<td class="text-center"><input type="checkbox" class="klasifikasi-checkbox" value="${item.kode}"></td>` : '';
+        let actionBtns = '';
+        if (canAddEdit) {
+          actionBtns += `<button class="btn btn-sm btn-warning text-white me-1" onclick="editKlasifikasi('${item.kode}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+        }
+        if (canDelete) {
+          actionBtns += `<button class="btn btn-sm btn-danger" onclick="hapusKlasifikasi('${item.kode}')" title="Hapus"><i class="fas fa-trash"></i></button>`;
+        }
+        if (!actionBtns) {
+          actionBtns = '<span class="text-muted small">-</span>';
+        }
         tbody.innerHTML += `
           <tr>
-            <td class="text-center"><input type="checkbox" class="klasifikasi-checkbox" value="${item.kode}"></td>
+            ${checkboxCol}
             <td>${absoluteIndex}</td>
             <td class="fw-bold text-primary">${item.kode}</td>
             <td>${item.uraian}</td>
             <td class="text-center text-nowrap">
-              <button class="btn btn-sm btn-warning text-white me-1" onclick="editKlasifikasi('${item.kode}')" title="Edit"><i class="fas fa-edit"></i></button>
-              <button class="btn btn-sm btn-danger" onclick="hapusKlasifikasi('${item.kode}')" title="Hapus"><i class="fas fa-trash"></i></button>
+              ${actionBtns}
             </td>
           </tr>`;
       });
