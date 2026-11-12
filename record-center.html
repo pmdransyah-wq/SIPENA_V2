@@ -38,17 +38,20 @@
     </div>
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-      <div class="d-flex gap-2 flex-wrap super-admin-only">
-        <button class="btn btn-primary fw-semibold" onclick="openModalTambahArsip()">
+      <div class="d-flex gap-2 flex-wrap">
+        <!-- Tambah Data: superadmin + admin -->
+        <button class="btn btn-primary fw-semibold role-edit" onclick="openModalTambahArsip()">
           <i class="fas fa-plus-circle me-1"></i> Tambah Data
         </button>
-        <button class="btn btn-outline-danger fw-semibold" onclick="hapusArsipTerpilih()">
+        <!-- Hapus Terpilih & Hapus Semua: hanya superadmin -->
+        <button class="btn btn-outline-danger fw-semibold role-delete" onclick="hapusArsipTerpilih()">
           <i class="fas fa-trash-alt me-1"></i> Hapus Terpilih
         </button>
-        <button class="btn btn-danger fw-semibold" onclick="hapusSemuaArsip()">
+        <button class="btn btn-danger fw-semibold role-delete" onclick="hapusSemuaArsip()">
           <i class="fas fa-trash me-1"></i> Hapus Semua Data
         </button>
-        <button class="btn btn-success fw-semibold" onclick="exportDataArsipExcel()">
+        <!-- Ekspor: hanya superadmin (admin dibatasi hapus + import/export) -->
+        <button class="btn btn-success fw-semibold role-export" onclick="exportDataArsipExcel()">
           <i class="fas fa-file-excel me-1"></i> Ekspor Excel
         </button>
       </div>
@@ -83,7 +86,8 @@
         <table class="table table-hover align-middle mb-0">
           <thead>
             <tr>
-              <th width="40" class="text-center super-admin-only"><input type="checkbox" id="select-all-arsip" onclick="toggleSelectAllArsip(this)"></th>
+              <!-- Checkbox hanya untuk superadmin (bulk delete) -->
+              <th width="40" class="text-center role-delete"><input type="checkbox" id="select-all-arsip" onclick="toggleSelectAllArsip(this)"></th>
               <th>NO</th><th>NO BOX</th><th>RAK</th><th>ASAL ARSIP</th><th>URAIAN ARSIP</th><th>TAHUN</th><th>MEDIA</th><th>KONDISI</th><th>JUMLAH</th><th>JENIS ARSIP</th><th>AKTIF</th><th>INAKTIF</th><th>STATUS</th><th>COVER</th><th>USER INPUT</th><th>TGL INPUT</th><th class="text-center">AKSI</th>
             </tr>
           </thead>
@@ -160,7 +164,7 @@
     // ========== SAMAKAN URL DENGAN master-jra.html (deployment terbaru) ==========
     const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwdvjd2HOkEzX_v4UMn8KEluKnYXvls0A5GxEONJ45dNIDYqzTE4UYlr8FZ8GlZV_lBpw/exec";
     
-    const currentRole = localStorage.getItem('arsip_role') || 'umum';
+    const currentRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
     const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
     // Hindari nilai literal "undefined" / "null" dari localStorage
     function safeLocal(key, fallback) {
@@ -169,6 +173,17 @@
       return v;
     }
     const currentUserName = safeLocal('arsip_nama', safeLocal('arsip_username', 'Pengguna'));
+
+    // ===== Role helpers (pembagian akses tampilan) =====
+    // superadmin : full akses
+    // admin      : bisa tambah/edit, TIDAK boleh hapus + ekspor (import/export)
+    // user / umum: hanya lihat data
+    const isSuperAdmin = () => currentRole === 'superadmin';
+    const isAdmin      = () => currentRole === 'admin';
+    const isUser       = () => currentRole === 'user' || currentRole === 'umum';
+    const canEdit      = () => isSuperAdmin() || isAdmin();   // tambah + edit
+    const canDelete    = () => isSuperAdmin();                // hapus
+    const canExport    = () => isSuperAdmin();                // ekspor
 
     let masterJraData = [];
     let arsipData = [];
@@ -192,6 +207,21 @@
       });
     }
 
+    function applyRoleVisibility() {
+      // role-edit  : tampil untuk superadmin + admin
+      document.querySelectorAll('.role-edit').forEach(el => {
+        el.classList.toggle('d-none', !canEdit());
+      });
+      // role-delete: hanya superadmin
+      document.querySelectorAll('.role-delete').forEach(el => {
+        el.classList.toggle('d-none', !canDelete());
+      });
+      // role-export: hanya superadmin
+      document.querySelectorAll('.role-export').forEach(el => {
+        el.classList.toggle('d-none', !canExport());
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
       if (localStorage.getItem('arsip_logged_in') !== 'true') {
         window.location.href = 'login.html';
@@ -201,11 +231,8 @@
       document.getElementById('header-instansi-label').innerText = currentInstansi;
       document.getElementById('header-user-label').innerText = currentUserName + ` (${currentRole.toUpperCase()})`;
 
-      if (currentRole.toLowerCase() !== 'umum') {
-        document.querySelectorAll('.super-admin-only').forEach(el => el.classList.remove('d-none'));
-      } else {
-        document.querySelectorAll('.super-admin-only').forEach(el => el.classList.add('d-none'));
-      }
+      // Terapkan pembagian role ke tampilan
+      applyRoleVisibility();
 
       // Ambil cache lokal dulu biar cepat tampil
       try {
@@ -336,13 +363,17 @@
           let badgeClass = item.status === "Musnah" ? "badge-status-musnah" : (item.status === "Permanen" ? "badge-status-permanen" : "badge-status-dinilai");
           const coverLink = item.cover ? `<a href="${item.cover}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>` : '-';
           
+          // Aksi: Detail selalu ada. Edit untuk canEdit. Hapus hanya canDelete.
           let actionButtons = `<button class="btn btn-sm btn-info text-white me-1" onclick="detailArsip('${item.id}')" title="Detail"><i class="fas fa-search"></i></button>`;
-          if (currentRole.toLowerCase() !== 'umum') {
+          if (canEdit()) {
             actionButtons += `<button class="btn btn-sm btn-warning text-white me-1" onclick="editArsip('${item.id}')" title="Edit"><i class="fas fa-edit"></i></button>`;
+          }
+          if (canDelete()) {
             actionButtons += `<button class="btn btn-sm btn-danger" onclick="hapusArsip('${item.id}')" title="Hapus"><i class="fas fa-trash"></i></button>`;
           }
 
-          let checkboxCol = currentRole.toLowerCase() !== 'umum' ? `<td class="text-center"><input type="checkbox" class="arsip-checkbox" value="${item.id}"></td>` : '';
+          // Checkbox hanya superadmin
+          let checkboxCol = canDelete() ? `<td class="text-center"><input type="checkbox" class="arsip-checkbox" value="${item.id}"></td>` : `<td class="text-center role-delete d-none"></td>`;
 
           tbody.innerHTML += `
             <tr>
@@ -377,6 +408,10 @@
     function toggleSelectAllArsip(source) { document.querySelectorAll('.arsip-checkbox').forEach(cb => cb.checked = source.checked); }
 
     function openModalTambahArsip() {
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk menambah data.', 'warning');
+        return;
+      }
       document.getElementById('formArsip').reset();
       document.getElementById('arsipId').value = '';
       document.getElementById('modalArsipTitle').innerHTML = `<i class="fas fa-plus-circle me-2"></i>Tambah Data Arsip`;
@@ -393,6 +428,10 @@
     }
 
     function editArsip(id) {
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk mengubah data.', 'warning');
+        return;
+      }
       const item = arsipData.find(a => a.id === id);
       if (!item) return;
       document.getElementById('arsipId').value = item.id;
@@ -413,6 +452,10 @@
     }
 
     async function simpanArsip() {
+      if (!canEdit()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk menyimpan data.', 'warning');
+        return;
+      }
       const form = document.getElementById('formArsip');
       if (!form.checkValidity()) { form.reportValidity(); return; }
 
@@ -558,6 +601,10 @@
     }
 
     function hapusArsip(id) {
+      if (!canDelete()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk menghapus data.', 'warning');
+        return;
+      }
       Swal.fire({ title: 'Pindahkan ke Sampah?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!' }).then(result => {
         if (!result.isConfirmed) return;
         const itemToDelete = arsipData.find(a => a.id === id);
@@ -577,6 +624,10 @@
     }
 
     function hapusArsipTerpilih() {
+      if (!canDelete()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk menghapus data.', 'warning');
+        return;
+      }
       const selectedIds = Array.from(document.querySelectorAll('.arsip-checkbox:checked')).map(cb => cb.value);
       if (selectedIds.length === 0) { Swal.fire('Perhatian', 'Pilih minimal satu data!', 'warning'); return; }
       Swal.fire({ title: 'Pindahkan Terpilih ke Sampah?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus!' }).then(result => {
@@ -597,6 +648,10 @@
     }
 
     function hapusSemuaArsip() {
+      if (!canDelete()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk menghapus data.', 'warning');
+        return;
+      }
       if (arsipData.length === 0) return;
       Swal.fire({ title: 'PINDAHKAN SEMUA KE SAMPAH?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Pindahkan Semua!' }).then(result => {
         if (!result.isConfirmed) return;
@@ -747,6 +802,10 @@
     }
 
     function exportDataArsipExcel() {
+      if (!canExport()) {
+        Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak untuk mengekspor data.', 'warning');
+        return;
+      }
       let csvContent = "data:text/csv;charset=utf-8,ID,No Box,Rak,Asal Arsip,Uraian Arsip,Tahun,Media,Kondisi,Jumlah,Jenis Arsip,Aktif,Inaktif,Status,User Input,Tgl Input\n";
       arsipData.forEach(row => {
         csvContent += `"${row.id}","${row.noBox}","${row.rak}","${row.asal}","${(row.uraian || '').replace(/\n/g, ' ')}","${row.tahun}","${row.media}","${row.kondisi}","${row.jumlah}","${row.jenisArsip}","${row.aktif}","${row.inaktif}","${row.status}","${row.userInput}","${row.tglInput}"\n`;
