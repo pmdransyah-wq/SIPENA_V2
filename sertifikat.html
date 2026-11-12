@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modul Sertifikat - E-Arsip System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <style>
+    :root { --primary-color: #2b3674; --secondary-color: #4318ff; --bg-light: #f4f7fe; }
+    body { background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .main-container { width: 100%; padding: 20px 24px; }
+    .card-custom { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background-color: #ffffff; }
+    .table-container { background: #ffffff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .table th { background-color: #f7f9fc; color: #1b2559; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; white-space: nowrap; cursor: pointer; user-select: none; }
+    .table th:hover { background-color: #e8eef8; }
+    .table td { font-size: 0.88rem; vertical-align: middle; }
+    .uraian-column { min-width: 180px; max-width: 320px; white-space: pre-line !important; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+    .autocomplete-items { position: absolute; border: 1px solid #d4d4d4; z-index: 1050; top: 100%; left: 0; right: 0; border-radius: 0 0 8px 8px; background: #fff; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .autocomplete-items div { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+    .autocomplete-items div:hover { background-color: #e9ecef; }
+    .sort-icon { font-size: 0.7rem; opacity: 0.5; margin-left: 4px; }
+    .sort-icon.active { opacity: 1; color: var(--secondary-color); }
+    .search-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .search-bar .form-select { width: auto; min-width: 130px; }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="d-flex justify-content-between align-items-center pb-2 mb-3 border-bottom">
+      <div>
+        <h1 class="h3 fw-bold text-dark mb-0"><i class="fas fa-certificate me-2 text-primary"></i>Modul Sertifikat</h1>
+        <small class="text-muted">Instansi: <span id="header-instansi-label" class="fw-bold text-primary">Memuat...</span> | Pengguna: <span id="header-user-label" class="fw-bold">Memuat...</span></small>
+      </div>
+      <button class="btn btn-sm btn-outline-primary" onclick="loadDataFromCloud(true)"><i class="fas fa-sync-alt me-1"></i> Sinkronisasi Cloud</button>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary fw-semibold role-edit" onclick="openModalTambah()"><i class="fas fa-plus-circle me-1"></i> Tambah Data</button>
+        <button class="btn btn-outline-success fw-semibold role-export" onclick="exportDataExcel()"><i class="fas fa-file-excel me-1"></i> Ekspor</button>
+        <button class="btn btn-outline-secondary fw-semibold role-export" onclick="document.getElementById('importFile').click()"><i class="fas fa-file-import me-1"></i> Import</button>
+        <input type="file" id="importFile" accept=".csv,.txt" class="d-none" onchange="importDataCSV(this)">
+        <button class="btn btn-outline-warning fw-semibold role-delete" onclick="openTempatSampah()"><i class="fas fa-trash-restore me-1"></i> Tempat Sampah <span class="badge bg-danger" id="trash-count">0</span></button>
+      </div>
+      <div class="badge bg-secondary p-2 fs-6">Total Sertifikat: <span id="total-count">0</span></div>
+    </div>
+
+    <div class="card card-custom mb-3 bg-light border-0">
+      <div class="card-body p-3">
+        <div class="search-bar">
+          <select id="filter-tahun" class="form-select form-select-sm" onchange="applyFilter()"><option value="">Semua Tahun</option></select>
+          <div class="input-group input-group-sm" style="flex:1; min-width:240px;">
+            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" id="filter-q" class="form-control" placeholder="Cari nomor, uraian, pengolah..." oninput="debounceFilter()">
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="resetFilter()" title="Reset"><i class="fas fa-undo"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container mb-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th onclick="sortBy('no')">NO <i class="fas fa-sort sort-icon" id="sort-no"></i></th>
+              <th onclick="sortBy('nomorSertifikat')">NOMOR SERTIFIKAT <i class="fas fa-sort sort-icon" id="sort-nomorSertifikat"></i></th>
+              <th onclick="sortBy('tanggal')">TANGGAL SERTIFIKAT <i class="fas fa-sort sort-icon" id="sort-tanggal"></i></th>
+              <th onclick="sortBy('uraian')">URAIAN <i class="fas fa-sort sort-icon" id="sort-uraian"></i></th>
+              <th onclick="sortBy('pengolah')">PENGOLAH <i class="fas fa-sort sort-icon" id="sort-pengolah"></i></th>
+              <th onclick="sortBy('penandaTangan')">PENANDA TANGAN <i class="fas fa-sort sort-icon" id="sort-penandaTangan"></i></th>
+              <th>LAMPIRAN</th>
+              <th class="text-center">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-data"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <small class="text-muted" id="pagination-info">Menampilkan 0 data</small>
+      <nav><ul class="pagination pagination-sm mb-0" id="pagination"></ul></nav>
+    </div>
+  </div>
+
+  <!-- MODAL TAMBAH/EDIT -->
+  <div class="modal fade" id="modalForm" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalTitle"><i class="fas fa-plus-circle me-2"></i>Tambah Data Sertifikat</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formData">
+            <input type="hidden" id="itemId">
+            <input type="hidden" id="itemRowIndex">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">NO (Agenda) <span class="text-danger">*</span></label>
+                <input type="number" id="noAgenda" class="form-control" required readonly>
+                <small class="text-muted">Otomatis per tahun</small>
+              </div>
+              <div class="col-md-5 position-relative">
+                <label class="form-label fw-semibold">Kode Klasifikasi <span class="text-danger">*</span></label>
+                <input type="text" id="kodeKlasifikasi" class="form-control" placeholder="Ketik kode atau uraian..." autocomplete="off" required>
+                <div id="kode-list" class="autocomplete-items d-none"></div>
+                <small class="text-muted" id="kode-hint">Memuat daftar kode...</small>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Pengolah <span class="text-danger">*</span></label>
+                <select id="pengolah" class="form-select" required onchange="generateNomor()">
+                  <option value="">-- Pilih --</option>
+                  <option value="Sekr">Sekr</option>
+                  <option value="PPD">PPD</option>
+                  <option value="PUEMD">PUEMD</option>
+                  <option value="PMLKD">PMLKD</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Nomor Sertifikat (otomatis) <span class="text-danger">*</span></label>
+                <input type="text" id="nomorSertifikat" class="form-control bg-light" readonly required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Tanggal Sertifikat <span class="text-danger">*</span></label>
+                <input type="date" id="tanggal" class="form-control" required onchange="onTanggalChange()">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">Tahun</label>
+                <input type="text" id="tahun" class="form-control bg-light" readonly>
+              </div>
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">Uraian <span class="text-danger">*</span></label>
+                <textarea id="uraian" class="form-control" rows="3" required></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Penanda Tangan</label>
+                <input type="text" id="penandaTangan" class="form-control" value="Kepala Dinas">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Link Lampiran (opsional)</label>
+                <input type="url" id="lampiran" class="form-control" placeholder="https://drive.google.com/...">
+                <small class="text-muted">Tempel link Google Drive / URL file</small>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary fw-semibold" onclick="simpanData()">Simpan Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header bg-secondary text-white"><h5 class="modal-title">Detail Sertifikat</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="detail-body"></div>
+    </div></div>
+  </div>
+
+  <div class="modal fade" id="modalSampah" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+      <div class="modal-header bg-warning"><h5 class="modal-title"><i class="fas fa-trash-restore me-2"></i>Tempat Sampah Sertifikat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Data yang dihapus dapat dikembalikan atau dihapus permanen.</span>
+          <button class="btn btn-sm btn-danger role-delete" onclick="kosongkanSampah()">Kosongkan Semua</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead><tr><th>NO</th><th>NOMOR SERTIFIKAT</th><th>TANGGAL</th><th>URAIAN</th><th>PENGOLAH</th><th class="text-center">AKSI</th></tr></thead>
+            <tbody id="tbody-sampah"></tbody>
+          </table>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    // ========== GANTI DENGAN URL WEB APP HASIL DEPLOY code-sertifikat.gs ==========
+    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbxyXq7V5Q3wHJC9cScawL5knt_T-owZZF5kVQwSChIo2EDya36RriVy9bJkYqihaz97nw/exec";
+
+    const currentRole = (localStorage.getItem('arsip_role') || 'user').toLowerCase();
+    const currentInstansi = localStorage.getItem('arsip_instansi') || 'Pusat';
+    function safeLocal(key, fallback) {
+      const v = localStorage.getItem(key);
+      if (!v || v === 'undefined' || v === 'null') return fallback;
+      return v;
+    }
+    const currentUserName = safeLocal('arsip_nama', safeLocal('arsip_username', 'Pengguna'));
+
+    const isSuperAdmin = () => currentRole === 'superadmin';
+    const isAdmin = () => currentRole === 'admin';
+    const canEdit = () => isSuperAdmin() || isAdmin();
+    const canDelete = () => isSuperAdmin();
+    const canExport = () => isSuperAdmin();
+
+    let mainData = [];
+    let sampahData = [];
+    let kodeKlasifikasiData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const rowsPerPage = 15;
+    let sortKey = 'no';
+    let sortAsc = false;
+    let filterTimer = null;
+
+    function postToGAS(payload) {
+      return fetch(GAS_BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow'
+      }).then(async function(res) {
+        const text = await res.text();
+        try { return JSON.parse(text); }
+        catch (e) {
+          if (res.ok) return { status: 'success', raw: text };
+          throw new Error('Response bukan JSON: ' + text.substring(0, 150));
+        }
+      });
+    }
+
+    function applyRoleVisibility() {
+      document.querySelectorAll('.role-edit').forEach(function(el) { el.classList.toggle('d-none', !canEdit()); });
+      document.querySelectorAll('.role-delete').forEach(function(el) { el.classList.toggle('d-none', !canDelete()); });
+      document.querySelectorAll('.role-export').forEach(function(el) { el.classList.toggle('d-none', !canExport()); });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (localStorage.getItem('arsip_logged_in') !== 'true') {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('header-instansi-label').innerText = currentInstansi;
+      document.getElementById('header-user-label').innerText = currentUserName + ' (' + currentRole.toUpperCase() + ')';
+      applyRoleVisibility();
+
+      try {
+        const cachedKode = localStorage.getItem('cachedKodeKlasifikasi');
+        if (cachedKode) {
+          const arr = JSON.parse(cachedKode) || [];
+          kodeKlasifikasiData = arr.map(function(k) { return { kode: k.kode || k[0], uraian: k.uraian || k[1] || '' }; });
+          updateKodeHint();
+        }
+      } catch (e) {}
+
+      try {
+        const cached = localStorage.getItem('cachedSertifikat');
+        if (cached) {
+          mainData = JSON.parse(cached) || [];
+          filteredData = mainData.slice();
+          buildYearOptions();
+          renderTable();
+        }
+      } catch (e) {}
+
+      setupKodeAutocomplete();
+      loadDataFromCloud(false);
+    });
+
+    function updateKodeHint() {
+      const hint = document.getElementById('kode-hint');
+      if (!hint) return;
+      if (kodeKlasifikasiData.length === 0) {
+        hint.innerHTML = '<span class="text-warning">Belum ada data kode. Isi di menu Kode Klasifikasi lalu sinkron.</span>';
+      } else {
+        hint.innerHTML = '<span class="text-success">' + kodeKlasifikasiData.length + ' kode tersedia. Ketik untuk mencari.</span>';
+      }
+    }
+
+    function loadDataFromCloud(isManual) {
+      if (isManual) Swal.fire({ title: 'Sinkronisasi...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+      fetch(GAS_BACKEND_URL)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (isManual) Swal.close();
+
+          if (data && data.Sertifikat && Array.isArray(data.Sertifikat)) {
+            mainData = data.Sertifikat.slice(1).map(function(r, idx) {
+              if (!r || r[0] === '' || r[0] == null) return null;
+              return {
+                id: 'SRT-' + (idx + 1) + '-' + String(r[0]),
+                no: parseInt(r[0]) || 0,
+                nomorSertifikat: String(r[1] || ''),
+                tanggal: formatTanggalDisplay(r[2]),
+                uraian: String(r[3] || ''),
+                pengolah: String(r[4] || ''),
+                penandaTangan: String(r[5] || ''),
+                lampiran: String(r[6] || ''),
+                rowIndex: idx + 2,
+                tahun: extractYear(r[2], r[1])
+              };
+            }).filter(Boolean).reverse();
+            localStorage.setItem('cachedSertifikat', JSON.stringify(mainData));
+          }
+
+          if (data && data.SampahSertifikat && Array.isArray(data.SampahSertifikat)) {
+            sampahData = data.SampahSertifikat.slice(1).map(function(r, idx) {
+              if (!r || r[0] === '' || r[0] == null) return null;
+              return {
+                id: 'TRASH-' + (idx + 1),
+                no: parseInt(r[0]) || 0,
+                nomorSertifikat: String(r[1] || ''),
+                tanggal: formatTanggalDisplay(r[2]),
+                uraian: String(r[3] || ''),
+                pengolah: String(r[4] || ''),
+                penandaTangan: String(r[5] || ''),
+                lampiran: String(r[6] || ''),
+                rowIndex: idx + 2
+              };
+            }).filter(Boolean);
+          }
+
+          if (data && data.KodeKlasifikasi && Array.isArray(data.KodeKlasifikasi) && data.KodeKlasifikasi.length > 1) {
+            kodeKlasifikasiData = data.KodeKlasifikasi.slice(1).filter(function(r) { return r && r[0]; }).map(function(r) {
+              return { kode: String(r[0]).trim(), uraian: String(r[1] || '').trim() };
+            });
+            localStorage.setItem('cachedKodeKlasifikasi', JSON.stringify(kodeKlasifikasiData));
+          }
+          updateKodeHint();
+          setupKodeAutocomplete();
+
+          document.getElementById('trash-count').innerText = sampahData.length;
+          filteredData = mainData.slice();
+          buildYearOptions();
+          sortKey = 'no';
+          sortAsc = false;
+          applySort();
+          renderTable();
+
+          if (isManual) {
+            Swal.fire('Berhasil', 'Sinkronisasi sukses.<br>Sertifikat: ' + mainData.length + '<br>Sampah: ' + sampahData.length + '<br>Kode: ' + kodeKlasifikasiData.length, 'success');
+          }
+        })
+        .catch(function(err) {
+          console.warn(err);
+          if (isManual) Swal.fire('Gagal', 'Tidak dapat terhubung ke cloud. Pastikan URL Web App benar & sudah Deploy New version.', 'error');
+        });
+    }
+
+    function formatTanggalDisplay(val) {
+      if (!val) return '';
+      if (typeof val === 'string') return val;
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+          return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+        }
+      } catch (e) {}
+      return String(val);
+    }
+
+    function extractYear(tgl, nomor) {
+      if (tgl) {
+        const m = String(tgl).match(/(\d{4})/);
+        if (m) return parseInt(m[1], 10);
+      }
+      if (nomor) {
+        const m = String(nomor).match(/\/(\d{4})/);
+        if (m) return parseInt(m[1], 10);
+      }
+      return new Date().getFullYear();
+    }
+
+    function buildYearOptions() {
+      const years = [];
+      const seen = {};
+      mainData.forEach(function(d) {
+        if (d.tahun && !seen[d.tahun]) { seen[d.tahun] = true; years.push(d.tahun); }
+      });
+      years.sort(function(a, b) { return b - a; });
+      const sel = document.getElementById('filter-tahun');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Semua Tahun</option>';
+      years.forEach(function(y) { sel.innerHTML += '<option value="' + y + '">' + y + '</option>'; });
+      if (cur) sel.value = cur;
+    }
+
+    function applySort() {
+      filteredData.sort(function(a, b) {
+        var va = a[sortKey], vb = b[sortKey];
+        if (sortKey === 'no' || sortKey === 'tahun') {
+          va = Number(va) || 0; vb = Number(vb) || 0;
+        } else {
+          va = String(va || '').toLowerCase();
+          vb = String(vb || '').toLowerCase();
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function sortBy(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+      document.querySelectorAll('.sort-icon').forEach(function(i) { i.className = 'fas fa-sort sort-icon'; });
+      var icon = document.getElementById('sort-' + key);
+      if (icon) icon.className = 'fas fa-sort-' + (sortAsc ? 'up' : 'down') + ' sort-icon active';
+      applySort();
+      currentPage = 1;
+      renderTable();
+    }
+
+    function renderTable() {
+      var tbody = document.getElementById('tbody-data');
+      tbody.innerHTML = '';
+      var start = (currentPage - 1) * rowsPerPage;
+      var pageData = filteredData.slice(start, start + rowsPerPage);
+
+      if (pageData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada data Sertifikat</td></tr>';
+      } else {
+        pageData.forEach(function(item) {
+          var lampiranBtn = item.lampiran
+            ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-outline-primary" title="Buka Link"><i class="fas fa-link"></i></a>'
+            : '-';
+          var actions = '<button class="btn btn-sm btn-info text-white me-1" onclick="detailItem(\'' + item.id + '\')" title="View"><i class="fas fa-eye"></i></button>';
+          if (canEdit()) {
+            actions += '<button class="btn btn-sm btn-warning text-white me-1" onclick="editItem(\'' + item.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>';
+            actions += '<button class="btn btn-sm btn-secondary me-1" onclick="editLampiranOnly(\'' + item.id + '\')" title="Ubah Link Lampiran"><i class="fas fa-link"></i></button>';
+          }
+          if (canDelete()) {
+            actions += '<button class="btn btn-sm btn-danger" onclick="hapusItem(\'' + item.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>';
+          }
+          tbody.innerHTML += '<tr>' +
+            '<td class="fw-bold">' + item.no + '</td>' +
+            '<td><small class="fw-semibold text-primary">' + escapeHtml(item.nomorSertifikat) + '</small></td>' +
+            '<td>' + item.tanggal + '</td>' +
+            '<td><div class="uraian-column">' + escapeHtml(item.uraian) + '</div></td>' +
+            '<td><span class="badge bg-success">' + escapeHtml(item.pengolah) + '</span></td>' +
+            '<td><small>' + escapeHtml(item.penandaTangan) + '</small></td>' +
+            '<td>' + lampiranBtn + '</td>' +
+            '<td class="text-center text-nowrap">' + actions + '</td>' +
+            '</tr>';
+        });
+      }
+      document.getElementById('total-count').innerText = filteredData.length;
+      document.getElementById('pagination-info').innerText = 'Menampilkan ' + pageData.length + ' dari ' + filteredData.length + ' data';
+      renderPagination();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderPagination() {
+      var totalPages = Math.ceil(filteredData.length / rowsPerPage) || 1;
+      var cont = document.getElementById('pagination');
+      cont.innerHTML = '<li class="page-item ' + (currentPage === 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ');return false;">Prev</a></li>';
+      var startP = Math.max(1, currentPage - 2);
+      var endP = Math.min(totalPages, startP + 4);
+      for (var i = startP; i <= endP; i++) {
+        cont.innerHTML += '<li class="page-item ' + (currentPage === i ? 'active' : '') + '"><a class="page-link" href="#" onclick="changePage(' + i + ');return false;">' + i + '</a></li>';
+      }
+      cont.innerHTML += '<li class="page-item ' + (currentPage === totalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ');return false;">Next</a></li>';
+    }
+
+    function changePage(p) { if (p < 1) return; currentPage = p; renderTable(); }
+
+    function debounceFilter() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(applyFilter, 250);
+    }
+
+    function applyFilter() {
+      var q = (document.getElementById('filter-q').value || '').toLowerCase().trim();
+      var th = document.getElementById('filter-tahun').value;
+      filteredData = mainData.filter(function(item) {
+        var matchQ = !q ||
+          (item.nomorSertifikat || '').toLowerCase().includes(q) ||
+          (item.uraian || '').toLowerCase().includes(q) ||
+          (item.pengolah || '').toLowerCase().includes(q) ||
+          (item.penandaTangan || '').toLowerCase().includes(q) ||
+          String(item.no).includes(q);
+        return matchQ && (!th || String(item.tahun) === th);
+      });
+      applySort();
+      currentPage = 1;
+      renderTable();
+    }
+
+    function resetFilter() {
+      document.getElementById('filter-q').value = '';
+      document.getElementById('filter-tahun').value = '';
+      filteredData = mainData.slice();
+      applySort();
+      currentPage = 1;
+      renderTable();
+    }
+
+    function onTanggalChange() {
+      var val = document.getElementById('tanggal').value;
+      if (!val) return;
+      var d = new Date(val + 'T00:00:00');
+      document.getElementById('tahun').value = d.getFullYear();
+      hitungNoOtomatis(d.getFullYear());
+      generateNomor();
+    }
+
+    function hitungNoOtomatis(tahun) {
+      var maxNo = 0;
+      mainData.forEach(function(item) {
+        if (item.tahun === tahun && item.no > maxNo) maxNo = item.no;
+      });
+      document.getElementById('noAgenda').value = maxNo + 1;
+    }
+
+    function generateNomor() {
+      var kode = document.getElementById('kodeKlasifikasi').value.trim();
+      var no = document.getElementById('noAgenda').value;
+      var pengolah = document.getElementById('pengolah').value;
+      var tahun = document.getElementById('tahun').value || new Date().getFullYear();
+      if (kode && no && pengolah) {
+        document.getElementById('nomorSertifikat').value = kode + '/' + no + '/' + pengolah + '-DPMD/' + tahun;
+      } else {
+        document.getElementById('nomorSertifikat').value = '';
+      }
+    }
+
+    function setupKodeAutocomplete() {
+      var input = document.getElementById('kodeKlasifikasi');
+      var list = document.getElementById('kode-list');
+      if (!input || !list) return;
+      var newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+
+      newInput.addEventListener('input', function() {
+        var val = this.value.trim().toLowerCase();
+        list.innerHTML = '';
+        if (!val) { list.classList.add('d-none'); return; }
+        if (!kodeKlasifikasiData || kodeKlasifikasiData.length === 0) {
+          list.innerHTML = '<div class="text-danger p-2">Data kode kosong. Buka menu Kode Klasifikasi & sinkronisasi.</div>';
+          list.classList.remove('d-none');
+          return;
+        }
+        var matches = kodeKlasifikasiData.filter(function(k) {
+          return (k.kode || '').toLowerCase().includes(val) || (k.uraian || '').toLowerCase().includes(val);
+        }).slice(0, 15);
+        if (matches.length === 0) {
+          list.innerHTML = '<div class="text-muted p-2">Tidak ditemukan. Boleh ketik manual.</div>';
+          list.classList.remove('d-none');
+          return;
+        }
+        list.classList.remove('d-none');
+        matches.forEach(function(k) {
+          var div = document.createElement('div');
+          div.innerHTML = '<strong>' + k.kode + '</strong><br><small class="text-muted">' + (k.uraian || '') + '</small>';
+          div.onclick = function() {
+            newInput.value = k.kode;
+            list.classList.add('d-none');
+            generateNomor();
+          };
+          list.appendChild(div);
+        });
+      });
+      newInput.addEventListener('change', generateNomor);
+      newInput.addEventListener('blur', function() { setTimeout(generateNomor, 200); });
+      document.addEventListener('click', function(e) {
+        if (e.target !== newInput && !list.contains(e.target)) list.classList.add('d-none');
+      });
+    }
+
+    function openModalTambah() {
+      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak menambah data.', 'warning'); return; }
+      document.getElementById('formData').reset();
+      document.getElementById('itemId').value = '';
+      document.getElementById('itemRowIndex').value = '';
+      document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle me-2"></i>Tambah Data Sertifikat';
+      document.getElementById('penandaTangan').value = 'Kepala Dinas';
+      var today = new Date();
+      document.getElementById('tanggal').value = today.toISOString().split('T')[0];
+      onTanggalChange();
+      updateKodeHint();
+      new bootstrap.Modal(document.getElementById('modalForm')).show();
+    }
+
+    function editItem(id) {
+      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Anda tidak memiliki hak mengubah data.', 'warning'); return; }
+      var item = mainData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      document.getElementById('itemId').value = item.id;
+      document.getElementById('itemRowIndex').value = item.rowIndex;
+      document.getElementById('noAgenda').value = item.no;
+      document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Edit Sertifikat [' + item.no + ']';
+      document.getElementById('nomorSertifikat').value = item.nomorSertifikat;
+
+      var m = (item.nomorSertifikat || '').match(/^(.+?)\/(\d+)\/([A-Za-z]+)-DPMD\/(\d{4})/);
+      if (m) {
+        document.getElementById('kodeKlasifikasi').value = m[1];
+        document.getElementById('pengolah').value = m[3];
+        document.getElementById('tahun').value = m[4];
+      }
+
+      var tglStr = item.tanggal;
+      var bulanMap = { januari:'01', februari:'02', maret:'03', april:'04', mei:'05', juni:'06', juli:'07', agustus:'08', september:'09', oktober:'10', november:'11', desember:'12' };
+      var mt = tglStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+      if (mt) {
+        var bl = bulanMap[mt[2].toLowerCase()] || '01';
+        document.getElementById('tanggal').value = mt[3] + '-' + bl + '-' + mt[1].padStart(2, '0');
+      }
+      document.getElementById('tahun').value = item.tahun || '';
+      document.getElementById('uraian').value = item.uraian;
+      document.getElementById('pengolah').value = item.pengolah;
+      document.getElementById('penandaTangan').value = item.penandaTangan || 'Kepala Dinas';
+      document.getElementById('lampiran').value = item.lampiran || '';
+      new bootstrap.Modal(document.getElementById('modalForm')).show();
+    }
+
+    function editLampiranOnly(id) {
+      if (!canEdit()) return;
+      var item = mainData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      Swal.fire({
+        title: 'Ubah Link Lampiran',
+        input: 'url',
+        inputValue: item.lampiran || '',
+        inputPlaceholder: 'https://drive.google.com/...',
+        showCancelButton: true,
+        confirmButtonText: 'Simpan'
+      }).then(async function(result) {
+        if (!result.isConfirmed) return;
+        try {
+          await postToGAS({
+            action: 'update',
+            type: 'sertifikat',
+            rowIndex: item.rowIndex,
+            no: item.no,
+            nomorSertifikat: item.nomorSertifikat,
+            tanggal: item.tanggal,
+            tanggalFormatted: item.tanggal,
+            uraian: item.uraian,
+            pengolah: item.pengolah,
+            penandaTangan: item.penandaTangan,
+            lampiran: result.value || ''
+          });
+          Swal.fire('Berhasil', 'Link lampiran diperbarui.', 'success');
+          setTimeout(function() { loadDataFromCloud(false); }, 600);
+        } catch (e) {
+          Swal.fire('Gagal', e.message, 'error');
+        }
+      });
+    }
+
+    async function simpanData() {
+      if (!canEdit()) { Swal.fire('Akses Ditolak', 'Tidak memiliki hak menyimpan.', 'warning'); return; }
+      var form = document.getElementById('formData');
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+
+      var isEdit = !!document.getElementById('itemId').value;
+      var rowIndex = parseInt(document.getElementById('itemRowIndex').value) || 0;
+      var tanggalVal = document.getElementById('tanggal').value;
+      var d = new Date(tanggalVal + 'T00:00:00');
+      var bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+      var tglFormatted = d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+
+      var payload = {
+        action: isEdit ? 'update' : 'add',
+        type: 'sertifikat',
+        rowIndex: rowIndex,
+        no: parseInt(document.getElementById('noAgenda').value),
+        nomorSertifikat: document.getElementById('nomorSertifikat').value.trim(),
+        tanggal: tanggalVal,
+        tanggalFormatted: tglFormatted,
+        uraian: document.getElementById('uraian').value.trim(),
+        pengolah: document.getElementById('pengolah').value,
+        penandaTangan: document.getElementById('penandaTangan').value.trim() || 'Kepala Dinas',
+        lampiran: document.getElementById('lampiran').value.trim()
+      };
+
+      Swal.fire({ title: isEdit ? 'Mengubah data...' : 'Menyimpan Sertifikat...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+      try {
+        var result = await postToGAS(payload);
+        if (result && result.status === 'success') {
+          Swal.fire('Berhasil!', result.message || 'Data tersimpan.', 'success');
+          bootstrap.Modal.getInstance(document.getElementById('modalForm')).hide();
+          setTimeout(function() { loadDataFromCloud(false); }, 800);
+        } else {
+          Swal.fire('Info', (result && result.message) || JSON.stringify(result), 'info');
+        }
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Gagal', err.message, 'error');
+      }
+    }
+
+    function detailItem(id) {
+      var item = mainData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      document.getElementById('detail-body').innerHTML =
+        '<table class="table table-bordered">' +
+        '<tr><th width="30%">NO</th><td>' + item.no + '</td></tr>' +
+        '<tr><th>Nomor Sertifikat</th><td class="fw-bold text-primary">' + escapeHtml(item.nomorSertifikat) + '</td></tr>' +
+        '<tr><th>Tanggal</th><td>' + item.tanggal + '</td></tr>' +
+        '<tr><th>Uraian</th><td style="white-space:pre-line">' + escapeHtml(item.uraian) + '</td></tr>' +
+        '<tr><th>Pengolah</th><td>' + escapeHtml(item.pengolah) + '</td></tr>' +
+        '<tr><th>Penanda Tangan</th><td>' + escapeHtml(item.penandaTangan) + '</td></tr>' +
+        '<tr><th>Lampiran</th><td>' + (item.lampiran ? '<a href="' + item.lampiran + '" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt me-1"></i> Buka Link</a>' : 'Tidak ada') + '</td></tr>' +
+        '</table>';
+      new bootstrap.Modal(document.getElementById('modalDetail')).show();
+    }
+
+    function hapusItem(id) {
+      if (!canDelete()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat menghapus.', 'warning'); return; }
+      var item = mainData.find(function(a) { return a.id === id; });
+      if (!item) return;
+      Swal.fire({
+        title: 'Pindahkan ke Tempat Sampah?',
+        text: 'NO ' + item.no + ' - ' + item.nomorSertifikat,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        confirmButtonText: 'Ya, Hapus'
+      }).then(async function(result) {
+        if (!result.isConfirmed) return;
+        try {
+          await postToGAS({ action: 'delete', type: 'sertifikat', rowIndex: item.rowIndex });
+          Swal.fire('Dipindahkan', 'Data masuk Tempat Sampah.', 'success');
+          setTimeout(function() { loadDataFromCloud(false); }, 600);
+        } catch (e) {
+          Swal.fire('Gagal', e.message, 'error');
+        }
+      });
+    }
+
+    function openTempatSampah() {
+      if (!canDelete()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat mengakses Tempat Sampah.', 'warning'); return; }
+      var tbody = document.getElementById('tbody-sampah');
+      tbody.innerHTML = '';
+      if (sampahData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Tempat sampah kosong</td></tr>';
+      } else {
+        sampahData.forEach(function(item) {
+          tbody.innerHTML += '<tr>' +
+            '<td>' + item.no + '</td>' +
+            '<td><small>' + escapeHtml(item.nomorSertifikat) + '</small></td>' +
+            '<td>' + item.tanggal + '</td>' +
+            '<td><div class="uraian-column">' + escapeHtml(item.uraian) + '</div></td>' +
+            '<td>' + escapeHtml(item.pengolah) + '</td>' +
+            '<td class="text-center text-nowrap">' +
+            '<button class="btn btn-sm btn-success me-1" onclick="restoreSampah(' + item.rowIndex + ')" title="Kembalikan"><i class="fas fa-undo"></i></button>' +
+            '<button class="btn btn-sm btn-danger" onclick="hapusPermanen(' + item.rowIndex + ')" title="Hapus Permanen"><i class="fas fa-times"></i></button>' +
+            '</td></tr>';
+        });
+      }
+      new bootstrap.Modal(document.getElementById('modalSampah')).show();
+    }
+
+    async function restoreSampah(rowIndex) {
+      try {
+        await postToGAS({ action: 'restore', type: 'sertifikat', rowIndex: rowIndex });
+        Swal.fire('Berhasil', 'Data dikembalikan.', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide();
+        setTimeout(function() { loadDataFromCloud(false); }, 600);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+    }
+
+    async function hapusPermanen(rowIndex) {
+      var conf = await Swal.fire({ title: 'Hapus permanen?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Hapus Permanen' });
+      if (!conf.isConfirmed) return;
+      try {
+        await postToGAS({ action: 'permanent_delete', type: 'sertifikat', rowIndex: rowIndex });
+        Swal.fire('Dihapus', 'Data dihapus permanen.', 'success');
+        setTimeout(function() { loadDataFromCloud(false); openTempatSampah(); }, 500);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+    }
+
+    async function kosongkanSampah() {
+      var conf = await Swal.fire({ title: 'Kosongkan seluruh Tempat Sampah?', icon: 'error', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Ya, Kosongkan' });
+      if (!conf.isConfirmed) return;
+      try {
+        await postToGAS({ action: 'delete_all_trash', type: 'sertifikat' });
+        Swal.fire('Berhasil', 'Tempat sampah dikosongkan.', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalSampah')).hide();
+        setTimeout(function() { loadDataFromCloud(false); }, 500);
+      } catch (e) { Swal.fire('Gagal', e.message, 'error'); }
+    }
+
+    function exportDataExcel() {
+      if (!canExport()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat ekspor.', 'warning'); return; }
+      var csv = 'data:text/csv;charset=utf-8,NO,NOMOR SERTIFIKAT,TANGGAL SERTIFIKAT,URAIAN,PENGOLAH,PENANDA TANGAN,LAMPIRAN\n';
+      mainData.forEach(function(r) {
+        csv += '"' + r.no + '","' + (r.nomorSertifikat || '').replace(/"/g, '""') + '","' + r.tanggal + '","' + (r.uraian || '').replace(/"/g, '""') + '","' + r.pengolah + '","' + r.penandaTangan + '","' + r.lampiran + '"\n';
+      });
+      var link = document.createElement('a');
+      link.href = encodeURI(csv);
+      link.download = 'data_sertifikat.csv';
+      link.click();
+    }
+
+    function importDataCSV(input) {
+      if (!canExport()) { Swal.fire('Akses Ditolak', 'Hanya Superadmin yang dapat import.', 'warning'); return; }
+      Swal.fire('Info', 'Untuk bulk import, gunakan Google Sheets langsung atau hubungi admin.', 'info');
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
