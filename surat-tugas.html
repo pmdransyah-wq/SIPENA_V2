@@ -25,9 +25,24 @@
     .search-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .search-bar .form-select { width: auto; min-width: 130px; }
     @media print {
+      @page {
+        size: A4;
+        margin: 1.5cm 2cm 2.5cm 3cm; /* atas kanan bawah kiri */
+      }
       body * { visibility: hidden; }
       #print-area, #print-area * { visibility: visible; }
-      #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+      #print-area {
+        position: absolute; left: 0; top: 0; width: 100%;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 12pt !important;
+        color: #000 !important;
+      }
+      #print-area * { font-family: Arial, Helvetica, sans-serif !important; }
+    }
+    #print-area {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12pt;
+      color: #000;
     }
   </style>
 </head>
@@ -367,16 +382,71 @@
         : '<span class="text-warning">Belum ada kode. Sinkron dari Kode Klasifikasi.</span>';
     }
 
+    // KOP object — format sama generate-ai.html / Srikandi
+    var KOP = {
+      instansi: 'PEMERINTAH KABUPATEN HULU SUNGAI TENGAH',
+      unit: 'DINAS PEMBERDAYAAN MASYARAKAT DAN DESA',
+      alamat: 'Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312',
+      kontak: 'Posel dinaspmd@hstkab.go.id; Laman dinaspmd.hstkab.go.id',
+      logo: ''
+    };
+
+    function loadKopLocal() {
+      try {
+        var k = JSON.parse(localStorage.getItem('sipena_kop_profil') || 'null');
+        if (k) {
+          if (k.instansi) KOP.instansi = k.instansi;
+          if (k.unit) KOP.unit = k.unit;
+          if (k.alamat) KOP.alamat = k.alamat + (k.kodepos ? ', ' + k.kodepos : '');
+          if (k.email || k.laman) KOP.kontak = 'Posel ' + (k.email || '-') + '; Laman ' + (k.laman || '-');
+          if (k.logo) KOP.logo = k.logo;
+        }
+      } catch (e) {}
+      // fallback keys lama
+      if (!KOP.logo && localStorage.getItem('kop_logo')) KOP.logo = localStorage.getItem('kop_logo');
+    }
+
+    function loadAsnLocal() {
+      try {
+        var list = JSON.parse(localStorage.getItem('sipena_asn_list') || localStorage.getItem('cachedASN') || '[]');
+        if (Array.isArray(list) && list.length) {
+          asnList = list.map(function(a) {
+            return { nama: a.nama || a[0] || '', nip: a.nip || a[1] || '', gol: a.gol || a.pangkat || a[2] || '', jabatan: a.jabatan || a[3] || '' };
+          });
+        }
+      } catch (e) {}
+    }
+
     function loadAsnFromProfil() {
-      // Coba dari localStorage dulu, lalu fetch profil GAS
+      loadKopLocal();
+      loadAsnLocal();
+      var ah = document.getElementById('asn-hint');
+      if (ah && asnList.length) ah.innerHTML = '<span class="text-success">' + asnList.length + ' pegawai tersedia</span>';
+
       fetch(PROFIL_GAS_URL).then(function(r) { return r.json(); }).then(function(data) {
         if (data && data.DataPegawai && data.DataPegawai.length > 1) {
           asnList = data.DataPegawai.slice(1).filter(function(r) { return r && r[0]; }).map(function(r) {
-            return { nama: String(r[0]), nip: String(r[1] || ''), jabatan: String(r[3] || '') };
+            return { nama: String(r[0]), nip: String(r[1] || ''), gol: String(r[2] || ''), jabatan: String(r[3] || '') };
           });
           localStorage.setItem('cachedASN', JSON.stringify(asnList));
-          var ah = document.getElementById('asn-hint');
+          localStorage.setItem('sipena_asn_list', JSON.stringify(asnList));
           if (ah) ah.innerHTML = '<span class="text-success">' + asnList.length + ' pegawai tersedia</span>';
+        }
+        if (data && data.ProfilInstansi && data.ProfilInstansi.length > 1) {
+          var p = data.ProfilInstansi[1];
+          KOP.instansi = p[0] || KOP.instansi;
+          KOP.unit = p[1] || KOP.unit;
+          var alamat = p[2] || '';
+          var kodepos = p[3] || '';
+          KOP.alamat = alamat + (kodepos ? (alamat ? ', ' : '') + kodepos : '');
+          KOP.kontak = 'Posel ' + (p[4] || '-') + '; Laman ' + (p[5] || '-');
+          if (p[12]) KOP.logo = p[12];
+          try {
+            localStorage.setItem('sipena_kop_profil', JSON.stringify({
+              instansi: p[0], unit: p[1], alamat: p[2], kodepos: p[3],
+              email: p[4], laman: p[5], logo: p[12] || ''
+            }));
+          } catch (e) {}
         }
       }).catch(function() {});
     }
@@ -828,6 +898,18 @@
       document.getElementById('cetak-kembali').value = item.tglKembali || '';
       // default tempat ttd dari tanggal surat
       document.getElementById('cetak-tempat-ttd').value = 'Barabai, ' + (item.tanggal || '');
+      // isi penandatangan dari Kepala Dinas di list ASN (pola generate-ai)
+      try {
+        var kd = (asnList || []).find(function(a) {
+          return String(a.jabatan || '').toLowerCase().indexOf('kepala dinas') >= 0;
+        });
+        if (kd) {
+          if (kd.nama) document.getElementById('cetak-nama-ttd').value = kd.nama;
+          if (kd.nip) document.getElementById('cetak-nip-ttd').value = kd.nip;
+          if (kd.gol) document.getElementById('cetak-pangkat-ttd').value = kd.gol;
+          if (kd.jabatan) document.getElementById('cetak-jabatan-ttd').value = kd.jabatan;
+        }
+      } catch (e) {}
 
       var names = parseNamaLines(item.nama);
       cetakPegawaiRows = names.map(function(n) {
@@ -843,20 +925,102 @@
       var box = document.getElementById('cetak-pegawai-list');
       box.innerHTML = '';
       cetakPegawaiRows.forEach(function(p, i) {
-        box.innerHTML +=
-          '<div class="border rounded p-2 mb-2 bg-white" data-idx="' + i + '">' +
+        var wrap = document.createElement('div');
+        wrap.className = 'border rounded p-2 mb-2 bg-white position-relative';
+        wrap.setAttribute('data-idx', String(i));
+        wrap.innerHTML =
           '<div class="d-flex justify-content-between align-items-center mb-1">' +
           '<strong class="small">Pegawai #' + (i + 1) + '</strong>' +
           (cetakPegawaiRows.length > 1 ? '<button type="button" class="btn btn-sm btn-outline-danger py-0" onclick="hapusBarisPegawai(' + i + ')"><i class="fas fa-times"></i></button>' : '') +
           '</div>' +
           '<div class="row g-2">' +
-          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Nama" value="' + escapeHtml(p.nama) + '" onchange="cetakPegawaiRows[' + i + '].nama=this.value"></div>' +
-          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="NIP" value="' + escapeHtml(p.nip) + '" onchange="cetakPegawaiRows[' + i + '].nip=this.value"></div>' +
-          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Pangkat/Gol" value="' + escapeHtml(p.pangkat) + '" onchange="cetakPegawaiRows[' + i + '].pangkat=this.value"></div>' +
-          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Jabatan" value="' + escapeHtml(p.jabatan) + '" onchange="cetakPegawaiRows[' + i + '].jabatan=this.value"></div>' +
-          '</div></div>';
+          '<div class="col-md-6 position-relative">' +
+          '<input type="text" class="form-control form-control-sm cetak-nama" data-i="' + i + '" placeholder="Ketik nama pegawai..." value="' + escapeHtml(p.nama) + '" autocomplete="off">' +
+          '<div class="autocomplete-items d-none cetak-nama-list" data-i="' + i + '"></div>' +
+          '</div>' +
+          '<div class="col-md-6"><input type="text" class="form-control form-control-sm cetak-nip" data-i="' + i + '" placeholder="NIP" value="' + escapeHtml(p.nip) + '"></div>' +
+          '<div class="col-md-6"><input type="text" class="form-control form-control-sm cetak-pangkat" data-i="' + i + '" placeholder="Pangkat/Gol" value="' + escapeHtml(p.pangkat) + '"></div>' +
+          '<div class="col-md-6"><input type="text" class="form-control form-control-sm cetak-jabatan" data-i="' + i + '" placeholder="Jabatan" value="' + escapeHtml(p.jabatan) + '"></div>' +
+          '</div>';
+        box.appendChild(wrap);
+      });
+      // bind autocomplete
+      box.querySelectorAll('.cetak-nama').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+          var i = parseInt(this.getAttribute('data-i'), 10);
+          cetakPegawaiRows[i].nama = this.value;
+          showAsnSuggest(this, i);
+        });
+        inp.addEventListener('focus', function() {
+          if (this.value.trim()) showAsnSuggest(this, parseInt(this.getAttribute('data-i'), 10));
+        });
+      });
+      box.querySelectorAll('.cetak-nip').forEach(function(inp) {
+        inp.addEventListener('change', function() { cetakPegawaiRows[parseInt(this.getAttribute('data-i'),10)].nip = this.value; });
+      });
+      box.querySelectorAll('.cetak-pangkat').forEach(function(inp) {
+        inp.addEventListener('change', function() { cetakPegawaiRows[parseInt(this.getAttribute('data-i'),10)].pangkat = this.value; });
+      });
+      box.querySelectorAll('.cetak-jabatan').forEach(function(inp) {
+        inp.addEventListener('change', function() { cetakPegawaiRows[parseInt(this.getAttribute('data-i'),10)].jabatan = this.value; });
       });
     }
+
+    function showAsnSuggest(inputEl, rowIdx) {
+      var list = inputEl.parentNode.querySelector('.cetak-nama-list');
+      if (!list) return;
+      var q = (inputEl.value || '').trim().toLowerCase();
+      list.innerHTML = '';
+      if (!q || q.length < 1) { list.classList.add('d-none'); return; }
+      if (!asnList || !asnList.length) {
+        list.innerHTML = '<div class="text-danger p-2 small">Data ASN kosong. Buka Profil & sinkron, atau pastikan sipena_asn_list terisi.</div>';
+        list.classList.remove('d-none');
+        return;
+      }
+      var matches = asnList.filter(function(a) {
+        return (a.nama || '').toLowerCase().indexOf(q) >= 0 || (a.nip || '').indexOf(q) >= 0;
+      }).slice(0, 12);
+      if (!matches.length) {
+        list.innerHTML = '<div class="text-muted p-2 small">Tidak ditemukan — boleh ketik manual</div>';
+        list.classList.remove('d-none');
+        return;
+      }
+      list.classList.remove('d-none');
+      matches.forEach(function(a) {
+        var div = document.createElement('div');
+        div.innerHTML = '<strong>' + escapeHtml(a.nama) + '</strong><br><small class="text-muted">' +
+          escapeHtml(a.nip || '-') + ' · ' + escapeHtml(a.gol || '-') + ' · ' + escapeHtml(a.jabatan || '-') + '</small>';
+        div.onmousedown = function(e) {
+          e.preventDefault();
+          cetakPegawaiRows[rowIdx] = {
+            nama: a.nama || '',
+            nip: a.nip || '',
+            pangkat: a.gol || '',
+            jabatan: a.jabatan || ''
+          };
+          // isi field di form
+          var card = inputEl.closest('[data-idx]');
+          if (card) {
+            var n = card.querySelector('.cetak-nama');
+            var nip = card.querySelector('.cetak-nip');
+            var pangkat = card.querySelector('.cetak-pangkat');
+            var jab = card.querySelector('.cetak-jabatan');
+            if (n) n.value = a.nama || '';
+            if (nip) nip.value = a.nip || '';
+            if (pangkat) pangkat.value = a.gol || '';
+            if (jab) jab.value = a.jabatan || '';
+          }
+          list.classList.add('d-none');
+        };
+        list.appendChild(div);
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.cetak-nama') && !e.target.closest('.cetak-nama-list')) {
+        document.querySelectorAll('.cetak-nama-list').forEach(function(el) { el.classList.add('d-none'); });
+      }
+    });
 
     function tambahBarisPegawai() {
       cetakPegawaiRows.push({ nama: '', nip: '', pangkat: '', jabatan: '' });
@@ -868,8 +1032,7 @@
       renderCetakPegawai();
     }
 
-    function prosesCetak() {
-      // sync input values from DOM (onchange may miss if not blurred)
+        function prosesCetak() {
       var box = document.getElementById('cetak-pegawai-list');
       var cards = box.querySelectorAll('[data-idx]');
       cards.forEach(function(card) {
@@ -894,125 +1057,127 @@
       var nipTtd = document.getElementById('cetak-nip-ttd').value;
       var pangkatTtd = document.getElementById('cetak-pangkat-ttd').value;
 
-      if (!dasarRaw) {
-        Swal.fire('Perhatian', 'Isi field Dasar terlebih dahulu.', 'warning');
-        return;
-      }
-      if (!untuk) {
-        Swal.fire('Perhatian', 'Isi field Untuk (uraian tugas).', 'warning');
-        return;
-      }
+      if (!dasarRaw) { Swal.fire('Perhatian', 'Isi field Dasar terlebih dahulu.', 'warning'); return; }
+      if (!untuk) { Swal.fire('Perhatian', 'Isi field Untuk (uraian tugas).', 'warning'); return; }
 
       var dasarLines = dasarRaw.split(/\n/).map(function(s) { return s.replace(/^[\s\-–•]+/, '').trim(); }).filter(Boolean);
       var pegawai = cetakPegawaiRows.filter(function(p) { return (p.nama || '').trim(); });
-      if (!pegawai.length) {
-        Swal.fire('Perhatian', 'Minimal 1 pegawai.', 'warning');
-        return;
-      }
+      if (!pegawai.length) { Swal.fire('Perhatian', 'Minimal 1 pegawai.', 'warning'); return; }
 
-      // KOP dari localStorage profil bila ada
-      var kopInstansi = localStorage.getItem('kop_instansi') || 'PEMERINTAH KABUPATEN HULU SUNGAI TENGAH';
-      var kopUnit = localStorage.getItem('kop_unit') || 'DINAS PEMBERDAYAAN MASYARAKAT DAN DESA';
-      var kopAlamat = localStorage.getItem('kop_alamat') || 'Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312';
-      var kopEmail = localStorage.getItem('kop_email') || 'dinaspmd@hstkab.go.id';
-      var kopLaman = localStorage.getItem('kop_laman') || 'dinaspmd.hstkab.go.id';
-      var kopLogo = localStorage.getItem('kop_logo') || '';
+      // Pastikan KOP terbaru
+      loadKopLocal();
+      var kopInstansi = KOP.instansi;
+      var kopUnit = KOP.unit;
+      var kopAlamat = KOP.alamat;
+      var kopKontak = KOP.kontak;
+      var kopLogo = KOP.logo || '';
 
-      var dasarHtml = dasarLines.map(function(l) { return '<div style="margin-bottom:4px;">- ' + escapeHtml(l) + '</div>'; }).join('');
+      var dasarHtml = dasarLines.map(function(l) {
+        return '<div style="margin:0 0 2px 0;">- ' + escapeHtml(l) + '</div>';
+      }).join('');
 
       var kepadaHtml = '';
       if (pegawai.length <= 2) {
-        // Format foto 1: daftar per orang
         kepadaHtml = pegawai.map(function(p) {
-          return '<div style="margin-bottom:12px;">' +
-            '<div>Nama&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.nama) + '</div>' +
-            '<div>Pangkat/Gol&nbsp;: ' + escapeHtml(p.pangkat || '-') + '</div>' +
-            '<div>NIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.nip || '-') + '</div>' +
-            '<div>Jabatan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.jabatan || '-') + '</div>' +
-            '</div>';
+          return '<table style="width:100%; border-collapse:collapse; margin-bottom:8px; font-size:12pt;">' +
+            '<tr><td style="width:110px; vertical-align:top;">Nama</td><td style="width:10px; vertical-align:top;">:</td><td>' + escapeHtml(p.nama) + '</td></tr>' +
+            '<tr><td style="vertical-align:top;">Pangkat/Gol</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(p.pangkat || '-') + '</td></tr>' +
+            '<tr><td style="vertical-align:top;">NIP</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(p.nip || '-') + '</td></tr>' +
+            '<tr><td style="vertical-align:top;">Jabatan</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(p.jabatan || '-') + '</td></tr>' +
+            '</table>';
         }).join('');
       } else {
-        // Format foto 2: tabel
-        kepadaHtml = '<table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:4px;" border="1" cellpadding="4">' +
-          '<thead><tr style="background:#f0f0f0;"><th width="30">No</th><th>Nama/NIP</th><th>Pangkat</th><th>Jabatan</th></tr></thead><tbody>';
+        kepadaHtml = '<table style="width:100%; border-collapse:collapse; font-size:11pt; margin-top:2px;" border="1" cellpadding="4" cellspacing="0">' +
+          '<thead><tr style="background:#f0f0f0;">' +
+          '<th style="width:28px; text-align:center;">No</th><th>Nama/NIP</th><th>Pangkat</th><th>Jabatan</th></tr></thead><tbody>';
         pegawai.forEach(function(p, i) {
           kepadaHtml += '<tr>' +
             '<td style="text-align:center;">' + (i + 1) + '</td>' +
             '<td>' + escapeHtml(p.nama) + (p.nip ? '<br>NIP ' + escapeHtml(p.nip) : '') + '</td>' +
             '<td>' + escapeHtml(p.pangkat || '-') + '</td>' +
-            '<td>' + escapeHtml(p.jabatan || '-') + '</td>' +
-            '</tr>';
+            '<td>' + escapeHtml(p.jabatan || '-') + '</td></tr>';
         });
         kepadaHtml += '</tbody></table>';
       }
 
-      var logoHtml = kopLogo
-        ? '<img src="' + kopLogo + '" style="width:70px;height:auto;">'
-        : '<div style="width:70px;height:70px;border:1px solid #999;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;">LOGO</div>';
+      var logoHtml = '';
+      if (kopLogo && (kopLogo.indexOf('data:') === 0 || kopLogo.indexOf('http') === 0 || kopLogo.length > 40)) {
+        logoHtml = '<img src="' + kopLogo + '" width="66" style="width:66px;max-width:66px;height:auto;max-height:80px;object-fit:contain;" alt="Logo">';
+      } else {
+        logoHtml = '<div style="width:66px;height:66px;border:1px solid #333;border-radius:50%;line-height:66px;text-align:center;font-size:9pt;color:#666;">LOGO</div>';
+      }
 
+      var L = '110px';
+
+      // KOP format generate-ai / Srikandi
       var htmlPrint =
-        '<div style="font-family:\'Times New Roman\',Times,serif; font-size:13px; color:#000; max-width:800px; margin:0 auto; padding:16px 24px;">' +
-        // KOP
-        '<div style="display:flex; align-items:center; gap:12px; border-bottom:3px double #000; padding-bottom:8px; margin-bottom:12px;">' +
-        logoHtml +
-        '<div style="flex:1; text-align:center;">' +
-        '<div style="font-weight:bold; font-size:14px; text-transform:uppercase;">' + escapeHtml(kopInstansi) + '</div>' +
-        '<div style="font-weight:bold; font-size:15px; text-transform:uppercase;">' + escapeHtml(kopUnit) + '</div>' +
-        '<div style="font-size:11px;">' + escapeHtml(kopAlamat) + '</div>' +
-        '<div style="font-size:11px;">Pos-el ' + escapeHtml(kopEmail) + '; Laman ' + escapeHtml(kopLaman) + '</div>' +
-        '</div></div>' +
-        // Judul
-        '<div style="text-align:center; margin:14px 0 8px;">' +
-        '<div style="font-weight:bold; font-size:15px; letter-spacing:1px;">SURAT TUGAS</div>' +
-        '<div>NOMOR : ' + escapeHtml(nomor) + '</div>' +
+        '<div style="font-family:Arial, Helvetica, sans-serif; font-size:12pt; color:#000; line-height:1.5;">' +
+        '<table style="width:100%;border-collapse:collapse;border:none;margin:0 0 4px 0;">' +
+        '<tr>' +
+        '<td style="width:78px;vertical-align:middle;border:none;padding:0;text-align:center;">' + logoHtml + '</td>' +
+        '<td style="vertical-align:middle;text-align:center;border:none;padding:0 4px;">' +
+        '<div style="font-weight:bold;text-transform:uppercase;font-size:13pt;line-height:1.25;">' + escapeHtml(kopInstansi) + '</div>' +
+        '<div style="font-weight:bold;text-transform:uppercase;font-size:12pt;line-height:1.25;">' + escapeHtml(kopUnit) + '</div>' +
+        '<div style="font-size:9pt;line-height:1.3;">' + escapeHtml(kopAlamat) + '</div>' +
+        '<div style="font-size:9pt;line-height:1.3;">' + escapeHtml(kopKontak) + '</div>' +
+        '</td>' +
+        '<td style="width:40px;border:none;padding:0;"></td>' +
+        '</tr></table>' +
+        '<div style="border-top:3px solid #000;margin:4px 0 0 0;line-height:0;font-size:0;">&nbsp;</div>' +
+        '<div style="border-top:1px solid #000;margin:2px 0 12px 0;line-height:0;font-size:0;">&nbsp;</div>' +
+        /* ===== JUDUL ===== */
+        '<div style="text-align:center; margin:12px 0 10px;">' +
+        '<div style="font-weight:bold; font-size:13pt; letter-spacing:1px;">SURAT TUGAS</div>' +
+        '<div style="font-size:12pt;">NOMOR : ' + escapeHtml(nomor) + '</div>' +
         '</div>' +
-        // Dasar
-        '<table style="width:100%; margin-top:10px; font-size:13px;"><tr>' +
-        '<td style="width:70px; vertical-align:top; font-weight:bold;">Dasar</td>' +
+        /* ===== DASAR ===== */
+        '<table style="width:100%; border-collapse:collapse; margin-bottom:6px; font-size:12pt;">' +
+        '<tr><td style="width:' + L + '; vertical-align:top; font-weight:bold;">Dasar</td>' +
         '<td style="width:12px; vertical-align:top;">:</td>' +
-        '<td>' + dasarHtml + '</td></tr></table>' +
-        // MEMERINTAHKAN
-        '<div style="text-align:center; font-weight:bold; margin:16px 0 10px;">MEMERINTAHKAN</div>' +
-        // Kepada
-        '<table style="width:100%; font-size:13px;"><tr>' +
-        '<td style="width:70px; vertical-align:top; font-weight:bold;">Kepada</td>' +
+        '<td style="vertical-align:top;">' + dasarHtml + '</td></tr></table>' +
+        /* ===== MEMERINTAHKAN ===== */
+        '<div style="text-align:center; font-weight:bold; margin:14px 0 10px; letter-spacing:0.5px;">MEMERINTAHKAN</div>' +
+        /* ===== KEPADA ===== */
+        '<table style="width:100%; border-collapse:collapse; margin-bottom:6px; font-size:12pt;">' +
+        '<tr><td style="width:' + L + '; vertical-align:top; font-weight:bold;">Kepada</td>' +
         '<td style="width:12px; vertical-align:top;">:</td>' +
-        '<td>' + kepadaHtml + '</td></tr></table>' +
-        // Untuk
-        '<table style="width:100%; margin-top:10px; font-size:13px;"><tr>' +
-        '<td style="width:70px; vertical-align:top; font-weight:bold;">Untuk</td>' +
+        '<td style="vertical-align:top;">' + kepadaHtml + '</td></tr></table>' +
+        /* ===== UNTUK ===== */
+        '<table style="width:100%; border-collapse:collapse; margin-bottom:4px; font-size:12pt;">' +
+        '<tr><td style="width:' + L + '; vertical-align:top; font-weight:bold;">Untuk</td>' +
         '<td style="width:12px; vertical-align:top;">:</td>' +
-        '<td>' + escapeHtml(untuk) + '</td></tr></table>' +
-        // Tujuan dll
-        '<table style="width:100%; margin-top:8px; font-size:13px;">' +
-        '<tr><td style="width:70px; font-weight:bold;">Tujuan</td><td style="width:12px;">:</td><td>' + escapeHtml(tujuan) + '</td></tr>' +
-        '<tr><td style="font-weight:bold;">Selama</td><td>:</td><td>' + escapeHtml(lamanya) + '</td></tr>' +
-        '<tr><td style="font-weight:bold;">Tanggal Berangkat</td><td>:</td><td>' + escapeHtml(berangkat) + '</td></tr>' +
-        '<tr><td style="font-weight:bold;">Tanggal Kembali</td><td>:</td><td>' + escapeHtml(kembali) + '</td></tr>' +
+        '<td style="vertical-align:top;">' + escapeHtml(untuk) + '</td></tr></table>' +
+        /* ===== TUJUAN / SELAMA / TGL — rata kiri seperti contoh ===== */
+        '<table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:12pt;">' +
+        '<tr><td style="width:' + L + '; vertical-align:top;">Tujuan</td><td style="width:12px; vertical-align:top;">:</td><td>' + escapeHtml(tujuan) + '</td></tr>' +
+        '<tr><td style="vertical-align:top;">Selama</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(lamanya) + '</td></tr>' +
+        '<tr><td style="vertical-align:top;">Tanggal Berangkat</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(berangkat) + '</td></tr>' +
+        '<tr><td style="vertical-align:top;">Tanggal Kembali</td><td style="vertical-align:top;">:</td><td>' + escapeHtml(kembali) + '</td></tr>' +
         '</table>' +
-        '<p style="margin-top:14px;">Demikian surat tugas ini dibuat agar dilaksanakan dengan penuh tanggung jawab.</p>' +
-        // TTD
-        '<div style="margin-top:28px; text-align:right; padding-right:20px;">' +
+        '<p style="margin:14px 0 0 0;">Demikian surat tugas ini dibuat agar dilaksanakan dengan penuh tanggung jawab.</p>' +
+        /* ===== TTD format generate-ai / Srikandi ===== */
+        '<table style="width:100%;border-collapse:collapse;border:none;margin-top:28px;"><tr>' +
+        '<td style="width:45%;border:none;"></td>' +
+        '<td style="width:55%;border:none;text-align:left;vertical-align:top;font-size:12pt;">' +
         '<div>' + escapeHtml(tempatTtd) + '</div>' +
         '<div>' + escapeHtml(jabatanTtd) + '</div>' +
-        '<div style="height:70px;"></div>' +
-        '<div style="font-weight:bold; text-decoration:underline;">' + escapeHtml(namaTtd) + '</div>' +
+        '<div style="height:54pt;line-height:54pt;">&nbsp;</div>' +
+        '<div style="font-weight:bold;text-decoration:underline;">' + escapeHtml(namaTtd) + '</div>' +
         '<div>' + escapeHtml(pangkatTtd) + '</div>' +
         '<div>NIP ' + escapeHtml(nipTtd) + '</div>' +
-        '</div>' +
+        '</td></tr></table>' +
         '</div>';
 
       var area = document.getElementById('print-area');
       area.classList.remove('d-none');
       area.innerHTML = htmlPrint;
-      // tutup modal dulu
       var modalEl = document.getElementById('modalCetak');
       var modalInst = bootstrap.Modal.getInstance(modalEl);
       if (modalInst) modalInst.hide();
       setTimeout(function() {
         window.print();
         setTimeout(function() { area.classList.add('d-none'); area.innerHTML = ''; }, 800);
-      }, 300);
+      }, 350);
     }
 
     function hapusItem(id) {
