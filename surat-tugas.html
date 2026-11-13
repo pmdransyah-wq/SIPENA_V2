@@ -204,7 +204,91 @@
     </div></div>
   </div>
 
+  
+  <!-- MODAL CETAK / LENGKAPI DATA -->
+  <div class="modal fade" id="modalCetak" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title"><i class="fas fa-print me-2"></i>Lengkapi & Cetak Surat Tugas</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cetak-id">
+          <div class="alert alert-info py-2 small mb-3">
+            Data baris sudah terisi otomatis. Lengkapi <strong>Dasar</strong> dan detail pegawai (NIP/Pangkat/Jabatan) bila perlu.
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nomor Surat Tugas</label>
+              <input type="text" id="cetak-nomor" class="form-control form-control-sm" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tanggal Surat</label>
+              <input type="text" id="cetak-tanggal" class="form-control form-control-sm">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Dasar <span class="text-danger">*</span></label>
+              <textarea id="cetak-dasar" class="form-control form-control-sm" rows="4" placeholder="Setiap baris = satu poin dasar hukum. Contoh:&#10;- Persetujuan Wakil Bupati ...&#10;- Undangan dari Sekretaris Daerah ..."></textarea>
+              <small class="text-muted">Satu baris = satu poin (otomatis diberi tanda -)</small>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Pegawai yang ditugaskan</label>
+              <div id="cetak-pegawai-list" class="border rounded p-2 bg-light"></div>
+              <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="tambahBarisPegawai()"><i class="fas fa-plus"></i> Tambah Pegawai</button>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Untuk (uraian tugas) <span class="text-danger">*</span></label>
+              <textarea id="cetak-untuk" class="form-control form-control-sm" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tujuan</label>
+              <input type="text" id="cetak-tujuan" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Lamanya</label>
+              <input type="text" id="cetak-lamanya" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tanggal Berangkat</label>
+              <input type="text" id="cetak-berangkat" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tanggal Kembali</label>
+              <input type="text" id="cetak-kembali" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tempat, Tanggal (ttd)</label>
+              <input type="text" id="cetak-tempat-ttd" class="form-control form-control-sm" placeholder="Barabai, 15 Juli 2026">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Jabatan Penandatangan</label>
+              <input type="text" id="cetak-jabatan-ttd" class="form-control form-control-sm" value="Kepala Dinas">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nama Penandatangan</label>
+              <input type="text" id="cetak-nama-ttd" class="form-control form-control-sm" value="EDDY RAHMAWAN, S.STP., M.IP.">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">NIP Penandatangan</label>
+              <input type="text" id="cetak-nip-ttd" class="form-control form-control-sm" value="198709122006021002">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Pangkat Penandatangan</label>
+              <input type="text" id="cetak-pangkat-ttd" class="form-control form-control-sm" value="Pembina Tingkat I">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-dark" onclick="prosesCetak()"><i class="fas fa-print me-1"></i> Cetak Sekarang</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="print-area" class="d-none"></div>
+
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -713,29 +797,222 @@
       new bootstrap.Modal(document.getElementById('modalDetail')).show();
     }
 
+    var cetakPegawaiRows = [];
+
+    function parseNamaLines(namaStr) {
+      return String(namaStr || '')
+        .split(/\n|;/)
+        .map(function(s) { return s.replace(/^[\s\-–]+/, '').trim(); })
+        .filter(Boolean);
+    }
+
+    function matchAsn(nama) {
+      var low = (nama || '').toLowerCase();
+      var found = (asnList || []).find(function(a) {
+        return (a.nama || '').toLowerCase() === low || (a.nama || '').toLowerCase().indexOf(low) >= 0 || low.indexOf((a.nama || '').toLowerCase()) >= 0;
+      });
+      return found || { nama: nama, nip: '', jabatan: '', gol: '' };
+    }
+
     function cetakItem(id) {
       var item = mainData.find(function(a) { return a.id === id; });
       if (!item) return;
+      document.getElementById('cetak-id').value = id;
+      document.getElementById('cetak-nomor').value = item.nomorSuratTugas || '';
+      document.getElementById('cetak-tanggal').value = item.tanggal || '';
+      document.getElementById('cetak-dasar').value = '';
+      document.getElementById('cetak-untuk').value = item.perihal || '';
+      document.getElementById('cetak-tujuan').value = item.tujuan || '';
+      document.getElementById('cetak-lamanya').value = item.lamanya || '';
+      document.getElementById('cetak-berangkat').value = item.tglBerangkat || '';
+      document.getElementById('cetak-kembali').value = item.tglKembali || '';
+      // default tempat ttd dari tanggal surat
+      document.getElementById('cetak-tempat-ttd').value = 'Barabai, ' + (item.tanggal || '');
+
+      var names = parseNamaLines(item.nama);
+      cetakPegawaiRows = names.map(function(n) {
+        var a = matchAsn(n);
+        return { nama: a.nama || n, nip: a.nip || '', pangkat: a.gol || '', jabatan: a.jabatan || '' };
+      });
+      if (!cetakPegawaiRows.length) cetakPegawaiRows = [{ nama: '', nip: '', pangkat: '', jabatan: '' }];
+      renderCetakPegawai();
+      new bootstrap.Modal(document.getElementById('modalCetak')).show();
+    }
+
+    function renderCetakPegawai() {
+      var box = document.getElementById('cetak-pegawai-list');
+      box.innerHTML = '';
+      cetakPegawaiRows.forEach(function(p, i) {
+        box.innerHTML +=
+          '<div class="border rounded p-2 mb-2 bg-white" data-idx="' + i + '">' +
+          '<div class="d-flex justify-content-between align-items-center mb-1">' +
+          '<strong class="small">Pegawai #' + (i + 1) + '</strong>' +
+          (cetakPegawaiRows.length > 1 ? '<button type="button" class="btn btn-sm btn-outline-danger py-0" onclick="hapusBarisPegawai(' + i + ')"><i class="fas fa-times"></i></button>' : '') +
+          '</div>' +
+          '<div class="row g-2">' +
+          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Nama" value="' + escapeHtml(p.nama) + '" onchange="cetakPegawaiRows[' + i + '].nama=this.value"></div>' +
+          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="NIP" value="' + escapeHtml(p.nip) + '" onchange="cetakPegawaiRows[' + i + '].nip=this.value"></div>' +
+          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Pangkat/Gol" value="' + escapeHtml(p.pangkat) + '" onchange="cetakPegawaiRows[' + i + '].pangkat=this.value"></div>' +
+          '<div class="col-md-6"><input class="form-control form-control-sm" placeholder="Jabatan" value="' + escapeHtml(p.jabatan) + '" onchange="cetakPegawaiRows[' + i + '].jabatan=this.value"></div>' +
+          '</div></div>';
+      });
+    }
+
+    function tambahBarisPegawai() {
+      cetakPegawaiRows.push({ nama: '', nip: '', pangkat: '', jabatan: '' });
+      renderCetakPegawai();
+    }
+    function hapusBarisPegawai(i) {
+      cetakPegawaiRows.splice(i, 1);
+      if (!cetakPegawaiRows.length) cetakPegawaiRows.push({ nama: '', nip: '', pangkat: '', jabatan: '' });
+      renderCetakPegawai();
+    }
+
+    function prosesCetak() {
+      // sync input values from DOM (onchange may miss if not blurred)
+      var box = document.getElementById('cetak-pegawai-list');
+      var cards = box.querySelectorAll('[data-idx]');
+      cards.forEach(function(card) {
+        var i = parseInt(card.getAttribute('data-idx'), 10);
+        var inputs = card.querySelectorAll('input');
+        if (inputs[0]) cetakPegawaiRows[i].nama = inputs[0].value;
+        if (inputs[1]) cetakPegawaiRows[i].nip = inputs[1].value;
+        if (inputs[2]) cetakPegawaiRows[i].pangkat = inputs[2].value;
+        if (inputs[3]) cetakPegawaiRows[i].jabatan = inputs[3].value;
+      });
+
+      var nomor = document.getElementById('cetak-nomor').value;
+      var dasarRaw = document.getElementById('cetak-dasar').value.trim();
+      var untuk = document.getElementById('cetak-untuk').value.trim();
+      var tujuan = document.getElementById('cetak-tujuan').value;
+      var lamanya = document.getElementById('cetak-lamanya').value;
+      var berangkat = document.getElementById('cetak-berangkat').value;
+      var kembali = document.getElementById('cetak-kembali').value;
+      var tempatTtd = document.getElementById('cetak-tempat-ttd').value;
+      var jabatanTtd = document.getElementById('cetak-jabatan-ttd').value;
+      var namaTtd = document.getElementById('cetak-nama-ttd').value;
+      var nipTtd = document.getElementById('cetak-nip-ttd').value;
+      var pangkatTtd = document.getElementById('cetak-pangkat-ttd').value;
+
+      if (!dasarRaw) {
+        Swal.fire('Perhatian', 'Isi field Dasar terlebih dahulu.', 'warning');
+        return;
+      }
+      if (!untuk) {
+        Swal.fire('Perhatian', 'Isi field Untuk (uraian tugas).', 'warning');
+        return;
+      }
+
+      var dasarLines = dasarRaw.split(/\n/).map(function(s) { return s.replace(/^[\s\-–•]+/, '').trim(); }).filter(Boolean);
+      var pegawai = cetakPegawaiRows.filter(function(p) { return (p.nama || '').trim(); });
+      if (!pegawai.length) {
+        Swal.fire('Perhatian', 'Minimal 1 pegawai.', 'warning');
+        return;
+      }
+
+      // KOP dari localStorage profil bila ada
+      var kopInstansi = localStorage.getItem('kop_instansi') || 'PEMERINTAH KABUPATEN HULU SUNGAI TENGAH';
+      var kopUnit = localStorage.getItem('kop_unit') || 'DINAS PEMBERDAYAAN MASYARAKAT DAN DESA';
+      var kopAlamat = localStorage.getItem('kop_alamat') || 'Jalan Abdul Muis Ridhani Nomor 64, Barabai, Hulu Sungai Tengah, Kalimantan Selatan 71312';
+      var kopEmail = localStorage.getItem('kop_email') || 'dinaspmd@hstkab.go.id';
+      var kopLaman = localStorage.getItem('kop_laman') || 'dinaspmd.hstkab.go.id';
+      var kopLogo = localStorage.getItem('kop_logo') || '';
+
+      var dasarHtml = dasarLines.map(function(l) { return '<div style="margin-bottom:4px;">- ' + escapeHtml(l) + '</div>'; }).join('');
+
+      var kepadaHtml = '';
+      if (pegawai.length <= 2) {
+        // Format foto 1: daftar per orang
+        kepadaHtml = pegawai.map(function(p) {
+          return '<div style="margin-bottom:12px;">' +
+            '<div>Nama&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.nama) + '</div>' +
+            '<div>Pangkat/Gol&nbsp;: ' + escapeHtml(p.pangkat || '-') + '</div>' +
+            '<div>NIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.nip || '-') + '</div>' +
+            '<div>Jabatan&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ' + escapeHtml(p.jabatan || '-') + '</div>' +
+            '</div>';
+        }).join('');
+      } else {
+        // Format foto 2: tabel
+        kepadaHtml = '<table style="width:100%; border-collapse:collapse; font-size:12px; margin-top:4px;" border="1" cellpadding="4">' +
+          '<thead><tr style="background:#f0f0f0;"><th width="30">No</th><th>Nama/NIP</th><th>Pangkat</th><th>Jabatan</th></tr></thead><tbody>';
+        pegawai.forEach(function(p, i) {
+          kepadaHtml += '<tr>' +
+            '<td style="text-align:center;">' + (i + 1) + '</td>' +
+            '<td>' + escapeHtml(p.nama) + (p.nip ? '<br>NIP ' + escapeHtml(p.nip) : '') + '</td>' +
+            '<td>' + escapeHtml(p.pangkat || '-') + '</td>' +
+            '<td>' + escapeHtml(p.jabatan || '-') + '</td>' +
+            '</tr>';
+        });
+        kepadaHtml += '</tbody></table>';
+      }
+
+      var logoHtml = kopLogo
+        ? '<img src="' + kopLogo + '" style="width:70px;height:auto;">'
+        : '<div style="width:70px;height:70px;border:1px solid #999;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;">LOGO</div>';
+
+      var htmlPrint =
+        '<div style="font-family:\'Times New Roman\',Times,serif; font-size:13px; color:#000; max-width:800px; margin:0 auto; padding:16px 24px;">' +
+        // KOP
+        '<div style="display:flex; align-items:center; gap:12px; border-bottom:3px double #000; padding-bottom:8px; margin-bottom:12px;">' +
+        logoHtml +
+        '<div style="flex:1; text-align:center;">' +
+        '<div style="font-weight:bold; font-size:14px; text-transform:uppercase;">' + escapeHtml(kopInstansi) + '</div>' +
+        '<div style="font-weight:bold; font-size:15px; text-transform:uppercase;">' + escapeHtml(kopUnit) + '</div>' +
+        '<div style="font-size:11px;">' + escapeHtml(kopAlamat) + '</div>' +
+        '<div style="font-size:11px;">Pos-el ' + escapeHtml(kopEmail) + '; Laman ' + escapeHtml(kopLaman) + '</div>' +
+        '</div></div>' +
+        // Judul
+        '<div style="text-align:center; margin:14px 0 8px;">' +
+        '<div style="font-weight:bold; font-size:15px; letter-spacing:1px;">SURAT TUGAS</div>' +
+        '<div>NOMOR : ' + escapeHtml(nomor) + '</div>' +
+        '</div>' +
+        // Dasar
+        '<table style="width:100%; margin-top:10px; font-size:13px;"><tr>' +
+        '<td style="width:70px; vertical-align:top; font-weight:bold;">Dasar</td>' +
+        '<td style="width:12px; vertical-align:top;">:</td>' +
+        '<td>' + dasarHtml + '</td></tr></table>' +
+        // MEMERINTAHKAN
+        '<div style="text-align:center; font-weight:bold; margin:16px 0 10px;">MEMERINTAHKAN</div>' +
+        // Kepada
+        '<table style="width:100%; font-size:13px;"><tr>' +
+        '<td style="width:70px; vertical-align:top; font-weight:bold;">Kepada</td>' +
+        '<td style="width:12px; vertical-align:top;">:</td>' +
+        '<td>' + kepadaHtml + '</td></tr></table>' +
+        // Untuk
+        '<table style="width:100%; margin-top:10px; font-size:13px;"><tr>' +
+        '<td style="width:70px; vertical-align:top; font-weight:bold;">Untuk</td>' +
+        '<td style="width:12px; vertical-align:top;">:</td>' +
+        '<td>' + escapeHtml(untuk) + '</td></tr></table>' +
+        // Tujuan dll
+        '<table style="width:100%; margin-top:8px; font-size:13px;">' +
+        '<tr><td style="width:70px; font-weight:bold;">Tujuan</td><td style="width:12px;">:</td><td>' + escapeHtml(tujuan) + '</td></tr>' +
+        '<tr><td style="font-weight:bold;">Selama</td><td>:</td><td>' + escapeHtml(lamanya) + '</td></tr>' +
+        '<tr><td style="font-weight:bold;">Tanggal Berangkat</td><td>:</td><td>' + escapeHtml(berangkat) + '</td></tr>' +
+        '<tr><td style="font-weight:bold;">Tanggal Kembali</td><td>:</td><td>' + escapeHtml(kembali) + '</td></tr>' +
+        '</table>' +
+        '<p style="margin-top:14px;">Demikian surat tugas ini dibuat agar dilaksanakan dengan penuh tanggung jawab.</p>' +
+        // TTD
+        '<div style="margin-top:28px; text-align:right; padding-right:20px;">' +
+        '<div>' + escapeHtml(tempatTtd) + '</div>' +
+        '<div>' + escapeHtml(jabatanTtd) + '</div>' +
+        '<div style="height:70px;"></div>' +
+        '<div style="font-weight:bold; text-decoration:underline;">' + escapeHtml(namaTtd) + '</div>' +
+        '<div>' + escapeHtml(pangkatTtd) + '</div>' +
+        '<div>NIP ' + escapeHtml(nipTtd) + '</div>' +
+        '</div>' +
+        '</div>';
+
       var area = document.getElementById('print-area');
       area.classList.remove('d-none');
-      area.innerHTML =
-        '<div style="font-family:Times New Roman,serif; padding:24px;">' +
-        '<h3 style="text-align:center; margin-bottom:4px;">SURAT TUGAS</h3>' +
-        '<p style="text-align:center; margin-top:0;">Nomor: <strong>' + escapeHtml(item.nomorSuratTugas) + '</strong></p>' +
-        '<table style="width:100%; border-collapse:collapse; margin-top:20px; font-size:14px;">' +
-        '<tr><td width="30%">Tanggal</td><td>: ' + item.tanggal + '</td></tr>' +
-        '<tr><td>Nama</td><td style="white-space:pre-line">: ' + escapeHtml(item.nama) + '</td></tr>' +
-        '<tr><td>Tujuan</td><td>: ' + escapeHtml(item.tujuan) + '</td></tr>' +
-        '<tr><td>Tanggal Berangkat</td><td>: ' + item.tglBerangkat + '</td></tr>' +
-        '<tr><td>Tanggal Kembali</td><td>: ' + item.tglKembali + '</td></tr>' +
-        '<tr><td>Lamanya</td><td>: ' + escapeHtml(item.lamanya) + '</td></tr>' +
-        '<tr><td>Perihal</td><td style="white-space:pre-line">: ' + escapeHtml(item.perihal) + '</td></tr>' +
-        '</table>' +
-        '<p style="margin-top:40px; text-align:right;">Mengetahui,</p>' +
-        '<p style="text-align:right; margin-top:60px;">________________________</p>' +
-        '</div>';
-      window.print();
-      setTimeout(function() { area.classList.add('d-none'); area.innerHTML = ''; }, 500);
+      area.innerHTML = htmlPrint;
+      // tutup modal dulu
+      var modalEl = document.getElementById('modalCetak');
+      var modalInst = bootstrap.Modal.getInstance(modalEl);
+      if (modalInst) modalInst.hide();
+      setTimeout(function() {
+        window.print();
+        setTimeout(function() { area.classList.add('d-none'); area.innerHTML = ''; }, 800);
+      }, 300);
     }
 
     function hapusItem(id) {
